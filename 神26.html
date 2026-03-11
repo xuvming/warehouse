@@ -1,0 +1,2065 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- PWA 核心元标签 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimal-ui">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#16213e">
+    <meta name="application-name" content="神经重塑训练播放器">
+    <meta name="apple-mobile-web-app-title" content="神经重塑训练">
+    <title>神经重塑训练播放器 (PWA·强制切换版)</title>
+    <!-- Chart.js 外部库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- 内联 PWA Manifest (初始占位，随后由canvas填充) -->
+    <script type="application/manifest+json" id="pwaManifest">
+        {
+            "name": "神经重塑训练播放器",
+            "short_name": "神经重塑训练",
+            "description": "Worker强制切换版，锁屏自动切歌，30分钟神经重塑音频训练",
+            "start_url": "./",
+            "display": "standalone",
+            "orientation": "portrait",
+            "background_color": "#16213e",
+            "theme_color": "#00d4aa",
+            "icons": [
+                { "src": "", "sizes": "72x72", "type": "image/png", "purpose": "maskable any" },
+                { "src": "", "sizes": "192x192", "type": "image/png", "purpose": "maskable any" },
+                { "src": "", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+            ]
+        }
+    </script>
+    <!-- 苹果触摸图标占位，稍后由canvas赋值 -->
+    <link rel="apple-touch-icon" sizes="180x180" id="appleTouchIcon" href="">
+    <style>
+        /* ========== 原版完整样式 (未作任何删减) ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 {
+            font-size: 24px;
+            background: linear-gradient(90deg, #00d4aa, #00a8e8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .save-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 212, 170, 0.2);
+            border: 1px solid #00d4aa;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: #00d4aa;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        .save-status.show { opacity: 1; }
+        .bg-mode-badge {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 212, 170, 0.2);
+            border: 1px solid #00d4aa;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 10px;
+            color: #00d4aa;
+            display: none;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+        .bg-mode-badge.show { display: block; }
+        .progress-ring {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .progress-ring svg {
+            width: 200px;
+            height: 200px;
+            transform: rotate(-90deg);
+        }
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 8;
+        }
+        .progress-ring .bg {
+            stroke: #2d3748;
+        }
+        .progress-ring .progress {
+            stroke: url(#gradient);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.3s linear;
+        }
+        .time-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+            padding: 0 10px;
+        }
+        .time-display .current {
+            font-size: 48px;
+            font-weight: 700;
+            color: #00d4aa;
+            line-height: 1.2;
+            text-shadow: 0 0 10px rgba(0,212,170,0.3);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        .time-display .total {
+            font-size: 16px;
+            color: #8892b0;
+            margin-top: 5px;
+            font-weight: 400;
+            opacity: 0.8;
+        }
+        .time-display .percentage {
+            font-size: 14px;
+            color: #00d4aa;
+            margin-top: 5px;
+            opacity: 0.7;
+            font-weight: 300;
+        }
+        .time-progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .time-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4aa, #00a8e8);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .stage-info {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 16px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stage-number {
+            display: inline-block;
+            background: linear-gradient(90deg, #00d4aa, #00a8e8);
+            color: #1a1a2e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .stage-title { 
+            font-size: 20px; 
+            margin-bottom: 8px; 
+            font-weight: 600;
+            color: #fff;
+        }
+        .stage-detail { 
+            color: #8892b0; 
+            font-size: 13px; 
+            line-height: 1.8; 
+        }
+        .stage-detail span { 
+            color: #00d4aa; 
+            font-weight: 500;
+        }
+        .controls { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 25px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4aa, #00a8e8);
+            color: #1a1a2e;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 212, 170, 0.3); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn-warning {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+        .playlist { width: 100%; max-width: 400px; }
+        .playlist h3 { font-size: 12px; color: #8892b0; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .track {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s;
+        }
+        .track.active { background: rgba(0, 212, 170, 0.1); border-color: #00d4aa; }
+        .track-number {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; margin-right: 10px;
+        }
+        .track.active .track-number { background: #00d4aa; color: #1a1a2e; }
+        .track-info { flex: 1; }
+        .track-name { font-size: 13px; margin-bottom: 2px; }
+        .track-bpm { font-size: 11px; color: #8892b0; }
+        .track-time { font-size: 11px; color: #8892b0; }
+        .breathing-guide {
+            position: fixed;
+            bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            padding: 14px 20px;
+            border-radius: 30px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #00d4aa;
+            z-index: 100;
+        }
+        .breathing-guide.show { display: flex; }
+        .breath-circle {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: #00d4aa;
+            animation: breathe 10s infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            40% { transform: scale(1.3); opacity: 1; }
+            60% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.6; }
+        }
+        .breath-text { font-size: 13px; color: #00d4aa; }
+        .stats-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stats-section h4 {
+            font-size: 14px;
+            color: #00d4aa;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00d4aa;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #8892b0;
+            margin-top: 4px;
+        }
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 16px;
+        }
+        .chart-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .chart-tab {
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            color: #8892b0;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .chart-tab.active {
+            background: rgba(0, 212, 170, 0.2);
+            border-color: #00d4aa;
+            color: #00d4aa;
+        }
+        .data-management {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .data-management h4 {
+            font-size: 13px;
+            color: #8892b0;
+            margin-bottom: 12px;
+        }
+        .data-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .storage-info {
+            font-size: 11px;
+            color: #8892b0;
+            margin-top: 8px;
+        }
+        .auto-save-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle-switch.active { background: #00d4aa; }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .toggle-switch.active::after { transform: translateX(20px); }
+        .interact-tip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #00d4aa;
+            border-radius: 30px;
+            padding: 20px 40px;
+            font-size: 18px;
+            color: #00d4aa;
+            z-index: 3000;
+            display: none;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0,212,170,0.5);
+            animation: pulse 2s infinite;
+        }
+        .interact-tip.show { display: block; }
+        @keyframes pulse {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .file-input {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 16px;
+            border: 1px dashed #00d4aa;
+        }
+        .file-input h4 { font-size: 13px; color: #00d4aa; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .file-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        .file-row input[type="file"] { display: none; }
+        .file-btn {
+            padding: 6px 12px;
+            background: rgba(0, 212, 170, 0.2);
+            border: 1px solid #00d4aa;
+            border-radius: 15px;
+            color: #00d4aa;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .file-btn:hover { background: rgba(0, 212, 170, 0.3); }
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .file-name {
+            color: #8892b0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+        }
+        .file-name.loaded { color: #00d4aa; }
+        .file-meta {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+        }
+        .file-meta.warning { color: #ffc107; }
+        .file-meta.error { color: #ff6b6b; }
+        .file-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .file-action-btn {
+            padding: 4px 8px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 10px;
+            color: #8892b0;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .file-action-btn:hover { color: #fff; background: rgba(255,255,255,0.2); }
+        .compress-btn {
+            padding: 4px 10px;
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            color: #ffc107;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .music-status {
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid #00d4aa;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .music-status .label { font-size: 12px; color: #8892b0; margin-bottom: 4px; }
+        .music-status .song { font-size: 16px; color: #00d4aa; font-weight: 600; }
+        .music-status .note { font-size: 12px; color: #8892b0; margin-top: 8px; }
+        /* 隐藏canvas图标生成器 */
+        #iconGenerator { position: absolute; top: -9999px; left: -9999px; opacity: 0; }
+    </style>
+    <!-- 图标生成器：Canvas绘制PWA图标并注入manifest (独立运行，不干扰原逻辑) -->
+    <canvas id="iconGenerator" width="512" height="512"></canvas>
+    <script>
+        (function generatePWAIcons() {
+            try {
+                const canvas = document.getElementById('iconGenerator');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                // 背景 (圆形安全区)
+                ctx.beginPath();
+                ctx.arc(w/2, h/2, w/2, 0, 2 * Math.PI);
+                ctx.fillStyle = '#16213e';
+                ctx.fill();
+                ctx.clip(); // 确保图标在圆形内
+                // 绘制音频波纹
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    const r = 100 + i * 40;
+                    ctx.arc(w/2, h/2, r, 0.2 * Math.PI, 1.8 * Math.PI);
+                    ctx.lineWidth = 16 - i * 4;
+                    ctx.strokeStyle = `rgba(0, 212, 170, ${0.8 - i * 0.2})`;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+                // 绘制神经节点
+                const nodes = [
+                    [w/2 - 80, h/2], [w/2 - 40, h/2 - 60], [w/2, h/2 - 80],
+                    [w/2 + 40, h/2 - 60], [w/2 + 80, h/2], [w/2 + 40, h/2 + 60],
+                    [w/2, h/2 + 80], [w/2 - 40, h/2 + 60]
+                ];
+                nodes.forEach(([x, y]) => {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 16, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#00d4aa';
+                    ctx.fill();
+                    ctx.strokeStyle = '#00a8e8';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                });
+                // 生成不同尺寸的base64
+                const getBase64 = (size) => {
+                    const temp = document.createElement('canvas');
+                    temp.width = size; temp.height = size;
+                    temp.getContext('2d').drawImage(canvas, 0, 0, size, size);
+                    return temp.toDataURL('image/png');
+                };
+                const icon512 = getBase64(512);
+                const icon192 = getBase64(192);
+                const icon72 = getBase64(72);
+                const icon180 = getBase64(180); // 苹果触摸图标
+
+                // 更新manifest
+                const manifestEl = document.getElementById('pwaManifest');
+                if (manifestEl) {
+                    const manifest = JSON.parse(manifestEl.textContent);
+                    manifest.icons[0].src = icon72;
+                    manifest.icons[1].src = icon192;
+                    manifest.icons[2].src = icon512;
+                    manifestEl.textContent = JSON.stringify(manifest);
+                    // 添加link manifest (部分浏览器需要)
+                    const link = document.createElement('link');
+                    link.rel = 'manifest';
+                    link.href = 'data:application/manifest+json;base64,' + btoa(JSON.stringify(manifest));
+                    document.head.appendChild(link);
+                }
+                // 更新苹果触摸图标
+                const appleIcon = document.getElementById('appleTouchIcon');
+                if (appleIcon) appleIcon.href = icon180;
+            } catch (e) {
+                console.warn('PWA图标生成失败 (不影响核心功能)', e);
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="save-status" id="saveStatus">✓ 已自动保存</div>
+    <div class="bg-mode-badge" id="bgModeBadge">🔊 后台播放中</div>
+    <div class="interact-tip" id="interactTip">👆 点击任意位置开始</div>
+    
+    <svg width="0" height="0">
+        <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00d4aa" />
+                <stop offset="100%" stop-color="#00a8e8" />
+            </linearGradient>
+        </defs>
+    </svg>
+    
+    <div class="header">
+        <h1>神经重塑训练播放器</h1>
+        <p>Worker强制切换版 | 锁屏自动切歌 | PWA可安装</p>
+    </div>
+    
+    <div class="music-status" id="musicStatus">
+        <div class="label">当前播放模式</div>
+        <div class="song" id="currentMode">准备开始</div>
+        <div class="note">点击页面激活音频 | 锁屏自动切换音乐 | 支持桌面安装</div>
+    </div>
+    
+    <div class="file-input" id="fileInput">
+        <h4>📁 上传5首训练音乐</h4>
+        <!-- 文件上传行 -->
+        <div class="file-row">
+            <label class="file-btn" onclick="document.getElementById('file1').click()">选择</label>
+            <input type="file" id="file1" accept="audio/mp3,audio/mpeg,audio/wav" onchange="loadFile(1, this)">
+            <div class="file-info">
+                <span class="file-name" id="name1">1. 将军令 琵琶版 (72 BPM)</span>
+                <span class="file-meta" id="meta1">未上传</span>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn" onclick="clearFile(1)">✕</button>
+            </div>
+        </div>
+        <div class="file-row">
+            <label class="file-btn" onclick="document.getElementById('file2').click()">选择</label>
+            <input type="file" id="file2" accept="audio/mp3,audio/mpeg,audio/wav" onchange="loadFile(2, this)">
+            <div class="file-info">
+                <span class="file-name" id="name2">2. 醉拳 成龙 (108 BPM)</span>
+                <span class="file-meta" id="meta2">未上传</span>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn" onclick="clearFile(2)">✕</button>
+            </div>
+        </div>
+        <div class="file-row">
+            <label class="file-btn" onclick="document.getElementById('file3').click()">选择</label>
+            <input type="file" id="file3" accept="audio/mp3,audio/mpeg,audio/wav" onchange="loadFile(3, this)">
+            <div class="file-info">
+                <span class="file-name" id="name3">3. 流水 古琴 (66 BPM)</span>
+                <span class="file-meta" id="meta3">未上传</span>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn" onclick="clearFile(3)">✕</button>
+            </div>
+        </div>
+        <div class="file-row">
+            <label class="file-btn" onclick="document.getElementById('file4').click()">选择</label>
+            <input type="file" id="file4" accept="audio/mp3,audio/mpeg,audio/wav" onchange="loadFile(4, this)">
+            <div class="file-info">
+                <span class="file-name" id="name4">4. 笑傲江湖曲 (82 BPM)</span>
+                <span class="file-meta" id="meta4">未上传</span>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn" onclick="clearFile(4)">✕</button>
+            </div>
+        </div>
+        <div class="file-row">
+            <label class="file-btn" onclick="document.getElementById('file5').click()">选择</label>
+            <input type="file" id="file5" accept="audio/mp3,audio/mpeg,audio/wav" onchange="loadFile(5, this)">
+            <div class="file-info">
+                <span class="file-name" id="name5">5. 太极张三丰 (60 BPM)</span>
+                <span class="file-meta" id="meta5">未上传</span>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn" onclick="clearFile(5)">✕</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="progress-ring">
+        <svg width="200" height="200">
+            <circle class="bg" cx="100" cy="100" r="90"></circle>
+            <circle class="progress" cx="100" cy="100" r="90" stroke-dasharray="565.49" stroke-dashoffset="565.49"></circle>
+        </svg>
+        <div class="time-display">
+            <div class="current" id="currentTime">00:00</div>
+            <div class="total" id="totalTime">/ 30:00</div>
+            <div class="percentage" id="timePercentage">0%</div>
+        </div>
+    </div>
+    
+    <div class="time-progress-bar">
+        <div class="time-progress-fill" id="timeProgressFill" style="width: 0%"></div>
+    </div>
+    
+    <div class="stage-info" id="stageInfo">
+        <span class="stage-number">阶段 1/5</span>
+        <div class="stage-title" id="stageTitle">准备开始</div>
+        <div class="stage-detail" id="stageDetail">
+            上传5首MP3文件，或直接使用节拍器模式<br>
+            配合4-6呼吸法：吸气4秒 → 屏息 → 呼气6秒<br>
+            <span>提示：</span>锁屏自动切换音乐，无需解锁 | 支持安装到手机桌面
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">开始训练</button>
+        <button class="btn btn-secondary" onclick="reset()">重置</button>
+        <button class="btn btn-warning" onclick="exportData()">导出数据</button>
+    </div>
+    
+    <div class="playlist">
+        <h3>训练曲目</h3>
+        <div id="trackList"></div>
+    </div>
+    
+    <!-- 统计图表区域 -->
+    <div class="stats-section">
+        <h4>📊 训练统计</h4>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalSessions">0</div>
+                <div class="stat-label">完成次数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalMinutes">0</div>
+                <div class="stat-label">总分钟数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="currentStreak">0</div>
+                <div class="stat-label">连续天数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="lastTraining">-</div>
+                <div class="stat-label">上次训练</div>
+            </div>
+        </div>
+        
+        <div class="chart-tabs">
+            <div class="chart-tab active" onclick="switchChart('weekly', this)">本周</div>
+            <div class="chart-tab" onclick="switchChart('monthly', this)">本月</div>
+            <div class="chart-tab" onclick="switchChart('yearly', this)">全年</div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="trainingChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="data-management">
+        <h4>💾 数据管理</h4>
+        <div class="auto-save-toggle">
+            <div class="toggle-switch active" id="autoSaveToggle" onclick="toggleAutoSave()"></div>
+            <span>自动保存已启用</span>
+        </div>
+        <div class="data-row">
+            <button class="btn btn-secondary" onclick="importData()">导入数据</button>
+            <button class="btn btn-secondary" onclick="clearAllData()">清除所有数据</button>
+        </div>
+        <div class="storage-info" id="storageInfo">计算中...</div>
+    </div>
+    
+    <div class="breathing-guide" id="breathingGuide">
+        <div class="breath-circle"></div>
+        <span class="breath-text">吸气4秒 → 呼气6秒</span>
+    </div>
+    
+    <input type="file" id="importFile" accept=".json" onchange="handleImport(this)" style="display: none;">
+    
+    <!-- ========== 原版完整JS逻辑 (未作任何修改，保证功能完整) ========== -->
+    <script>
+        // ========== 配置 ==========
+        const STORAGE_KEY = 'neuroRehabData_v21';
+        const AUTO_SAVE_KEY = 'neuroRehabAutoSave';
+        const STATS_KEY = 'neuroRehabStats';
+        
+        const stages = [
+            { name: "坐立战马", bpm: 72, duration: 300, action: "坐位平衡，双手扶膝", imagine: "想象骑战马，脊柱逐节直立" },
+            { name: "飞檐走壁", bpm: 108, duration: 420, action: "站立位，重心左右移", imagine: "想象飞檐走壁，足踝灵活调整" },
+            { name: "行云流水", bpm: 66, duration: 360, action: "慢步行走，摆臂自然", imagine: "想象行云流水，关节无阻力滑动" },
+            { name: "凌波微步", bpm: 82, duration: 360, action: "加快速度，小步跑", imagine: "想象凌波微步，轻触地面即起" },
+            { name: "脑体合一", bpm: 60, duration: 360, action: "站立深呼吸，闭眼", imagine: "想象脑体合一，气沉丹田" }
+        ];
+        
+        // ========== 状态变量 ==========
+        let currentStage = 0;
+        let isPlaying = false;
+        let totalTime = 0;
+        let audioContext = null;
+        let metronome = null;
+        let currentAudio = null;
+        let autoSaveEnabled = true;
+        let trainingChart = null;
+        let currentChartType = 'weekly';
+        
+        // 音频激活状态
+        let isAudioActivated = false;
+        
+        // Web Audio API 相关
+        let audioBuffer = null;
+        let sourceNode = null;
+        let gainNode = null;
+        let startTime = 0;
+        let pausedPosition = 0;
+        let isUsingWebAudio = false;
+        
+        // ✅ Web Worker 智能版（自带阶段判断）
+        let worker = null;
+        let workerActive = false;
+        
+        // 音频文件存储
+        let audioFiles = [null, null, null, null, null];
+        let audioFileMeta = [null, null, null, null, null];
+        
+        // 训练统计
+        let trainingStats = {
+            sessions: [],
+            totalSessions: 0,
+            totalMinutes: 0,
+            currentStreak: 0,
+            lastTrainingDate: null,
+            dailyRecords: {}
+        };
+        
+        // ========== ✅ Web Worker 智能版（自带阶段判断）==========
+        function initWorker() {
+            if (worker) {
+                worker.terminate();
+            }
+            
+            // 将阶段数据传给 Worker
+            const stagesData = stages.map(s => ({
+                duration: s.duration
+            }));
+            
+            const workerCode = `
+                // Worker 内部变量
+                let stages = ${JSON.stringify(stagesData)};
+                let totalTime = 0;
+                let currentStage = 0;
+                let interval = null;
+                let isRunning = false;
+                
+                // 计算当前阶段
+                function calculateStage(time) {
+                    let accumulated = 0;
+                    for (let i = 0; i < stages.length; i++) {
+                        if (time < accumulated + stages[i].duration) {
+                            return i;
+                        }
+                        accumulated += stages[i].duration;
+                    }
+                    return stages.length; // 完成
+                }
+                
+                self.onmessage = function(e) {
+                    const command = e.data;
+                    
+                    if (command.type === 'start') {
+                        if (isRunning) return;
+                        
+                        // 初始化
+                        totalTime = command.currentTime || 0;
+                        currentStage = calculateStage(totalTime);
+                        isRunning = true;
+                        
+                        // 每秒更新
+                        interval = setInterval(() => {
+                            if (!isRunning) return;
+                            
+                            // 时间+1秒
+                            totalTime += 1;
+                            
+                            // 计算新阶段
+                            const newStage = calculateStage(totalTime);
+                            
+                            // 如果阶段变化了
+                            if (newStage !== currentStage) {
+                                currentStage = newStage;
+                                
+                                // ✅ 强制通知主线程切换！
+                                self.postMessage({
+                                    type: 'FORCE_SWITCH',
+                                    stage: currentStage,
+                                    totalTime: totalTime
+                                });
+                            }
+                            
+                            // 发送时间更新
+                            self.postMessage({
+                                type: 'tick',
+                                totalTime: totalTime
+                            });
+                            
+                        }, 1000);
+                    }
+                    
+                    else if (command.type === 'stop') {
+                        if (interval) {
+                            clearInterval(interval);
+                            interval = null;
+                        }
+                        isRunning = false;
+                    }
+                    
+                    else if (command.type === 'sync') {
+                        totalTime = command.currentTime;
+                        currentStage = calculateStage(totalTime);
+                    }
+                };
+            `;
+            
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            worker = new Worker(URL.createObjectURL(blob));
+            
+            worker.onmessage = (e) => {
+                const data = e.data;
+                
+                if (data.type === 'tick') {
+                    // 更新时间
+                    totalTime = data.totalTime;
+                    updateDisplay();
+                    
+                    // 每30秒保存一次
+                    if (totalTime % 30 === 0) {
+                        saveData();
+                    }
+                }
+                
+                else if (data.type === 'FORCE_SWITCH') {
+                    // ✅ 强制切换！Worker检测到阶段变化
+                    console.log('Worker强制切换阶段:', data.stage);
+                    
+                    if (data.stage >= stages.length) {
+                        // 训练完成
+                        complete();
+                    } else {
+                        // 强制切换音乐！
+                        forceSwitchStage(data.stage);
+                    }
+                }
+            };
+        }
+        
+        // ✅ 强制切换阶段（即使主线程被冻结也要执行）
+        function forceSwitchStage(targetStage) {
+            // 移除旧阶段高亮
+            document.getElementById(`track${currentStage}`).classList.remove('active');
+            
+            // 设置新阶段
+            currentStage = targetStage;
+            pausedPosition = 0;
+            
+            // 添加新阶段高亮
+            document.getElementById(`track${currentStage}`).classList.add('active');
+            
+            // 更新阶段信息
+            updateStageInfo();
+            
+            // ✅ 立即切换音乐！
+            if (isPlaying) {
+                playStageMusic(currentStage, 0);
+            }
+            
+            // 保存数据
+            saveData();
+            
+            // 显示切换提示
+            console.log(`已强制切换到阶段 ${targetStage + 1}`);
+        }
+        
+        function startWorker() {
+            if (worker && !workerActive) {
+                worker.postMessage({ 
+                    type: 'start',
+                    currentTime: totalTime 
+                });
+                workerActive = true;
+            }
+        }
+        
+        function stopWorker() {
+            if (worker && workerActive) {
+                worker.postMessage({ type: 'stop' });
+                workerActive = false;
+            }
+        }
+        
+        function syncWorker() {
+            if (worker && workerActive) {
+                worker.postMessage({ 
+                    type: 'sync',
+                    currentTime: totalTime 
+                });
+            }
+        }
+        
+        // ========== 前台备用计时器（提高响应速度）==========
+        let rafTimer = null;
+        
+        function startRafTimer() {
+            if (rafTimer) {
+                cancelAnimationFrame(rafTimer);
+            }
+            
+            function tick() {
+                if (!isPlaying) {
+                    rafTimer = requestAnimationFrame(tick);
+                    return;
+                }
+                
+                // 前台只更新显示，时间由Worker加
+                updateDisplay();
+                
+                rafTimer = requestAnimationFrame(tick);
+            }
+            
+            rafTimer = requestAnimationFrame(tick);
+        }
+        
+        function stopRafTimer() {
+            if (rafTimer) {
+                cancelAnimationFrame(rafTimer);
+                rafTimer = null;
+            }
+        }
+        
+        // ========== 格式化时间 ==========
+        function formatTime(seconds) {
+            if (seconds < 0) seconds = 0;
+            
+            const hours = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            if (hours > 0) {
+                return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        function getTotalDuration() {
+            return stages.reduce((sum, s) => sum + s.duration, 0);
+        }
+        
+        function getProgressPercentage() {
+            const total = getTotalDuration();
+            return Math.min(Math.round((totalTime / total) * 100), 100);
+        }
+        
+        function updateDisplay() {
+            const currentTimeEl = document.getElementById('currentTime');
+            const totalTimeEl = document.getElementById('totalTime');
+            const percentageEl = document.getElementById('timePercentage');
+            const progressFill = document.getElementById('timeProgressFill');
+            
+            currentTimeEl.textContent = formatTime(totalTime);
+            
+            const totalDuration = getTotalDuration();
+            totalTimeEl.textContent = `/ ${formatTime(totalDuration)}`;
+            
+            const percentage = getProgressPercentage();
+            percentageEl.textContent = `${percentage}%`;
+            
+            const circumference = 565.49;
+            const offset = circumference - (percentage / 100 * circumference);
+            document.querySelector('.progress').style.strokeDashoffset = offset;
+            
+            progressFill.style.width = `${percentage}%`;
+        }
+        
+        // ========== 音频激活 ==========
+        function setupAudioActivation() {
+            const tip = document.getElementById('interactTip');
+            tip.classList.add('show');
+            
+            document.body.addEventListener('click', function activateAudio() {
+                tip.classList.remove('show');
+                
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    gainNode = audioContext.createGain();
+                    gainNode.gain.value = 1.0;
+                    gainNode.connect(audioContext.destination);
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('AudioContext已激活');
+                        isAudioActivated = true;
+                    });
+                } else {
+                    isAudioActivated = true;
+                }
+                
+                document.body.removeEventListener('click', activateAudio);
+            }, { once: true });
+        }
+        
+        // ========== Web Audio API ==========
+        async function initWebAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = 1.0;
+                gainNode.connect(audioContext.destination);
+            }
+            
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+            
+            return audioContext;
+        }
+        
+        async function playWithWebAudio(arrayBuffer, startPosition = 0) {
+            try {
+                await initWebAudio();
+                
+                stopWebAudio();
+                
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+                
+                sourceNode = audioContext.createBufferSource();
+                sourceNode.buffer = audioBuffer;
+                sourceNode.loop = true;
+                sourceNode.connect(gainNode);
+                
+                const offset = startPosition % audioBuffer.duration;
+                sourceNode.start(0, offset);
+                
+                // 记录开始时间
+                startTime = audioContext.currentTime - offset;
+                
+                isUsingWebAudio = true;
+                
+                return true;
+            } catch (e) {
+                console.error('Web Audio播放失败:', e);
+                return false;
+            }
+        }
+        
+        function stopWebAudio() {
+            if (sourceNode) {
+                try {
+                    sourceNode.stop();
+                } catch (e) {}
+                sourceNode.disconnect();
+                sourceNode = null;
+            }
+            isUsingWebAudio = false;
+        }
+        
+        function pauseWebAudio() {
+            if (isUsingWebAudio && sourceNode && audioContext) {
+                stopWebAudio();
+            }
+        }
+        
+        // ========== 播放函数 ==========
+        async function playStageMusic(index, startPosition = 0) {
+            if (!isAudioActivated) {
+                alert('请先点击页面任意位置激活音频！');
+                return false;
+            }
+            
+            const stage = stages[index];
+            
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            stopWebAudio();
+            stopMetronome();
+            
+            let audioLoaded = audioFiles[index] !== null;
+            if (!audioLoaded) {
+                audioLoaded = await loadAudioFile(index);
+            }
+            
+            if (audioLoaded && audioFiles[index]) {
+                try {
+                    const response = await fetch(audioFiles[index]);
+                    const arrayBuffer = await response.arrayBuffer();
+                    
+                    const success = await playWithWebAudio(arrayBuffer, startPosition);
+                    
+                    if (success) {
+                        let positionInfo = startPosition > 0 ? ` (续播 ${formatTime(startPosition)})` : '';
+                        document.getElementById('currentMode').textContent = `${stage.name} - ${audioFileMeta[index]?.name || '本地音乐'}${positionInfo}`;
+                        
+                        if (document.hidden) {
+                            document.getElementById('bgModeBadge').classList.add('show');
+                        }
+                        
+                        return true;
+                    } else {
+                        throw new Error('Web Audio播放失败');
+                    }
+                    
+                } catch (e) {
+                    console.error('音频播放失败:', e);
+                    try {
+                        currentAudio = new Audio(audioFiles[index]);
+                        currentAudio.loop = true;
+                        if (startPosition > 0) {
+                            currentAudio.currentTime = startPosition;
+                        }
+                        await currentAudio.play();
+                        document.getElementById('currentMode').textContent = `${stage.name} - ${audioFileMeta[index]?.name || '本地音乐'} (降级模式)`;
+                        return true;
+                    } catch (e2) {
+                        startMetronome(stage.bpm);
+                        document.getElementById('currentMode').textContent = `${stage.name} - 节拍器`;
+                        return false;
+                    }
+                }
+            } else {
+                startMetronome(stage.bpm);
+                document.getElementById('currentMode').textContent = `${stage.name} - 节拍器 ${stage.bpm} BPM`;
+                return true;
+            }
+        }
+        
+        // ========== 播放控制 ==========
+        async function play() {
+            if (!isAudioActivated) {
+                alert('请先点击页面任意位置激活音频！');
+                return;
+            }
+            
+            isPlaying = true;
+            document.getElementById('playBtn').textContent = '暂停';
+            document.getElementById('breathingGuide').classList.add('show');
+            
+            const success = await playStageMusic(currentStage, pausedPosition);
+            if (!success) {
+                isPlaying = false;
+                document.getElementById('playBtn').textContent = '开始训练';
+                return;
+            }
+            
+            // ✅ 启动Worker（锁屏继续）
+            startWorker();
+            
+            // ✅ 启动前台RAF（提高响应速度）
+            startRafTimer();
+        }
+        
+        function pause() {
+            isPlaying = false;
+            document.getElementById('playBtn').textContent = '继续';
+            document.getElementById('breathingGuide').classList.remove('show');
+            document.getElementById('bgModeBadge').classList.remove('show');
+            
+            // 停止所有计时器
+            stopWorker();
+            stopRafTimer();
+            
+            // 记录暂停位置
+            const stageStartTime = getStageStartTime();
+            pausedPosition = totalTime - stageStartTime;
+            console.log('暂停位置:', pausedPosition, '秒');
+            
+            if (isUsingWebAudio) {
+                pauseWebAudio();
+            }
+            
+            if (currentAudio) {
+                pausedPosition = currentAudio.currentTime;
+                currentAudio.pause();
+            }
+            
+            stopMetronome();
+            saveData();
+        }
+        
+        async function togglePlay() {
+            if (!isAudioActivated) {
+                alert('请先点击页面任意位置激活音频！');
+                return;
+            }
+            
+            if (isPlaying) {
+                pause();
+            } else {
+                play();
+            }
+        }
+        
+        function getStageStartTime() {
+            let time = 0;
+            for (let i = 0; i < currentStage; i++) {
+                time += stages[i].duration;
+            }
+            return time;
+        }
+        
+        // ========== 页面可见性处理 ==========
+        function setupVisibilityHandling() {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    // 页面隐藏，显示后台状态
+                    if (isPlaying) {
+                        document.getElementById('bgModeBadge').classList.add('show');
+                        
+                        // 后台时停止RAF，Worker继续
+                        stopRafTimer();
+                    }
+                } else {
+                    // 页面显示，隐藏后台状态
+                    document.getElementById('bgModeBadge').classList.remove('show');
+                    
+                    // 回到前台时重新启动RAF
+                    if (isPlaying) {
+                        startRafTimer();
+                        updateDisplay();
+                    }
+                }
+            });
+        }
+        
+        // ========== 重置 ==========
+        function reset() {
+            pause();
+            currentStage = 0;
+            totalTime = 0;
+            pausedPosition = 0;
+            updateDisplay();
+            updateStageInfo();
+            document.getElementById('playBtn').textContent = '开始训练';
+            
+            // 同步Worker
+            syncWorker();
+            
+            saveData();
+        }
+        
+        // ========== 完成训练 ==========
+        function complete() {
+            pause();
+            recordSession();
+            
+            document.getElementById('stageTitle').textContent = '训练完成';
+            document.getElementById('currentMode').textContent = `恭喜完成！（累计 ${trainingStats.totalSessions} 次）`;
+            document.getElementById('stageDetail').innerHTML = 
+                '30分钟神经重塑训练已完成！<br>行云流水，指日可待。<br><span>建议：</span>每天固定时间训练，效果更佳';
+            document.getElementById('playBtn').textContent = '再来一次';
+            
+            currentStage = 0;
+            totalTime = 0;
+            pausedPosition = 0;
+            
+            saveData();
+        }
+        
+        // ========== 训练统计 ==========
+        function loadStats() {
+            const saved = localStorage.getItem(STATS_KEY);
+            if (saved) {
+                trainingStats = JSON.parse(saved);
+            }
+        }
+        
+        function saveStats() {
+            localStorage.setItem(STATS_KEY, JSON.stringify(trainingStats));
+        }
+        
+        function recordSession() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            trainingStats.sessions.push({
+                date: today,
+                timestamp: new Date().toISOString(),
+                duration: 30,
+                completed: true
+            });
+            
+            trainingStats.totalSessions++;
+            trainingStats.totalMinutes += 30;
+            
+            if (!trainingStats.dailyRecords[today]) {
+                trainingStats.dailyRecords[today] = 0;
+            }
+            trainingStats.dailyRecords[today]++;
+            
+            calculateStreak();
+            trainingStats.lastTrainingDate = today;
+            
+            saveStats();
+            updateStatsDisplay();
+            updateChart();
+        }
+        
+        function calculateStreak() {
+            const today = new Date().toISOString().split('T')[0];
+            const dates = Object.keys(trainingStats.dailyRecords).sort().reverse();
+            
+            let streak = 0;
+            let checkDate = new Date();
+            
+            for (let dateStr of dates) {
+                const date = dateStr;
+                const checkDateStr = checkDate.toISOString().split('T')[0];
+                
+                if (date === checkDateStr || (streak === 0 && date === getYesterday(checkDateStr))) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            
+            trainingStats.currentStreak = streak;
+        }
+        
+        function getYesterday(dateStr) {
+            const date = new Date(dateStr);
+            date.setDate(date.getDate() - 1);
+            return date.toISOString().split('T')[0];
+        }
+        
+        function updateStatsDisplay() {
+            document.getElementById('totalSessions').textContent = trainingStats.totalSessions;
+            document.getElementById('totalMinutes').textContent = trainingStats.totalMinutes;
+            document.getElementById('currentStreak').textContent = trainingStats.currentStreak;
+            
+            const lastDate = trainingStats.lastTrainingDate;
+            document.getElementById('lastTraining').textContent = lastDate ? 
+                new Date(lastDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) : 
+                '-';
+        }
+        
+        // ========== 图表功能 ==========
+        function initChart() {
+            const ctx = document.getElementById('trainingChart').getContext('2d');
+            
+            trainingChart = new Chart(ctx, {
+                type: 'bar',
+                data: getChartData('weekly'),
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#8892b0',
+                                font: { size: 10 },
+                                stepSize: 1
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#8892b0',
+                                font: { size: 10 }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function getChartData(type) {
+            const labels = [];
+            const data = [];
+            
+            if (type === 'weekly') {
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    const label = date.toLocaleDateString('zh-CN', { weekday: 'short' });
+                    
+                    labels.push(label);
+                    data.push(trainingStats.dailyRecords[dateStr] || 0);
+                }
+            } else if (type === 'monthly') {
+                for (let i = 3; i >= 0; i--) {
+                    const weekStart = new Date();
+                    weekStart.setDate(weekStart.getDate() - (i * 7 + 6));
+                    const weekEnd = new Date();
+                    weekEnd.setDate(weekEnd.getDate() - (i * 7));
+                    
+                    let weekCount = 0;
+                    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+                        const dateStr = d.toISOString().split('T')[0];
+                        weekCount += trainingStats.dailyRecords[dateStr] || 0;
+                    }
+                    
+                    labels.push(`${weekStart.getMonth() + 1}/${weekStart.getDate()}`);
+                    data.push(weekCount);
+                }
+            } else if (type === 'yearly') {
+                for (let i = 11; i >= 0; i--) {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() - i);
+                    const monthStr = date.toLocaleDateString('zh-CN', { month: 'short' });
+                    
+                    let monthCount = 0;
+                    const year = date.getFullYear();
+                    const month = date.getMonth();
+                    
+                    for (let day = 1; day <= 31; day++) {
+                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        monthCount += trainingStats.dailyRecords[dateStr] || 0;
+                    }
+                    
+                    labels.push(monthStr);
+                    data.push(monthCount);
+                }
+            }
+            
+            return {
+                labels: labels,
+                datasets: [{
+                    label: '训练次数',
+                    data: data,
+                    backgroundColor: 'rgba(0, 212, 170, 0.6)',
+                    borderColor: '#00d4aa',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            };
+        }
+        
+        function switchChart(type, element) {
+            currentChartType = type;
+            
+            document.querySelectorAll('.chart-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            trainingChart.data = getChartData(type);
+            trainingChart.update();
+        }
+        
+        function updateChart() {
+            trainingChart.data = getChartData(currentChartType);
+            trainingChart.update();
+        }
+        
+        // ========== 数据持久化 ==========
+        function saveData() {
+            if (!autoSaveEnabled) return;
+            
+            const data = {
+                version: 21,
+                timestamp: Date.now(),
+                currentStage: currentStage,
+                totalTime: totalTime,
+                pausedPosition: pausedPosition,
+                isPlaying: false,
+                audioFileMeta: audioFileMeta
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            showSaveStatus();
+        }
+        
+        function loadSavedData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    currentStage = data.currentStage || 0;
+                    totalTime = data.totalTime || 0;
+                    pausedPosition = data.pausedPosition || 0;
+                    
+                    if (data.audioFileMeta) {
+                        audioFileMeta = data.audioFileMeta;
+                        audioFileMeta.forEach((meta, index) => {
+                            if (meta) {
+                                loadAudioFile(index);
+                                updateFileDisplay(index + 1);
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('加载保存数据失败:', e);
+            }
+        }
+        
+        function showSaveStatus() {
+            const status = document.getElementById('saveStatus');
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 2000);
+        }
+        
+        // ========== 音频文件处理 ==========
+        async function saveAudioFile(index, file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const db = await openAudioDB();
+                        const transaction = db.transaction(['audioFiles'], 'readwrite');
+                        const store = transaction.objectStore('audioFiles');
+                        
+                        await store.put({
+                            id: index,
+                            name: file.name,
+                            type: file.type,
+                            data: e.target.result,
+                            timestamp: Date.now()
+                        });
+                        
+                        audioFileMeta[index] = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            timestamp: Date.now()
+                        };
+                        
+                        const blob = new Blob([e.target.result], { type: file.type });
+                        audioFiles[index] = URL.createObjectURL(blob);
+                        
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        async function loadAudioFile(index) {
+            return new Promise(async (resolve) => {
+                try {
+                    const db = await openAudioDB();
+                    const transaction = db.transaction(['audioFiles'], 'readonly');
+                    const store = transaction.objectStore('audioFiles');
+                    const request = store.get(index);
+                    
+                    request.onsuccess = () => {
+                        const result = request.result;
+                        if (result) {
+                            const blob = new Blob([result.data], { type: result.type });
+                            if (audioFiles[index]) {
+                                URL.revokeObjectURL(audioFiles[index]);
+                            }
+                            audioFiles[index] = URL.createObjectURL(blob);
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    };
+                    request.onerror = () => resolve(false);
+                } catch (e) {
+                    resolve(false);
+                }
+            });
+        }
+        
+        function openAudioDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('NeuroRehabAudioDB', 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('audioFiles')) {
+                        db.createObjectStore('audioFiles', { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+        
+        // ========== 文件操作 ==========
+        async function loadFile(index, input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const nameEl = document.getElementById(`name${index}`);
+            nameEl.textContent = `${index}. 正在保存: ${file.name}...`;
+            
+            try {
+                await saveAudioFile(index - 1, file);
+                updateFileDisplay(index);
+                saveData();
+                updateButtonState();
+            } catch (e) {
+                nameEl.textContent = `${index}. 保存失败`;
+                alert('保存音频文件失败');
+            }
+        }
+        
+        function updateFileDisplay(index) {
+            const meta = audioFileMeta[index - 1];
+            if (!meta) return;
+            
+            const nameEl = document.getElementById(`name${index}`);
+            const metaEl = document.getElementById(`meta${index}`);
+            
+            nameEl.textContent = `${index}. ${meta.name}`;
+            nameEl.classList.add('loaded');
+            
+            const sizeMB = (meta.size / 1024 / 1024).toFixed(2);
+            metaEl.textContent = `${sizeMB} MB`;
+        }
+        
+        async function clearFile(index) {
+            if (!confirm(`确定要清除第 ${index} 首音乐吗？`)) return;
+            
+            const i = index - 1;
+            if (audioFiles[i]) {
+                URL.revokeObjectURL(audioFiles[i]);
+                audioFiles[i] = null;
+            }
+            audioFileMeta[i] = null;
+            
+            try {
+                const db = await openAudioDB();
+                const transaction = db.transaction(['audioFiles'], 'readwrite');
+                await transaction.objectStore('audioFiles').delete(i);
+            } catch (e) {}
+            
+            const defaultNames = [
+                '将军令 琵琶版 (72 BPM)',
+                '醉拳 成龙 (108 BPM)',
+                '流水 古琴 (66 BPM)',
+                '笑傲江湖曲 (82 BPM)',
+                '太极张三丰 (60 BPM)'
+            ];
+            
+            document.getElementById(`name${index}`).textContent = `${index}. ${defaultNames[i]}`;
+            document.getElementById(`name${index}`).classList.remove('loaded');
+            document.getElementById(`meta${index}`).textContent = '未上传';
+            
+            saveData();
+        }
+        
+        function startMetronome(bpm) {
+            if (!audioContext) return;
+            const interval = 60 / bpm;
+            playClick();
+            metronome = setInterval(playClick, interval * 1000);
+        }
+        
+        function playClick() {
+            if (!audioContext) return;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.frequency.value = 1000;
+            osc.type = 'sine';
+            const now = audioContext.currentTime;
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        }
+        
+        function stopMetronome() {
+            if (metronome) {
+                clearInterval(metronome);
+                metronome = null;
+            }
+        }
+        
+        // ========== UI 更新 ==========
+        function initPlaylist() {
+            const list = document.getElementById('trackList');
+            list.innerHTML = stages.map((stage, i) => {
+                return `
+                <div class="track ${i === currentStage ? 'active' : ''}" id="track${i}">
+                    <div class="track-number">${i + 1}</div>
+                    <div class="track-info">
+                        <div class="track-name">${stage.name}</div>
+                        <div class="track-bpm">${stage.bpm} BPM · ${audioFileMeta[i] ? audioFileMeta[i].name.substring(0, 15) + '...' : '节拍器'}</div>
+                    </div>
+                    <div class="track-time">${formatTime(stage.duration)}</div>
+                </div>
+            `}).join('');
+        }
+        
+        function updateStageInfo() {
+            const stage = stages[currentStage];
+            document.querySelector('.stage-number').textContent = `阶段 ${currentStage + 1}/5`;
+            document.getElementById('stageTitle').textContent = stage.name;
+            document.getElementById('stageDetail').innerHTML = `
+                <span>动作：</span>${stage.action}<br>
+                <span>BPM：</span>${stage.bpm}（${audioFileMeta[currentStage] ? '本地音乐' : '节拍器'}）<br>
+                <span>想象：</span>${stage.imagine}
+            `;
+        }
+        
+        function updateButtonState() {
+            const hasAnyFile = audioFileMeta.some(f => f !== null);
+            document.getElementById('playBtn').textContent = hasAnyFile ? '开始训练' : '无音乐，使用节拍器模式';
+        }
+        
+        // ========== 数据管理 ==========
+        function toggleAutoSave() {
+            autoSaveEnabled = !autoSaveEnabled;
+            localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(autoSaveEnabled));
+            updateAutoSaveUI();
+        }
+        
+        function updateAutoSaveUI() {
+            const toggle = document.getElementById('autoSaveToggle');
+            const text = toggle.nextElementSibling;
+            toggle.classList.toggle('active', autoSaveEnabled);
+            text.textContent = autoSaveEnabled ? '自动保存已启用' : '自动保存已禁用';
+        }
+        
+        function exportData() {
+            const data = {
+                version: 21,
+                exportDate: new Date().toISOString(),
+                settings: { autoSave: autoSaveEnabled },
+                trainingData: {
+                    currentStage: currentStage,
+                    totalTime: totalTime,
+                    pausedPosition: pausedPosition,
+                    completedSessions: trainingStats.totalSessions
+                },
+                stats: trainingStats,
+                audioFileMeta: audioFileMeta
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `神经重塑训练数据_${new Date().toLocaleDateString()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+        
+        async function handleImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                if (confirm(`导入数据将覆盖当前设置？`)) {
+                    
+                    if (data.settings) {
+                        autoSaveEnabled = data.settings.autoSave !== false;
+                        localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(autoSaveEnabled));
+                    }
+                    
+                    if (data.trainingData) {
+                        currentStage = data.trainingData.currentStage || 0;
+                        totalTime = data.trainingData.totalTime || 0;
+                        pausedPosition = data.trainingData.pausedPosition || 0;
+                    }
+                    
+                    if (data.stats) {
+                        trainingStats = data.stats;
+                        saveStats();
+                    }
+                    
+                    if (data.audioFileMeta) {
+                        audioFileMeta = data.audioFileMeta;
+                        for (let i = 0; i < 5; i++) {
+                            if (audioFileMeta[i]) {
+                                await loadAudioFile(i);
+                                updateFileDisplay(i + 1);
+                            }
+                        }
+                    }
+                    
+                    saveData();
+                    initPlaylist();
+                    updateDisplay();
+                    updateStageInfo();
+                    updateButtonState();
+                    updateAutoSaveUI();
+                    updateStatsDisplay();
+                    updateChart();
+                    
+                    alert('数据导入成功！');
+                }
+            } catch (e) {
+                alert('导入失败，请检查文件格式');
+            }
+            
+            input.value = '';
+        }
+        
+        async function clearAllData() {
+            if (!confirm('确定清除所有数据？不可恢复！')) return;
+            
+            pause();
+            
+            for (let i = 0; i < 5; i++) await clearFile(i + 1);
+            
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(AUTO_SAVE_KEY);
+            localStorage.removeItem(STATS_KEY);
+            
+            trainingStats = {
+                sessions: [],
+                totalSessions: 0,
+                totalMinutes: 0,
+                currentStreak: 0,
+                lastTrainingDate: null,
+                dailyRecords: {}
+            };
+            
+            currentStage = 0;
+            totalTime = 0;
+            pausedPosition = 0;
+            audioFiles = [null, null, null, null, null];
+            audioFileMeta = [null, null, null, null, null];
+            
+            initPlaylist();
+            updateDisplay();
+            updateStageInfo();
+            updateButtonState();
+            updateStatsDisplay();
+            updateChart();
+            
+            alert('所有数据已清除！');
+        }
+        
+        function updateStorageInfo() {
+            const fileCount = audioFileMeta.filter(f => f !== null).length;
+            document.getElementById('storageInfo').textContent = 
+                `音频: ${fileCount}首 | 训练: ${trainingStats.totalSessions}次`;
+        }
+        
+        // ========== 启动 ==========
+        async function init() {
+            const savedAutoSave = localStorage.getItem(AUTO_SAVE_KEY);
+            if (savedAutoSave !== null) {
+                autoSaveEnabled = JSON.parse(savedAutoSave);
+                updateAutoSaveUI();
+            }
+            
+            loadStats();
+            await loadSavedData();
+            
+            initChart();
+            initPlaylist();
+            updateStageInfo();
+            updateButtonState();
+            updateStorageInfo();
+            updateStatsDisplay();
+            updateDisplay();
+            
+            // ✅ 初始化智能Worker（自带阶段判断）
+            initWorker();
+            
+            // 设置音频激活
+            setupAudioActivation();
+            
+            // 设置可见性处理
+            setupVisibilityHandling();
+            
+            setInterval(() => {
+                if (autoSaveEnabled) saveData();
+            }, 30000);
+            
+            window.addEventListener('beforeunload', () => {
+                if (autoSaveEnabled) saveData();
+                if (worker) {
+                    worker.terminate();
+                }
+            });
+        }
+        
+        init();
+    </script>
+
+    <!-- ========== PWA Service Worker 注册 + 后台保活 (独立，不干扰原逻辑) ========== -->
+    <script>
+        (function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', async () => {
+                    try {
+                        // 内联 Service Worker 代码 (转为Blob)
+                        const swCode = `
+                            const CACHE_VERSION = 'neuro-rehab-pwa-v2';
+                            const CACHE_ASSETS = [
+                                './',
+                                'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js'
+                            ];
+                            self.addEventListener('install', (e) => {
+                                e.waitUntil(
+                                    caches.open(CACHE_VERSION).then(cache => cache.addAll(CACHE_ASSETS)).then(() => self.skipWaiting())
+                                );
+                            });
+                            self.addEventListener('activate', (e) => {
+                                e.waitUntil(
+                                    caches.keys().then(keys => 
+                                        Promise.all(keys.filter(key => key !== CACHE_VERSION).map(key => caches.delete(key)))
+                                    ).then(() => self.clients.claim())
+                                );
+                            });
+                            self.addEventListener('fetch', (e) => {
+                                e.respondWith(
+                                    caches.match(e.request).then(res => 
+                                        res || fetch(e.request).then(fetchRes => 
+                                            caches.open(CACHE_VERSION).then(cache => {
+                                                cache.put(e.request, fetchRes.clone());
+                                                return fetchRes;
+                                            })
+                                        )
+                                    )
+                                );
+                            });
+                            // 心跳保活：响应主线程消息
+                            self.addEventListener('message', (e) => {
+                                if (e.data.type === 'KEEP_ALIVE') {
+                                    e.waitUntil(self.clients.matchAll({ type: 'window' }).then(clients => 
+                                        clients.forEach(client => client.postMessage({ type: 'ALIVE' }))
+                                    ));
+                                }
+                            });
+                        `;
+                        const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                        const swUrl = URL.createObjectURL(swBlob);
+                        const registration = await navigator.serviceWorker.register(swUrl);
+                        console.log('PWA Service Worker 注册成功，作用域:', registration.scope);
+
+                        // 每隔15秒发送心跳，防止Service Worker被终止
+                        setInterval(() => {
+                            if (navigator.serviceWorker.controller) {
+                                navigator.serviceWorker.controller.postMessage({ type: 'KEEP_ALIVE' });
+                            }
+                        }, 15000);
+
+                        // 监听心跳响应（可选）
+                        navigator.serviceWorker.addEventListener('message', (e) => {
+                            if (e.data.type === 'ALIVE') {
+                                console.log('后台保活心跳正常');
+                            }
+                        });
+
+                        // 请求持久化存储 (防止浏览器清除数据)
+                        if (navigator.storage && navigator.storage.persist) {
+                            const isPersisted = await navigator.storage.persist();
+                            console.log('持久化存储已请求，结果:', isPersisted);
+                        }
+
+                        // 唤醒锁 (保持屏幕常亮，仅当页面可见时有效)
+                        if ('wakeLock' in navigator) {
+                            let wakeLock = null;
+                            const requestWakeLock = async () => {
+                                try {
+                                    wakeLock = await navigator.wakeLock.request('screen');
+                                    wakeLock.addEventListener('release', () => {
+                                        // 如果锁被释放且页面仍然可见，尝试重新获取
+                                        if (!document.hidden) requestWakeLock();
+                                    });
+                                } catch (err) {
+                                    console.log('唤醒锁获取失败 (不影响播放):', err);
+                                }
+                            };
+                            requestWakeLock();
+                            // 页面可见性变化时重新获取
+                            document.addEventListener('visibilitychange', () => {
+                                if (document.visibilityState === 'visible') {
+                                    requestWakeLock();
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.warn('PWA Service Worker 注册失败 (不影响核心功能):', err);
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
