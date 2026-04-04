@@ -1,0 +1,565 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智能音乐播放器 - 导入修复完整版</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        .app-container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); color: white; padding: 20px 15px; text-align: center; }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .input-section { padding: 15px; background: #f8f9fa; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .url-input { flex: 1; padding: 12px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: #4b6cb7; color: white; }
+        .btn-primary:hover { background: #3a5ba0; }
+        .input-hint { font-size: 12px; color: #666; margin-top: 5px; text-align: center; }
+        .player-controls { display: flex; gap: 10px; padding: 15px; background: white; border-bottom: 1px solid #eee; }
+        .control-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; background: #f0f0f0; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+        .play-btn { background: #4b6cb7; color: white; }
+        .voice-control-section { padding: 12px 15px; background: #f8f9fa; border-bottom: 1px solid #eee; }
+        .voice-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; margin-bottom: 8px; transition: all 0.3s; }
+        .voice-btn.listening { background: linear-gradient(135deg, #4CAF50, #2E7D32); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
+        .voice-hint { font-size: 12px; color: #666; text-align: center; background: #f0f7ff; padding: 6px 12px; border-radius: 8px; border-left: 4px solid #4b6cb7; }
+        .voice-status { font-size: 12px; text-align: center; padding: 8px 12px; border-radius: 8px; margin-top: 8px; background: #e9ecef; transition: all 0.3s; line-height: 1.4; }
+        .voice-status.listening { background: #e8f5e9; color: #2E7D32; border: 1px solid #c8e6c9; }
+        .voice-status.error { background: #ffebee; color: #d32f2f; border: 1px solid #ffcdd2; }
+        .voice-status.result { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+        .voice-status.warning { background: #fff8e1; color: #ff8f00; border: 1px solid #ffe082; }
+        .mode-selector { display: flex; gap: 10px; padding: 0 15px 15px; }
+        .mode-btn { flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; background: white; cursor: pointer; }
+        .mode-btn.active { background: #4b6cb7; color: white; border-color: #4b6cb7; }
+        .mode-indicator { font-size: 12px; color: #4b6cb7; text-align: center; margin-bottom: 10px; font-weight: 500; }
+        .progress-display { padding: 10px 15px; background: #eef4ff; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #4b6cb7; }
+        .progress-display.hidden { display: none; }
+        .current-time { font-weight: bold; }
+        .target-time { font-weight: bold; }
+        .loop-count { color: #666; }
+        .playlist-section { padding: 15px; }
+        .section-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 15px; font-size: 16px; font-weight: 600; background: #f8f9fa; padding: 8px 12px; border-radius: 8px; flex-wrap: wrap; }
+        .title-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .title-left span:first-child { font-size: 16px; font-weight: 600; color: #333; }
+        .playlist-count { background: #4b6cb7; color: white; padding: 2px 10px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+        .total-duration { background: #eef4ff; color: #4b6cb7; padding: 2px 10px; border-radius: 20px; font-size: 13px; font-weight: 500; font-family: monospace; }
+        .clear-playlist-btn { background: #f44336; color: white; border: none; border-radius: 20px; padding: 4px 12px; font-size: 13px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .clear-playlist-btn:hover { background: #d32f2f; }
+        .playlist { list-style: none; min-height: 200px; }
+        .playlist-item { display: flex; align-items: center; padding: 10px 12px; margin-bottom: 6px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: all 0.3s; cursor: default; }
+        .playlist-item.playing { border-left: 4px solid #4b6cb7; background: #f0f4ff; }
+        .drag-handle { width: 30px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 18px; cursor: grab; user-select: none; touch-action: none; }
+        .drag-handle:active { cursor: grabbing; }
+        .song-content { flex: 1; min-width: 0; margin-left: 8px; }
+        .song-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; cursor: pointer; }
+        .song-index { width: 28px; text-align: center; font-weight: bold; color: #4b6cb7; font-size: 13px; background: #f0f0f0; border-radius: 4px; padding: 2px 6px; }
+        .playlist-item.playing .song-index { background: #4b6cb7; color: white; }
+        .song-duration-above { color: #4b6cb7; font-weight: bold; font-size: 12px; }
+        .song-title { font-weight: 500; font-size: 15px; word-break: break-word; line-height: 1.3; flex: 1; }
+        .song-meta { font-size: 11px; color: #666; word-break: break-all; line-height: 1.2; margin-left: 36px; cursor: pointer; }
+        .song-url { word-break: break-all; }
+        .duration-info { font-size: 9px; color: #888; margin-top: 2px; line-height: 1.1; margin-left: 36px; }
+        .song-actions { display: flex; gap: 6px; }
+        .action-btn { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; background: #f0f0f0; font-size: 15px; cursor: pointer; }
+        .edit-btn { background: #e3f2fd; color: #1976d2; }
+        .delete-btn { background: #ffebee; color: #d32f2f; }
+        .export-import-buttons { display: flex; gap: 10px; padding: 0 15px 15px; }
+        .export-import-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .export-btn { background: #4CAF50; color: white; }
+        .import-btn { background: #2196F3; color: white; }
+        .share-html-btn { background: #ff9800; color: white; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 15px; padding: 20px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal-title { font-size: 20px; margin-bottom: 15px; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: 500; color: #555; }
+        .modal-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .modal-input:focus { outline: none; border-color: #4b6cb7; }
+        .duration-hint { font-size: 12px; color: #666; margin-top: 5px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: all 0.3s; }
+        .modal-btn.confirm { background: #4b6cb7; color: white; }
+        .modal-btn.cancel { background: #f0f0f0; color: #666; border: 1px solid #ddd; }
+        .modal-btn.confirm:disabled { background: #ccc; cursor: not-allowed; }
+        .export-options { margin-bottom: 20px; }
+        .export-option-group { margin-bottom: 15px; }
+        .option-label { display: block; margin-bottom: 8px; font-weight: 500; color: #555; }
+        .save-path-container { display: flex; gap: 10px; align-items: center; }
+        .save-path-input { flex: 1; padding: 10px 12px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; font-family: monospace; font-size: 14px; }
+        .browse-btn { padding: 10px 20px; background: linear-gradient(135deg, #4b6cb7, #3a5ba0); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+        .path-status { font-size: 12px; margin-top: 4px; min-height: 16px; }
+        .path-status.success { color: #4CAF50; }
+        .path-status.error { color: #f44336; }
+        audio { width: 100%; padding: 0 15px; margin: 10px 0; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 8px; z-index: 1000; opacity: 0; transition: opacity 0.3s; }
+        .toast.show { opacity: 1; }
+        .empty-playlist { text-align: center; padding: 40px 20px; color: #999; }
+        .status-indicator { padding: 5px 10px; background: #f8f9fa; border-radius: 5px; font-size: 12px; color: #666; text-align: center; margin: 5px 15px; }
+        .bluetooth-status { padding: 8px 15px; background: #e6f7ff; border-radius: 5px; font-size: 12px; color: #1890ff; text-align: center; margin: 5px 15px; display: none; }
+        .bluetooth-status.active { display: block; }
+        .auto-save-hint { font-size: 10px; color: #888; text-align: center; padding: 5px; background: #f8f9fa; margin-top: 5px; }
+        .diagnostic { font-size: 10px; color: #666; text-align: center; margin-top: 5px; }
+        .permission-guide { background: #f0f7ff; border-radius: 8px; padding: 8px; margin-top: 8px; font-size: 11px; color: #1565c0; text-align: left; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <header class="header">
+        <h1>🎵 智能音乐播放器</h1>
+        <p>导入修复完整版 · 拖拽排序 · 蓝牙控制 · 数据内嵌分享</p>
+    </header>
+
+    <div class="input-section">
+        <div class="input-group">
+            <input type="text" class="url-input" id="urlInput" placeholder="输入音乐链接或点击添加按钮选择文件...">
+            <button class="btn btn-primary" id="addBtn">➕ 添加</button>
+        </div>
+        <div class="input-hint">支持：直接添加音频文件或音乐链接；也可通过下方“导入列表”批量导入 .json/.txt/.csv/.html 播放列表（替换模式）</div>
+    </div>
+
+    <input type="file" id="fileInput" accept="audio/*" multiple style="display:none;">
+
+    <div class="bluetooth-status active" id="bluetoothStatus">🎧 蓝牙耳机控制已启用 (播放/暂停/上一曲/下一曲)</div>
+    
+    <div class="voice-control-section">
+        <button class="voice-btn" id="voiceControlBtn">🎤 点击开始语音控制</button>
+        <div class="voice-hint">🎙️ 语音指令: “播放” “暂停” “下一首” “上一首” “停止” | 需要设备支持Google语音服务</div>
+        <div class="voice-status" id="voiceStatus">✨ 点击按钮，允许麦克风后尝试启动语音识别</div>
+        <div class="diagnostic" id="voiceDiagnostic"></div>
+    </div>
+    
+    <div class="status-indicator" id="statusIndicator">就绪</div>
+    <div class="mode-indicator" id="modeIndicator">当前模式：列表循环</div>
+
+    <div class="progress-display hidden" id="progressDisplay">
+        <div><span class="current-time" id="currentTime">0:00</span> / <span class="target-time" id="targetTime">0:00</span></div>
+        <div class="loop-count" id="loopCount">第1次循环</div>
+    </div>
+
+    <div class="player-controls">
+        <button class="control-btn" id="prevBtn">⏮ 上一首</button>
+        <button class="control-btn play-btn" id="playBtn">▶ 播放</button>
+        <button class="control-btn" id="nextBtn">⏭ 下一首</button>
+    </div>
+
+    <div class="mode-selector">
+        <button class="mode-btn" data-mode="order">顺序播放</button>
+        <button class="mode-btn active" data-mode="loop">列表循环</button>
+        <button class="mode-btn" data-mode="single">单曲循环</button>
+    </div>
+
+    <div class="export-import-buttons">
+        <button class="export-import-btn export-btn" id="exportBtn">📥 导出列表</button>
+        <button class="export-import-btn share-html-btn" id="shareHtmlBtn">📤 导出分享HTML</button>
+        <button class="export-import-btn import-btn" id="importBtn">📂 导入列表</button>
+    </div>
+
+    <audio id="audioPlayer" controls src=""></audio>
+
+    <div class="playlist-section">
+        <div class="section-title">
+            <div class="title-left">
+                <span>播放列表</span>
+                <span class="playlist-count" id="playlistCount">0</span>
+            </div>
+            <span class="total-duration" id="totalDuration">0:00</span>
+            <button class="clear-playlist-btn" id="clearPlaylistBtn">🗑️ 清空</button>
+        </div>
+        <ul class="playlist" id="playlist"></ul>
+        <div class="auto-save-hint">💾 数据自动保存 | 点击"导出分享HTML"可生成包含播放列表的独立文件</div>
+    </div>
+</div>
+
+<!-- 模态框 -->
+<div class="modal-overlay" id="editModal"><div class="modal"><h3 class="modal-title">编辑歌曲设置</h3><div class="form-group"><label class="form-label">歌曲名称</label><input type="text" class="modal-input" id="editNameInput" placeholder="输入歌曲名称"></div><div class="form-group"><label class="form-label">播放时长（秒）</label><input type="number" class="modal-input" id="editDurationInput" placeholder="输入总播放时长（秒），0表示完整播放" min="0" step="1"><div class="duration-hint">可设置任意时长，包括超过音频长度（将自动循环播放）</div></div><div class="modal-actions"><button class="modal-btn cancel" id="cancelBtn">取消</button><button class="modal-btn confirm" id="saveBtn">保存设置</button></div></div></div>
+<div class="modal-overlay" id="importDataModal"><div class="modal"><h3 class="modal-title">导入播放列表（替换模式）</h3><div class="form-group"><label class="form-label">选择播放列表文件</label><input type="file" class="modal-input" id="importFileInput" accept=".json,.txt,.csv,.html" style="width:100%; padding:12px;"><div class="duration-hint">支持：JSON、TXT、CSV、以及通过"导出分享HTML"生成的HTML文件（会替换当前列表）</div></div><div class="modal-actions"><button class="modal-btn cancel" id="cancelImportBtn">取消</button><button class="modal-btn confirm" id="confirmImportBtn">导入并替换</button></div></div></div>
+<div class="modal-overlay" id="exportSettingsModal"><div class="modal"><h3 class="modal-title" id="exportModalTitle">导出分享版HTML (数据内嵌)</h3><div class="export-options"><div class="export-option-group"><label class="option-label">文件名</label><input type="text" class="modal-input" id="fileNameInput" placeholder="my_playlist"></div><div class="export-option-group" id="formatSelectorGroup" style="display: none;"><label class="option-label">导出格式</label><select class="modal-input" id="exportFormatSelect"><option value="json">JSON 格式 (.json)</option><option value="txt">文本格式 (.txt)</option><option value="csv">CSV 格式 (.csv)</option></select></div><div class="export-option-group"><label class="option-label">保存位置</label><div class="save-path-container"><input type="text" class="save-path-input" id="savePathInput" placeholder="请选择保存文件夹" readonly><button class="browse-btn" id="browseBtn">📁 选择位置</button></div><div id="savePathStatus" class="path-status success">✅ 将使用浏览器默认下载目录（可点击选择自定义文件夹）</div></div></div><div class="modal-actions"><button class="modal-btn cancel" id="cancelExportBtn">取消</button><button class="modal-btn confirm" id="confirmExportBtn">💾 保存文件</button></div></div></div>
+
+<div class="toast" id="toast">播放列表已清空</div>
+
+<script>
+    // ==================== 播放器核心逻辑 ====================
+    const STORAGE_KEY = 'musicPlaylistData';
+    
+    const state = {
+        playlist: [],
+        currentIndex: -1,
+        playMode: 'loop',
+        isPlaying: false,
+        editingIndex: -1,
+        isSwitching: false
+    };
+
+    let currentCustomDuration = 0;
+    let currentAudioDuration = 0;
+    let currentLoopCount = 1;
+    let lastUpdateTime = 0;
+    let isCustomDurationActive = false;
+    
+    const elements = {};
+    const modeNames = { order: '顺序播放', loop: '列表循环', single: '单曲循环' };
+    let sortableInstance = null;
+    let selectedDirectoryHandle = null;
+    let currentExportType = 'json';
+    let activeRecognition = null;
+    let mediaStream = null;
+
+    // ========== 辅助函数 ==========
+    function formatTime(seconds) {
+        if (seconds <= 0 || isNaN(seconds)) return '0:00';
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        if (hours > 0) return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function revokeAllBlobUrls() {
+        state.playlist.forEach(song => { if (song.isLocal && song.url && song.url.startsWith('blob:')) URL.revokeObjectURL(song.url); });
+    }
+
+    function getNextIndex() {
+        if (!state.playlist.length) return null;
+        if (state.playMode === 'order') return state.currentIndex + 1 < state.playlist.length ? state.currentIndex + 1 : null;
+        if (state.playMode === 'loop') return (state.currentIndex + 1) % state.playlist.length;
+        return state.currentIndex;
+    }
+
+    function getPrevIndex() {
+        if (!state.playlist.length) return null;
+        if (state.playMode === 'order') return state.currentIndex - 1 >= 0 ? state.currentIndex - 1 : null;
+        if (state.playMode === 'loop') return (state.currentIndex - 1 + state.playlist.length) % state.playlist.length;
+        return state.currentIndex;
+    }
+
+    function calculateTotalDuration() {
+        return state.playlist.reduce((sum, s) => sum + (s.customDuration > 0 ? s.customDuration : (s.audioDuration || 0)), 0);
+    }
+
+    function updateTotalDurationDisplay() { if (elements.totalDuration) elements.totalDuration.textContent = formatTime(calculateTotalDuration()); }
+    function saveToLocalStorage() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ playlist: state.playlist, currentIndex: state.currentIndex, playMode: state.playMode, version: '2.1' })); } catch(e) {} }
+    function loadFromLocalStorage() { try { const saved = localStorage.getItem(STORAGE_KEY); if(saved) { const data = JSON.parse(saved); state.playlist = data.playlist || []; state.currentIndex = data.currentIndex !== undefined ? data.currentIndex : -1; state.playMode = data.playMode || 'loop'; document.querySelectorAll('.mode-btn').forEach(btn => { btn.classList.toggle('active', btn.dataset.mode === state.playMode); }); return true; } } catch(e) {} return false; }
+    function showMessage(text) { elements.toast.textContent = text; elements.toast.classList.add('show'); setTimeout(() => elements.toast.classList.remove('show'), 2000); }
+
+    // ========== 语音控制 (诊断增强) ==========
+    async function requestMicrophoneAndStartListening() {
+        const voiceStatus = elements.voiceStatus;
+        const voiceBtn = elements.voiceControlBtn;
+        const diagnostic = elements.voiceDiagnostic;
+        
+        if (activeRecognition) {
+            try { activeRecognition.abort(); } catch(e) {}
+            activeRecognition = null;
+        }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+        
+        voiceStatus.textContent = '🎤 正在请求麦克风权限...';
+        voiceStatus.className = 'voice-status listening';
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaStream = stream;
+            voiceStatus.textContent = '✅ 麦克风已授权，正在启动语音引擎...';
+            
+            const SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecog) {
+                throw new Error('浏览器不支持Web Speech API');
+            }
+            const recognition = new SpeechRecog();
+            recognition.lang = 'zh-CN';
+            recognition.interimResults = false;
+            recognition.continuous = false;
+            activeRecognition = recognition;
+            
+            recognition.onstart = () => {
+                voiceBtn.classList.add('listening');
+                voiceBtn.textContent = '🎤 聆听中...';
+                voiceStatus.textContent = '🎧 请说出指令 (播放/暂停/下一首/上一首/停止)';
+                voiceStatus.className = 'voice-status listening';
+                if (diagnostic) diagnostic.textContent = '✓ 语音引擎已启动，请说话';
+            };
+            
+            recognition.onresult = (event) => {
+                const cmd = event.results[0][0].transcript.trim();
+                console.log('[语音] 识别:', cmd);
+                voiceStatus.textContent = `🎙️ 识别: "${cmd}"`;
+                voiceStatus.className = 'voice-status result';
+                executeVoiceCommand(cmd);
+                setTimeout(() => stopRecognitionAndStream(), 800);
+            };
+            
+            recognition.onerror = (e) => {
+                console.error('语音识别错误:', e);
+                let msg = '';
+                let diagMsg = '';
+                if (e.error === 'not-allowed') {
+                    msg = '❌ 麦克风权限被拒绝。请点击地址栏锁图标 → 麦克风 → 允许，然后刷新页面。';
+                    diagMsg = '诊断：麦克风权限未授予';
+                } else if (e.error === 'no-speech') {
+                    msg = '⚠️ 未检测到语音，请重试。';
+                    diagMsg = '诊断：未检测到语音输入';
+                } else if (e.error === 'audio-capture') {
+                    msg = '🎤 未找到麦克风设备，请检查麦克风连接。';
+                    diagMsg = '诊断：无音频捕获设备';
+                } else if (e.error === 'service-not-allowed' || e.error === 'language-not-supported') {
+                    msg = '❌ 当前设备不支持 Google 语音识别服务。\n\n这通常是以下原因：\n• 设备未安装 Google Play 服务\n• 浏览器缺少语音识别权限\n• 网络无法访问 Google 服务\n\n✅ 解决方法：\n1. 安装或更新“Google Play 服务”\n2. 使用 Chrome 浏览器并登录 Google 账号\n3. 尝试连接 VPN 后重试\n4. 如果仍不可用，请使用页面上的触摸按钮控制播放器（播放/暂停/上一首/下一首）';
+                    diagMsg = '诊断：service-not-allowed - 设备缺少 Google 语音引擎';
+                } else {
+                    msg = `语音错误: ${e.error}。请刷新页面重试。`;
+                    diagMsg = `诊断：未知错误 ${e.error}`;
+                }
+                voiceStatus.innerHTML = msg.replace(/\n/g, '<br>');
+                voiceStatus.className = 'voice-status error';
+                if (diagnostic) diagnostic.textContent = diagMsg;
+                if (e.error === 'service-not-allowed' || e.error === 'language-not-supported') {
+                    voiceStatus.innerHTML += '<div class="permission-guide">💡 提示：语音识别需要 Google 服务支持。您的播放器其他功能（播放、列表、蓝牙）完全正常，请放心使用触摸按钮。</div>';
+                } else if (e.error === 'not-allowed') {
+                    voiceStatus.innerHTML += '<div class="permission-guide">🔧 解决方法：<br>1. 点击地址栏左侧的锁图标 🔒<br>2. 找到“麦克风”权限，选择“允许”<br>3. 刷新页面后再次点击语音按钮</div>';
+                }
+                stopRecognitionAndStream();
+            };
+            
+            recognition.onend = () => {
+                if (activeRecognition === recognition) {
+                    stopRecognitionAndStream();
+                }
+            };
+            
+            recognition.start();
+        } catch (err) {
+            console.error('获取麦克风失败:', err);
+            let errorMsg = '';
+            let diagMsg = '';
+            if (err.name === 'NotAllowedError') {
+                errorMsg = '❌ 麦克风权限被拒绝。请检查浏览器设置，允许麦克风访问。';
+                diagMsg = '诊断：麦克风权限拒绝';
+            } else if (err.name === 'NotFoundError') {
+                errorMsg = '🎤 未找到麦克风设备，请确保麦克风已连接。';
+                diagMsg = '诊断：无麦克风设备';
+            } else {
+                errorMsg = `无法获取麦克风: ${err.message}`;
+                diagMsg = `诊断：${err.message}`;
+            }
+            voiceStatus.innerHTML = errorMsg + '<div class="permission-guide">🔧 解决方法：<br>1. 点击地址栏左侧的锁图标 🔒<br>2. 找到“麦克风”权限，选择“允许”<br>3. 刷新页面后再次点击语音按钮</div>';
+            voiceStatus.className = 'voice-status error';
+            if (diagnostic) diagnostic.textContent = diagMsg;
+            voiceBtn.classList.remove('listening');
+            voiceBtn.textContent = '🎤 点击开始语音控制';
+            if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+        }
+    }
+    
+    function stopRecognitionAndStream() {
+        if (activeRecognition) {
+            try { activeRecognition.abort(); } catch(e) {}
+            try { activeRecognition.stop(); } catch(e) {}
+            activeRecognition = null;
+        }
+        if (mediaStream) {
+            setTimeout(() => {
+                if (!activeRecognition && mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    mediaStream = null;
+                }
+            }, 30000);
+        }
+        const voiceBtn = elements.voiceControlBtn;
+        const voiceStatus = elements.voiceStatus;
+        if (voiceBtn) voiceBtn.classList.remove('listening');
+        if (voiceStatus && !voiceStatus.classList.contains('error') && !voiceStatus.classList.contains('result')) {
+            setTimeout(() => {
+                if (voiceStatus.textContent.includes('聆听') || voiceStatus.textContent.includes('识别') || voiceStatus.textContent.includes('权限')) {
+                    voiceStatus.textContent = '✨ 点击按钮，允许麦克风后尝试启动语音识别';
+                    voiceStatus.className = 'voice-status';
+                }
+            }, 2000);
+        }
+        voiceBtn.textContent = '🎤 点击开始语音控制';
+    }
+    
+    function executeVoiceCommand(cmd) {
+        const audio = elements.audioPlayer;
+        const lowerCmd = cmd.toLowerCase();
+        let action = null;
+        if(lowerCmd.includes('播放') || lowerCmd.includes('开始')) action = 'play';
+        else if(lowerCmd.includes('暂停')) action = 'pause';
+        else if(lowerCmd.includes('停止')) action = 'stop';
+        else if(lowerCmd.includes('下一首') || lowerCmd.includes('下一曲')) action = 'next';
+        else if(lowerCmd.includes('上一首') || lowerCmd.includes('上一曲')) action = 'prev';
+        
+        if (action === 'play') {
+            if (state.playlist.length === 0) { showMessage('列表为空，请先添加歌曲'); return false; }
+            if (!audio.src || audio.paused) {
+                if (!audio.src && state.currentIndex === -1) playTrack(0);
+                else if (audio.src && audio.paused) { 
+                    audio.play().then(() => { state.isPlaying = true; elements.playBtn.textContent = '⏸ 暂停'; showMessage('已播放'); }).catch(e => showMessage('播放失败')); 
+                } else playTrack(state.currentIndex);
+                return true;
+            } else { showMessage('已经在播放中'); return false; }
+        } else if (action === 'pause') {
+            if (audio.src && !audio.paused) { 
+                audio.pause(); 
+                state.isPlaying = false; 
+                elements.playBtn.textContent = '▶ 播放'; 
+                showMessage('已暂停');
+                return true;
+            } else { 
+                showMessage('没有正在播放的音乐'); 
+                return false;
+            }
+        } else if (action === 'stop') {
+            if (audio.src) { 
+                audio.pause(); 
+                audio.currentTime = 0; 
+                state.isPlaying = false; 
+                elements.playBtn.textContent = '▶ 播放'; 
+                if (isCustomDurationActive) { currentLoopCount = 1; if (currentCustomDuration > 0) elements.loopCount.textContent = `第${currentLoopCount}次循环`; } 
+                showMessage('已停止'); 
+                return true;
+            } else { showMessage('没有正在播放的音乐'); return false; }
+        } else if (action === 'next') { 
+            if (state.playlist.length) handleNextButtonClick(); 
+            else showMessage('列表为空'); 
+            return true;
+        } else if (action === 'prev') { 
+            if (state.playlist.length) handlePrevButtonClick(); 
+            else showMessage('列表为空'); 
+            return true;
+        }
+        return false;
+    }
+    
+    function initVoiceControl() {
+        const voiceBtn = elements.voiceControlBtn;
+        const diagnostic = elements.voiceDiagnostic;
+        if (!voiceBtn) return;
+        const SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecog) {
+            elements.voiceStatus.textContent = '❌ 当前浏览器不支持Web Speech API，无法使用语音控制。请使用Chrome/Edge/Safari。';
+            elements.voiceStatus.className = 'voice-status error';
+            voiceBtn.disabled = true;
+            voiceBtn.textContent = '🎤 不支持';
+            if (diagnostic) diagnostic.textContent = '诊断：浏览器无 SpeechRecognition 接口';
+            return;
+        }
+        if (diagnostic) {
+            diagnostic.textContent = '✓ 浏览器支持 Web Speech API，但语音识别可用性依赖 Google 服务';
+        }
+        voiceBtn.addEventListener('click', () => {
+            requestMicrophoneAndStartListening();
+        });
+    }
+
+    // ========== 导出/导入功能 (导入修复：支持 .json/.txt/.csv/.html) ==========
+    async function writeFileToDirOrDownload(content, fileName, mimeType) {
+        if (selectedDirectoryHandle && 'showDirectoryPicker' in window) {
+            try {
+                const fileHandle = await selectedDirectoryHandle.getFileHandle(fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+                showMessage(`✅ 已保存至: ${selectedDirectoryHandle.name}/${fileName}`);
+                return true;
+            } catch(err) { console.warn(err); }
+        }
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        showMessage(`📥 文件已下载: ${fileName}`);
+        return false;
+    }
+    async function exportListFile() {
+        if (!state.playlist.length) { showMessage('列表为空'); return; }
+        const fileNameBase = elements.fileNameInput.value.trim() || 'music_playlist';
+        const format = elements.exportFormatSelect.value;
+        const exportData = { metadata: { exportedAt: new Date().toLocaleString(), playMode: state.playMode, totalSongs: state.playlist.length, totalDuration: formatTime(calculateTotalDuration()) }, playlist: state.playlist.map(s => ({ id: s.id, title: s.title, url: s.url, customDuration: s.customDuration || 0, audioDuration: s.audioDuration || 0 })) };
+        let content, ext, mime;
+        if (format === 'json') { content = JSON.stringify(exportData, null, 2); ext = 'json'; mime = 'application/json'; }
+        else if (format === 'txt') {
+            content = `# 智能音乐播放器导出\n# 时间: ${exportData.metadata.exportedAt}\n# 模式: ${modeNames[state.playMode]}\n# 总时长: ${exportData.metadata.totalDuration}\n\n`;
+            exportData.playlist.forEach((s, i) => { content += `[${i+1}] ${s.title}\n链接: ${s.url}\n${s.customDuration ? `自定义时长: ${formatTime(s.customDuration)}\n` : ''}---\n`; });
+            ext = 'txt'; mime = 'text/plain';
+        } else {
+            content = '序号,标题,链接,自定义时长(秒),音频时长(秒)\n' + exportData.playlist.map((s,i) => `${i+1},"${s.title.replace(/"/g,'""')}","${s.url.replace(/"/g,'""')}",${s.customDuration||0},${s.audioDuration||0}`).join('\n');
+            ext = 'csv'; mime = 'text/csv';
+        }
+        await writeFileToDirOrDownload(content, `${fileNameBase}.${ext}`, mime);
+        elements.exportSettingsModal.classList.remove('show');
+    }
+    async function exportShareableHTML() {
+        if (!state.playlist.length) { showMessage('列表为空'); return; }
+        const fileNameBase = elements.fileNameInput.value.trim() || 'music_playlist_share';
+        const exportData = { playlist: state.playlist.map(s => ({ id: s.id, title: s.title, url: s.url, customDuration: s.customDuration, audioDuration: s.audioDuration })), playMode: state.playMode, version: '2.1', exportedAt: new Date().toLocaleString() };
+        const embedScript = `<script>(function(){ try { var embeddedPlaylistData = ${JSON.stringify(exportData)}; if(embeddedPlaylistData.playlist){ localStorage.setItem('${STORAGE_KEY}', JSON.stringify({ playlist: embeddedPlaylistData.playlist, currentIndex: 0, playMode: embeddedPlaylistData.playMode, version:'2.1' })); setTimeout(function(){ if(window.showMessage) window.showMessage('已加载分享列表，共'+embeddedPlaylistData.playlist.length+'首'); if(window.renderPlaylist) window.renderPlaylist(); }, 200); } } catch(e){} })();<\/script>`;
+        const originalHtml = document.documentElement.cloneNode(true);
+        const bodyContent = originalHtml.innerHTML;
+        const newHtml = `<!DOCTYPE html>\n${bodyContent.replace('</body>', embedScript + '</body>')}`;
+        await writeFileToDirOrDownload(newHtml, `${fileNameBase}_分享版.html`, 'text/html');
+        elements.exportSettingsModal.classList.remove('show');
+    }
+    async function chooseSaveFolder() {
+        if ('showDirectoryPicker' in window) {
+            try { const dir = await window.showDirectoryPicker({ mode: 'readwrite' }); selectedDirectoryHandle = dir; elements.savePathInput.value = `📁 ${dir.name} (已选)`; elements.savePathStatus.textContent = '✅ 将保存到所选文件夹'; elements.savePathStatus.className = 'path-status success'; } 
+            catch(e) { if(e.name !== 'AbortError') { elements.savePathStatus.textContent = '❌ 选择失败，将使用下载模式'; elements.savePathStatus.className = 'path-status error'; selectedDirectoryHandle = null; } }
+        } else { showMessage('浏览器不支持文件夹选择，将使用下载模式'); selectedDirectoryHandle = null; elements.savePathInput.value = '📁 使用下载模式'; }
+    }
+    function resetExportForm() { selectedDirectoryHandle = null; elements.savePathInput.value = '📁 默认下载目录'; elements.savePathStatus.textContent = '✅ 将使用浏览器默认下载目录（可点击选择自定义文件夹）'; elements.savePathStatus.className = 'path-status success'; elements.confirmExportBtn.disabled = false; }
+    function showExportModal(type) { currentExportType = type; document.getElementById('exportModalTitle').innerText = type === 'json' ? '导出列表 (JSON/TXT/CSV)' : '导出分享版HTML'; document.getElementById('formatSelectorGroup').style.display = type === 'json' ? 'block' : 'none'; elements.fileNameInput.value = `播放列表_${new Date().toLocaleDateString().replace(/\//g, '-')}`; resetExportForm(); elements.exportSettingsModal.classList.add('show'); }
+    async function confirmExport() { if(currentExportType === 'json') await exportListFile(); else await exportShareableHTML(); }
+
+    // ========== 播放核心 ==========
+    function resetCustomDurationState() { currentLoopCount = 1; isCustomDurationActive = currentCustomDuration > 0 && currentAudioDuration > 0; if(isCustomDurationActive) { elements.progressDisplay.classList.remove('hidden'); elements.targetTime.textContent = formatTime(currentCustomDuration); elements.loopCount.textContent = `第${currentLoopCount}次循环`; } else { elements.progressDisplay.classList.add('hidden'); } }
+    function handleTimeUpdate() { if (state.currentIndex === -1 || !elements.audioPlayer) return; const audio = elements.audioPlayer; const cur = audio.currentTime || 0; elements.currentTime.textContent = formatTime(cur); if (!isCustomDurationActive) return; if (currentAudioDuration <= 0) return; if (cur < lastUpdateTime && Math.abs(cur - lastUpdateTime) > currentAudioDuration * 0.5) { currentLoopCount++; elements.loopCount.textContent = `第${currentLoopCount}次循环`; } lastUpdateTime = cur; const totalPlayed = (currentLoopCount - 1) * currentAudioDuration + cur; if (totalPlayed >= currentCustomDuration) { audio.pause(); audio.currentTime = 0; state.isPlaying = false; elements.playBtn.textContent = '▶ 播放'; isCustomDurationActive = false; const next = getNextIndex(); if (next !== null) playTrack(next); else showMessage('播放结束'); } }
+    function handlePlaybackEnded() { if (state.isSwitching) return; if (state.playMode === 'single') { elements.audioPlayer.currentTime = 0; elements.audioPlayer.play().catch(e => console.log); if (isCustomDurationActive) { currentLoopCount = 1; lastUpdateTime = 0; elements.loopCount.textContent = `第${currentLoopCount}次循环`; } return; } const next = getNextIndex(); if (next !== null) playTrack(next); else { state.currentIndex = -1; renderPlaylist(); showMessage('播放列表已结束'); } }
+    function playTrack(index, retryCount = 0) { if (index < 0 || index >= state.playlist.length || state.isSwitching) return; state.isSwitching = true; const audio = elements.audioPlayer; audio.pause(); state.currentIndex = index; const song = state.playlist[index]; currentCustomDuration = song.customDuration || 0; currentAudioDuration = song.audioDuration || 0; lastUpdateTime = 0; resetCustomDurationState(); renderPlaylist(); audio.src = song.url; audio.load(); setTimeout(() => { audio.play().then(() => { showMessage(`🎵 播放: ${song.title}`); state.isPlaying = true; elements.playBtn.textContent = '⏸ 暂停'; state.isSwitching = false; updateMediaMetadata(); }).catch(err => { console.error(err); showMessage(`播放失败: ${song.title}`); state.isSwitching = false; const nextIdx = getNextIndex(); if (nextIdx !== null && nextIdx !== index) playTrack(nextIdx, retryCount + 1); }); }, 200); }
+    function handlePlayButtonClick() { const audio = elements.audioPlayer; if (!audio.src && state.playlist.length) { let idx = state.currentIndex === -1 ? 0 : state.currentIndex; playTrack(idx); } else if (state.isPlaying) { audio.pause(); } else { audio.play().catch(e => { showMessage('播放失败，尝试重新加载'); if (state.currentIndex !== -1) playTrack(state.currentIndex); }); } }
+    function handleNextButtonClick() { if(state.playlist.length) { const nxt = getNextIndex(); if(nxt !== null) playTrack(nxt); else showMessage('已是末尾'); } }
+    function handlePrevButtonClick() { if(state.playlist.length) { const prv = getPrevIndex(); if(prv !== null) playTrack(prv); else showMessage('已是首曲'); } }
+    function setPlayMode(mode) { state.playMode = mode; document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode)); elements.modeIndicator.textContent = `当前模式：${modeNames[mode]}`; saveToLocalStorage(); showMessage(`模式：${modeNames[mode]}`); }
+    function addSong(url, title = null) { if (state.playlist.some(s => s.url === url)) { showMessage('链接已存在'); return false; } state.playlist.push({ id: Date.now() + Math.random(), url, title: title || (() => { try { return decodeURIComponent(new URL(url).pathname.split('/').pop().replace(/\.[^/.]+$/,'')) || '音乐'; } catch(e){ return '音乐链接'; } })(), isLocal: url.startsWith('blob:'), customDuration: 0, audioDuration: 0 }); saveToLocalStorage(); renderPlaylist(); updateTotalDurationDisplay(); if(state.currentIndex === -1 && state.playlist.length === 1) state.currentIndex = 0; initSortable(); return true; }
+    function removeSong(idx) { if(!confirm('删除歌曲？')) return; const removed = state.playlist[idx]; if(removed.isLocal && removed.url.startsWith('blob:')) URL.revokeObjectURL(removed.url); state.playlist.splice(idx,1); if(idx === state.currentIndex) { elements.audioPlayer.pause(); elements.audioPlayer.src = ''; state.currentIndex = -1; state.isPlaying = false; elements.playBtn.textContent = '▶ 播放'; elements.progressDisplay.classList.add('hidden'); isCustomDurationActive = false; } else if(idx < state.currentIndex) state.currentIndex--; saveToLocalStorage(); renderPlaylist(); updateTotalDurationDisplay(); initSortable(); showMessage('已删除'); }
+    function clearPlaylist() { if(state.playlist.length && confirm('清空列表？')) { revokeAllBlobUrls(); elements.audioPlayer.pause(); elements.audioPlayer.src = ''; state.playlist = []; state.currentIndex = -1; state.isPlaying = false; elements.playBtn.textContent = '▶ 播放'; elements.progressDisplay.classList.add('hidden'); isCustomDurationActive = false; saveToLocalStorage(); renderPlaylist(); updateTotalDurationDisplay(); initSortable(); showMessage('列表已清空'); } }
+    function renderPlaylist() { if(!state.playlist.length) { elements.playlist.innerHTML = '<div class="empty-playlist">播放列表为空<br><small>点击"添加"按钮开始添加音乐</small></div>'; elements.playlistCount.textContent = '0'; return; } elements.playlist.innerHTML = state.playlist.map((song, idx) => { const isCur = idx === state.currentIndex; const durInfo = song.customDuration ? `⏱️ ${formatTime(song.customDuration)}` : (song.audioDuration ? `🎵 ${formatTime(song.audioDuration)}` : '❓未知'); return `<li class="playlist-item ${isCur ? 'playing' : ''}" data-id="${song.id}"><div class="drag-handle">☰</div><div class="song-content"><div class="song-header"><div class="song-index">${idx+1}</div><div class="song-duration-above">${durInfo}</div><div class="song-title">${song.isLocal ? '📁 ' : '🔗 '}${escapeHtml(song.title)}</div></div><div class="song-meta"><div class="song-url">${escapeHtml(song.url)}</div></div>${song.customDuration && song.audioDuration ? `<div class="duration-info">音频${formatTime(song.audioDuration)} × ${Math.ceil(song.customDuration/song.audioDuration)}次循环</div>` : ''}</div><div class="song-actions"><button class="action-btn edit-btn">✎</button><button class="action-btn delete-btn">×</button></div></li>`; }).join(''); elements.playlistCount.textContent = state.playlist.length; }
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function initSortable() { if(sortableInstance) sortableInstance.destroy(); const container = elements.playlist; if(!container) return; sortableInstance = new Sortable(container, { handle: '.drag-handle', animation: 200, onEnd: () => { const newOrder = []; container.querySelectorAll('.playlist-item').forEach(li => { const id = li.getAttribute('data-id'); const s = state.playlist.find(song => song.id == id); if(s) newOrder.push(s); }); if(newOrder.length === state.playlist.length) { state.playlist = newOrder; saveToLocalStorage(); if(state.currentIndex !== -1) { const curId = state.playlist[state.currentIndex]?.id; if(curId) { const ni = state.playlist.findIndex(s => s.id === curId); if(ni !== -1) state.currentIndex = ni; } } renderPlaylist(); initSortable(); showMessage('顺序已更新'); } } }); }
+    function setupAudioEvents() { const audio = elements.audioPlayer; audio.addEventListener('play', () => { state.isPlaying = true; elements.playBtn.textContent = '⏸ 暂停'; }); audio.addEventListener('pause', () => { state.isPlaying = false; elements.playBtn.textContent = '▶ 播放'; }); audio.addEventListener('ended', handlePlaybackEnded); audio.addEventListener('loadedmetadata', () => { if(state.currentIndex !== -1 && audio.duration > 0) { const song = state.playlist[state.currentIndex]; if(song && !song.audioDuration) { song.audioDuration = audio.duration; currentAudioDuration = audio.duration; renderPlaylist(); updateTotalDurationDisplay(); if(currentCustomDuration > 0) resetCustomDurationState(); } } }); audio.addEventListener('timeupdate', handleTimeUpdate); }
+    function setupMediaSession() { if('mediaSession' in navigator) { try { navigator.mediaSession.setActionHandler('play', () => handlePlayButtonClick()); navigator.mediaSession.setActionHandler('pause', () => { if(state.isPlaying) elements.audioPlayer.pause(); }); navigator.mediaSession.setActionHandler('previoustrack', () => handlePrevButtonClick()); navigator.mediaSession.setActionHandler('nexttrack', () => handleNextButtonClick()); } catch(e){} } }
+    function updateMediaMetadata() { if('mediaSession' in navigator && state.currentIndex !== -1) navigator.mediaSession.metadata = new MediaMetadata({ title: state.playlist[state.currentIndex].title, artist: '智能音乐播放器' }); }
+
+    // ========== 初始化 ==========
+    document.addEventListener('DOMContentLoaded', () => {
+        const ids = ['urlInput', 'addBtn', 'fileInput', 'playBtn', 'prevBtn', 'nextBtn', 'audioPlayer', 'playlist', 'playlistCount', 'totalDuration', 'modeIndicator', 'statusIndicator', 'bluetoothStatus', 'editModal', 'editNameInput', 'editDurationInput', 'cancelBtn', 'saveBtn', 'importDataModal', 'importFileInput', 'cancelImportBtn', 'confirmImportBtn', 'exportSettingsModal', 'exportFormatSelect', 'fileNameInput', 'savePathInput', 'browseBtn', 'savePathStatus', 'cancelExportBtn', 'confirmExportBtn', 'toast', 'progressDisplay', 'currentTime', 'targetTime', 'loopCount', 'exportBtn', 'importBtn', 'shareHtmlBtn', 'clearPlaylistBtn', 'voiceControlBtn', 'voiceStatus', 'voiceDiagnostic'];
+        ids.forEach(id => { elements[id] = document.getElementById(id); });
+        loadFromLocalStorage();
+        setupAudioEvents();
+        setupMediaSession();
+        initSortable();
+        initVoiceControl();
+        if(state.playlist.length === 0) { addSong('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', '示例音乐 1 (SoundHelix)'); addSong('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', '示例音乐 2 (SoundHelix)'); }
+        renderPlaylist(); updateTotalDurationDisplay(); elements.modeIndicator.textContent = `当前模式：${modeNames[state.playMode]}`;
+        elements.addBtn.onclick = () => { const url = elements.urlInput.value.trim(); if(url) addSong(url); else elements.fileInput.click(); elements.urlInput.value = ''; };
+        elements.fileInput.onchange = (e) => { Array.from(e.target.files).forEach(f => { if(f.type.startsWith('audio/')) addSong(URL.createObjectURL(f), f.name); else showMessage('请选择音频文件'); }); e.target.value = ''; };
+        elements.playBtn.onclick = handlePlayButtonClick; elements.prevBtn.onclick = handlePrevButtonClick; elements.nextBtn.onclick = handleNextButtonClick;
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => setPlayMode(btn.dataset.mode));
+        elements.clearPlaylistBtn.onclick = clearPlaylist; elements.importBtn.onclick = () => elements.importDataModal.classList.add('show');
+        elements.exportBtn.onclick = () => showExportModal('json'); elements.shareHtmlBtn.onclick = () => showExportModal('html');
+        elements.browseBtn.onclick = chooseSaveFolder; elements.confirmExportBtn.onclick = confirmExport; elements.cancelExportBtn.onclick = () => elements.exportSettingsModal.classList.remove('show');
+        elements.cancelImportBtn.onclick = () => { elements.importDataModal.classList.remove('show'); elements.importFileInput.value = ''; };
+        elements.confirmImportBtn.onclick = () => { const file = elements.importFileInput.files[0]; if(!file) return showMessage('请选择文件'); const reader = new FileReader(); reader.onload = ev => { try { let data; if(file.name.endsWith('.json')) data = JSON.parse(ev.target.result); else if(file.name.endsWith('.html')) { const match = ev.target.result.match(/embeddedPlaylistData\s*=\s*({[\s\S]*?});/); if(match) data = JSON.parse(match[1]); else throw new Error('HTML文件中未找到播放列表数据'); } else if(file.name.endsWith('.txt') || file.name.endsWith('.csv')) { const lines = ev.target.result.split(/\r?\n/); const songs = []; for(let line of lines) { if(line.startsWith('#') || line.trim() === '') continue; if(line.includes('http')) { const parts = line.split(','); let url = '', title = ''; if(parts.length >= 2 && parts[0].match(/^\d+$/)) { url = parts[2] ? parts[2].replace(/^"|"$/g, '') : ''; title = parts[1] ? parts[1].replace(/^"|"$/g, '') : '音乐'; } else { const matchUrl = line.match(/(https?:\/\/[^\s,]+)/); if(matchUrl) url = matchUrl[0]; title = line.replace(url, '').replace(/[\[\]0-9.\- ]/g, '').trim() || '音乐'; } if(url) songs.push({ url, title }); } } if(songs.length) data = { playlist: songs }; else throw new Error('未找到有效歌曲链接'); } else throw new Error('不支持的文件格式'); if(confirm(`导入 ${(data.playlist || data).length} 首，替换当前列表？`)) importPlaylistFromData(data); } catch(err) { alert('导入失败：' + err.message); } finally { elements.importDataModal.classList.remove('show'); elements.importFileInput.value = ''; } }; reader.readAsText(file); };
+        elements.cancelBtn.onclick = () => elements.editModal.classList.remove('show');
+        elements.saveBtn.onclick = () => { if(state.editingIndex !== -1) { const newName = elements.editNameInput.value.trim(); if(!newName) return showMessage('请输入名称'); state.playlist[state.editingIndex].title = newName; state.playlist[state.editingIndex].customDuration = parseInt(elements.editDurationInput.value) || 0; if(state.editingIndex === state.currentIndex) { currentCustomDuration = state.playlist[state.editingIndex].customDuration; currentAudioDuration = state.playlist[state.editingIndex].audioDuration || 0; resetCustomDurationState(); } saveToLocalStorage(); renderPlaylist(); updateTotalDurationDisplay(); initSortable(); showMessage('已更新'); } elements.editModal.classList.remove('show'); };
+        elements.playlist.addEventListener('click', (e) => { const li = e.target.closest('.playlist-item'); if(!li) return; const idx = Array.from(elements.playlist.children).indexOf(li); if(e.target.closest('.edit-btn')) { state.editingIndex = idx; elements.editNameInput.value = state.playlist[idx].title; elements.editDurationInput.value = state.playlist[idx].customDuration || 0; elements.editModal.classList.add('show'); } else if(e.target.closest('.delete-btn')) removeSong(idx); else if(e.target.closest('.song-header') || e.target.closest('.song-meta')) playTrack(idx); });
+        window.renderPlaylist = renderPlaylist; window.showMessage = showMessage; window.updateTotalDurationDisplay = updateTotalDurationDisplay;
+        function importPlaylistFromData(data) { let songs = null; if(Array.isArray(data)) songs = data; else if(data.playlist && Array.isArray(data.playlist)) songs = data.playlist; else if(data.songs && Array.isArray(data.songs)) songs = data.songs; if(!songs || !songs.length) throw new Error('无效的播放列表数据'); revokeAllBlobUrls(); state.playlist = songs.map(s => ({ id: Date.now() + Math.random(), url: s.url || s.link || s.src, title: s.title || s.name || '未知歌曲', isLocal: false, customDuration: s.customDuration || 0, audioDuration: s.audioDuration || 0 })).filter(s => s.url); if(data.playMode) setPlayMode(data.playMode); state.currentIndex = state.playlist.length ? 0 : -1; renderPlaylist(); saveToLocalStorage(); updateTotalDurationDisplay(); initSortable(); showMessage(`导入 ${state.playlist.length} 首歌曲`); }
+    });
+</script>
+</body>
+</html>
