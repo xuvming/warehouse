@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -237,6 +237,26 @@
             font-weight: 500;
             font-size: 14px;
             word-break: break-word;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .copy-link-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .copy-link-icon:hover {
+            background: rgba(75, 108, 183, 0.1);
+        }
+        .copy-link-icon:active {
+            background: rgba(75, 108, 183, 0.2);
         }
         .song-meta {
             font-size: 10px;
@@ -582,7 +602,7 @@
 <div class="app-container">
     <div class="header" id="helpTrigger">
         <h1>🎵 智能播放器</h1>
-        <p>记忆文件夹位置 · 全语音兼容</p>
+        <p>记忆文件夹位置 · 全语音兼容 · 点击链接图标复制</p>
     </div>
 
     <div class="input-section">
@@ -590,7 +610,7 @@
             <input type="text" class="url-input" id="urlInput" placeholder="输入音乐链接或选择本地文件...">
             <button class="btn btn-primary" id="addBtn">➕ 添加</button>
         </div>
-        <div class="input-hint">支持网络链接 / 本地音频 / 播放列表文件 (追加)</div>
+        <div class="input-hint">支持网络链接 / 本地音频 / 播放列表文件 (追加) · 点击🔗或📁图标复制链接+名称</div>
         <div id="localWarning" style="font-size: 10px; color: #e65100; margin-top: 4px; display: none;">⚠️ 本地文件刷新后需重新添加，建议导出备份</div>
     </div>
     <input type="file" id="fileInput" accept="audio/*,.json,.txt,.csv,.html" multiple style="display:none;">
@@ -643,7 +663,7 @@
         <div class="voice-status" id="voiceStatus">⚙️ 检测语音引擎...</div>
     </div>
     <div class="info-note">
-        💡 点击上方标题查看使用说明 | 导出时选择文件夹后会自动记忆名称
+        💡 点击上方标题查看使用说明 | 点击🔗或📁图标复制"歌曲名+链接"
     </div>
 </div>
 
@@ -654,7 +674,7 @@
         <h3>📖 使用说明</h3>
         <div id="copyBanner" class="copy-banner"></div>
         <div class="section-header"><h4>🎵 播放列表管理</h4><button class="copy-icon" data-section="playlist" data-title="🎵 播放列表管理">📋 复制</button></div>
-        <div id="section-playlist" class="section-content"><ul><li>点击「添加」按钮：输入网络链接 或 选择本地音频文件</li><li>支持导入播放列表文件 (.json/.txt/.csv/.html) 追加到现有列表</li><li>点击歌曲标题直接播放，当前播放歌曲有蓝色边框和高亮序号</li><li>拖拽歌曲左侧「☰」图标可调整播放顺序</li><li>点击歌曲右侧「✎」可自定义播放时长（秒，0为完整播放）</li></ul></div>
+        <div id="section-playlist" class="section-content"><ul><li>点击「添加」按钮：输入网络链接 或 选择本地音频文件</li><li>支持导入播放列表文件 (.json/.txt/.csv/.html) 追加到现有列表</li><li>点击歌曲标题直接播放，当前播放歌曲有蓝色边框和高亮序号</li><li>拖拽歌曲左侧「☰」图标可调整播放顺序</li><li>点击歌曲名称前的🔗或📁图标，可复制"歌曲名+换行+链接"</li><li>点击歌曲右侧「✎」可自定义播放时长（秒，0为完整播放）</li></ul></div>
         
         <div class="section-header"><h4>🎤 语音控制</h4><button class="copy-icon" data-section="voice" data-title="🎤 语音控制">📋 复制</button></div>
         <div id="section-voice" class="section-content"><ul><li><strong>小艺语音</strong>：对手机说"<strong>播放</strong>"即可 播放/暂停 切换（无需授权）</li><li><strong>内置语音</strong>：点击「🎤 内置语音」按钮，授权麦克风后说出指令</li><li>支持命令：播放、暂停、下一首、上一首</li></ul></div>
@@ -803,6 +823,7 @@
     }
     
     function escapeHtml(str) {
+        if (!str) return '';
         return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
     }
     
@@ -915,11 +936,15 @@
         playlistEl.innerHTML = state.playlist.map((song, idx) => {
             const isCur = idx === state.currentIndex;
             const durInfo = song.customDuration ? `⏱️ ${formatTime(song.customDuration)}` : (song.audioDuration ? `🎵 ${formatTime(song.audioDuration)}` : '❓未知');
+            const linkIcon = song.isLocal ? '📁' : '🔗';
             return `<li class="playlist-item ${isCur ? 'playing' : ''}" data-id="${song.id}">
                 <div class="drag-handle">☰</div>
                 <div class="song-index">${idx+1}</div>
                 <div class="song-info">
-                    <div class="song-title">${song.isLocal ? '📁 ' : '🔗 '}${escapeHtml(song.title)}</div>
+                    <div class="song-title">
+                        <span class="copy-link-icon" data-index="${idx}" data-url="${escapeHtml(song.url)}" data-title="${escapeHtml(song.title)}" title="点击复制链接和名称">${linkIcon}</span>
+                        ${escapeHtml(song.title)}
+                    </div>
                     <div class="song-meta">${escapeHtml(song.url.substring(0, 60))}${song.url.length > 60 ? '…' : ''}</div>
                 </div>
                 <div class="song-duration">${durInfo}</div>
@@ -1382,6 +1407,36 @@
     }
     
     // ==================== 复制功能 ====================
+    function fallbackCopy(text, title) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showMessage(`✅ 已复制：${title || '链接'}`);
+        } catch (err) {
+            showMessage('❌ 复制失败');
+        }
+        document.body.removeChild(textarea);
+    }
+    
+    function copyLinkAndTitle(url, title) {
+        const copyText = `${title}\n${url}`;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(copyText).then(() => {
+                showMessage(`✅ 已复制：${title}`);
+            }).catch(() => {
+                fallbackCopy(copyText, title);
+            });
+        } else {
+            fallbackCopy(copyText, title);
+        }
+    }
+    
     function showCopyBanner(success, message) {
         const banner = $('copyBanner');
         banner.textContent = message;
@@ -1396,7 +1451,6 @@
         const section = $(`section-${sectionId}`);
         if (!section) return;
         
-        // 获取纯文本内容
         let textContent = title + '\n\n';
         const ul = section.querySelector('ul');
         if (ul) {
@@ -1405,7 +1459,6 @@
                 textContent += '• ' + li.textContent.trim() + '\n';
             });
         } else {
-            // 对于音乐直链部分，获取p标签内容
             const p = section.querySelector('p');
             if (p) {
                 textContent += p.textContent.trim();
@@ -1414,34 +1467,17 @@
             }
         }
         
-        // 复制到剪贴板
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(textContent).then(() => {
                 showCopyBanner(true, `✅ ${title} 内容已复制到剪贴板`);
                 showMessage(`已复制：${title}`);
             }).catch(err => {
                 showCopyBanner(false, `❌ 复制失败，请手动复制`);
-                fallbackCopy(textContent);
+                fallbackCopy(textContent, title);
             });
         } else {
-            fallbackCopy(textContent);
+            fallbackCopy(textContent, title);
         }
-    }
-    
-    function fallbackCopy(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand('copy');
-            showCopyBanner(true, `✅ 内容已复制到剪贴板`);
-        } catch (err) {
-            showCopyBanner(false, `❌ 复制失败，请手动复制`);
-        }
-        document.body.removeChild(textarea);
     }
     
     // ==================== 导出功能 ====================
@@ -1646,7 +1682,10 @@
     // ==================== 初始化事件绑定 ====================
     function bindEvents() {
         // 清除文件夹
-        $('clearFolderBtn').onclick = () => clearFolderMemory();
+        $('clearFolderBtn').onclick = (e) => {
+            e.stopPropagation();
+            clearFolderMemory();
+        };
         
         // 文件夹栏点击重新选择
         $('folderInfoBar').onclick = async (e) => {
@@ -1827,6 +1866,16 @@
             if (!li) return;
             const idx = Array.from($('playlist').children).indexOf(li);
             
+            // 处理点击复制链接图标
+            const copyIcon = e.target.closest('.copy-link-icon');
+            if (copyIcon) {
+                e.stopPropagation();
+                const url = copyIcon.dataset.url;
+                const title = copyIcon.dataset.title;
+                copyLinkAndTitle(url, title);
+                return;
+            }
+            
             if (e.target.closest('.edit-btn')) {
                 state.editingIndex = idx;
                 $('editNameInput').value = state.playlist[idx].title;
@@ -1880,7 +1929,6 @@
             webSpeechRecognition.interimResults = false;
             webSpeechRecognition.lang = 'zh-CN';
             
-            // 将回调定义在外面，只设置一次
             webSpeechRecognition.onstart = () => {
                 isListening = true;
                 $('voiceControlBtn').classList.add('listening');
@@ -1940,7 +1988,6 @@
                 }
             };
             
-            // 按钮点击只需控制开始/停止
             $('voiceControlBtn').onclick = () => {
                 if (isListening) {
                     try { 
@@ -1974,10 +2021,9 @@
         
         // 初始化示例歌曲
         if (state.playlist.length === 0) {
-addSong('https://xuvming.github.io/warehouse/2035TW.ogg', '2035去台湾');
-addSong('https://xuvming.github.io/warehouse/sxfr.mp3', '奢香夫人');
-
-addSong('https://music.163.com/song/media/outer/url?id=95643.mp3', '醉拳');
+            addSong('https://xuvming.github.io/warehouse/2035TW.ogg', '2035去台湾');
+            addSong('https://xuvming.github.io/warehouse/sxfr.mp3', '奢香夫人');
+            addSong('https://music.163.com/song/media/outer/url?id=95643.mp3', '醉拳');
             addSong('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Disco%20Medusae.mp3', '笑傲江湖');
         }
         
