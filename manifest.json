@@ -1,18 +1,20 @@
 ﻿{
   "name": "神经重塑训练",
-  "short_name": "神经重塑",
-  "start_url": "./",
+  "short_name": "神经训练",
+  "description": "神经重塑康复训练播放器",
+  "start_url": "/warehouse/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#1a1a2e",
+  "background_color": "#121212",
+  "theme_color": "#2E8B57",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://pwa-icons.vercel.app/icon-192.png",
+      "src": "/warehouse/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://pwa-icons.vercel.app/icon-512.png",
+      "src": "/warehouse/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
