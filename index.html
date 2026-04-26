@@ -1,93 +1,68 @@
 ﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>康复训练播放器</title>
-  
-  <!-- PWA核心配置 -->
-  <link rel="manifest" href="/warehouse/manifest.json">
-  <meta name="theme-color" content="#000000">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{
-      background:#000;
-      color:#fff;
-      min-height:100vh;
-      text-align:center;
-      padding-top:30vh;
-      font-family:system-ui,sans-serif;
-    }
-    h1{font-size:48px;margin-bottom:20px;}
-    .tip{font-size:20px;opacity:0.8;margin-bottom:40px;}
-    /* PWA安装按钮 默认隐藏 */
-    #installBtn{
-      display:none;
-      padding:16px 40px;
-      font-size:18px;
-      background:#fff;
-      color:#000;
-      border:none;
-      border-radius:999px;
-      margin-top:20px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PWA播放器</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#000000">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#000;
+  color:#fff;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  font-family:sans-serif;
+}
+h1{font-size:52px;margin-bottom:16px}
+.desc{opacity:0.7;margin-bottom:40px}
+#installBtn{
+  padding:14px 36px;
+  font-size:20px;
+  background:#ffffff;
+  color:#000;
+  border:0;
+  border-radius:999px;
+  display:none;
+}
+#installBtn.show{display:block;}
+</style>
 </head>
 <body>
-
   <h1>PWA 已就绪</h1>
-  <p class="tip">浏览器右上角 / 点击下方按钮安装应用</p>
-
-  <!-- 页面内置安装按钮 -->
-  <button id="installBtn">📱 安装本应用</button>
-
+  <p class="desc">Chrome右上角 / 点击下方按钮安装</p>
+  <button id="installBtn">点击安装APP</button>
 
 <script>
-  // 存放浏览器安装事件
-  let installPrompt = null;
-  const installBtn = document.getElementById('installBtn');
+let installPrompt = null;
+const btn = document.getElementById("installBtn");
 
-  // 监听浏览器可安装事件
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // 阻止浏览器默认弹窗
-    e.preventDefault();
-    installPrompt = e;
-    // 显示页面安装按钮
-    installBtn.style.display = 'inline-block';
-  });
+// 满足PWA条件就显示按钮
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();
+  installPrompt = e;
+  btn.classList.add("show");
+});
 
-  // 点击按钮触发安装
-  installBtn.addEventListener('click', async () => {
-    if(!installPrompt) return;
-    // 唤起安装
-    await installPrompt.prompt();
-    // 获取用户选择结果
-    const result = await installPrompt.userChoice;
-    console.log('安装结果：', result.outcome);
-    // 安装后隐藏按钮
-    installBtn.style.display = 'none';
-    installPrompt = null;
-  });
+// 点击触发安装
+btn.addEventListener("click",async ()=>{
+  if(!installPrompt)return;
+  await installPrompt.prompt();
+  installPrompt = null;
+});
 
-  // 安装完成监听
-  window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-    alert('应用安装成功！');
-  });
-
-  // 注册ServiceWorker
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/warehouse/service-worker.js')
-        .then(reg => console.log('SW注册成功', reg))
-        .catch(err => console.log('SW注册失败', err));
-    });
-  }
+// 注册worker
+if('serviceWorker' in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./service-worker.js")
+  })
+}
 </script>
-
 </body>
 </html>
 
