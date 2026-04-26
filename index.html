@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>神经重塑训练</title>
+
+  <!-- PWA Manifest 引用（关键！路径必须是根目录） -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00796b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="神经重塑">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2995/2995452.png">
+
+  <!-- 你原来的所有CSS样式，直接放这里 -->
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; color: #fff; font-family: system-ui, sans-serif; padding: 20px; }
+    h1 { color: #00796b; text-align: center; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <!-- 你原来的所有页面内容，直接放这里 -->
+  <h1>🧠 神经重塑训练</h1>
+  <p style="text-align:center;">底部迷你播放器 · 始终可见</p>
+
+  <!-- Service Worker 注册代码（必须放在body末尾） -->
+  <script>
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then((reg) => {
+            console.log('✅ Service Worker 注册成功:', reg);
+          })
+          .catch((err) => {
+            console.log('❌ Service Worker 注册失败:', err);
+          });
+      });
+    }
+
+    // 监听安装提示，Chrome会触发beforeinstallprompt事件
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      console.log('📱 PWA 安装提示已就绪');
+    });
+  </script>
+</body>
+</html>
+
