@@ -3,6 +3,7 @@
   "short_name": "神经训练",
   "description": "神经重塑康复训练播放器",
   "start_url": "/warehouse/",
+  "scope": "/warehouse/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#2E8B57",
