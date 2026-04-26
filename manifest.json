@@ -1,11 +1,11 @@
 ﻿{
   "name": "神经重塑训练",
   "short_name": "神经重塑",
-  "start_url": ".",
-  "scope": "./",
+  "start_url": "/warehouse/index.html",
+  "scope": "/warehouse/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#222222",
+  "theme_color": "#00796b",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2995/2995452.png",

@@ -5,27 +5,70 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
 <title>神经重塑训练</title>
 
-<!-- PWA 关键 全部相对路径 -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#222222">
+<meta name="theme-color" content="#00796b">
 <meta name="apple-mobile-web-app-capable" content="yes">
+
+<style>
+body {
+  background: #000;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  text-align: center;
+  padding: 40px 20px;
+}
+h1 {
+  color: #00796b;
+  margin-bottom: 20px;
+}
+#installBtn {
+  background: #00796b;
+  color: #fff;
+  border: none;
+  padding: 15px 30px;
+  font-size: 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 30px;
+  display: none; /* 默认隐藏，满足条件后显示 */
+}
+</style>
 </head>
-<body style="background:#000;color:#fff;text-align:center;padding-top:30px;">
-<h1>PWA 已就绪</h1>
-<p>Chrome 右上角 → 安装应用</p>
+<body>
+  <h1>🧠 神经重塑训练</h1>
+  <p>PWA 已就绪，点击下方按钮安装应用</p>
+  <button id="installBtn">安装应用</button>
 
 <script>
-// 注册SW 相对路径
-if(navigator.serviceWorker){
-  navigator.serviceWorker.register("./service-worker.js");
-}
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
 
-// 强制捕获安装弹窗
-let promptEvent;
-window.addEventListener("beforeinstallprompt",e=>{
-    e.preventDefault();
-    promptEvent = e;
+// 监听Chrome的安装提示事件
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // 显示安装按钮
+  installBtn.style.display = 'block';
 });
+
+// 点击按钮触发安装
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    alert('安装成功！已添加到主屏幕');
+  }
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+});
+
+// 注册Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(reg => console.log('SW注册成功'))
+    .catch(err => console.log('SW注册失败', err));
+}
 </script>
 </body>
 </html>
