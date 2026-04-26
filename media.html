@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🧠 神经重塑 · 终极控制器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
-    <!-- ✅ 关键修复：路径全部改为 /warehouse/ -->
-    <link rel="manifest" href="/warehouse/manifest.json">
+    <!-- PWA 核心：应用清单 -->
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a1a2e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="神经重塑">
-    <link rel="apple-touch-icon" href="/warehouse/icon-192x192.png">
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="apple-touch-icon" href="https://pwa-icons.vercel.app/icon-192.png">
 
     <style>
         :root { --primary-green: #00d4aa; --primary-blue: #00a8e8; --bg-dark: #1a1a2e; --bg-light: #16213e; --text-main: #fff; --text-secondary: #b0c4de; --text-muted: #6c7a9e; }
@@ -25,7 +24,7 @@
         .save-status, .copy-toast { position: fixed; top: 16px; right: 16px; background: rgba(0, 212, 170, 0.15); border: 1px solid var(--primary-green); border-radius: 30px; padding: 6px 16px; font-size: 12px; color: var(--primary-green); opacity: 0; transition: opacity 0.3s; z-index: 1000; backdrop-filter: blur(4px); }
         .copy-toast { top: auto; bottom: 80px; right: 50%; transform: translateX(50%); color: #121212; background: var(--primary-green); }
         .save-status.show, .copy-toast.show { opacity: 1; }
-        .music-status { background: rgba(0,212,170,0.08); border: 1px solid var(--primary-green); border-radius: 20px; padding: 12px 20px; margin-bottom: 18px; max-width: 420px; width: 100%; text-align: center; }
+        .music-status { background: rgba(0, 212, 170, 0.08); border: 1px solid var(--primary-green); border-radius: 20px; padding: 12px 20px; margin-bottom: 18px; max-width: 420px; width: 100%; text-align: center; }
         .file-input { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 16px; width: 100%; max-width: 420px; margin-bottom: 16px; border: 1px solid rgba(0,212,170,0.25); }
         .file-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 12px 10px; background: rgba(0,0,0,0.2); border-radius: 14px; cursor: pointer; transition: background 0.2s; }
         .file-row:hover { background: rgba(0,212,170,0.08); }
@@ -98,6 +97,7 @@
         .mini-btn-play { width: 48px; height: 48px; background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); color: #121212; font-size: 22px; }
         .mini-btn:active { transform: scale(0.9); }
 
+        /* PWA 安装提示 */
         #pwaInstallHint {
             position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
             background: #00d4aa; color: #000; border-radius: 30px; padding: 8px 16px;
@@ -111,465 +111,247 @@
     <div id="pwaInstallHint">📲 点击添加到桌面</div>
     <div class="save-status" id="saveStatus">✓ 已自动保存</div>
     <div class="copy-toast" id="copyToast">📋 已复制到剪贴板</div>
-
-    <svg width="0" height="0">
-        <defs>
-            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#00d4aa"/>
-                <stop offset="100%" stop-color="#00a8e8"/>
-            </linearGradient>
-        </defs>
-    </svg>
-
+    <svg width="0" height="0"><defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00d4aa"/><stop offset="100%" stop-color="#00a8e8"/></linearGradient></defs></svg>
     <div class="header"><h1>🧠 神经重塑训练</h1><p>底部迷你播放器 · 始终可见</p></div>
     <div class="music-status"><div class="label">当前阶段</div><div class="song" id="currentMode">准备开始</div></div>
-
-    <div class="file-input">
-        <h4>🎵 训练曲目 · 点击行复制 | 点击「配置」调整</h4>
-        <div id="fileRowsContainer"></div>
-    </div>
-
-    <div class="progress-ring">
-        <svg width="160" height="160">
-            <circle class="bg" cx="80" cy="80" r="72"></circle>
-            <circle class="progress" cx="80" cy="80" r="72" stroke-dasharray="452.39" stroke-dashoffset="452.39"></circle>
-        </svg>
-        <div class="time-display">
-            <div class="current" id="currentTime">00:00</div>
-            <div class="total" id="totalTimeLabel">/ 30:00</div>
-        </div>
-    </div>
-
-    <div class="stage-info" id="stageInfo">
-        <span class="stage-number">阶段 1/5</span>
-        <div class="stage-title" id="stageTitle">坐立战马</div>
-        <div class="stage-detail" id="stageDetail"></div>
-    </div>
-
-    <div class="controls">
-        <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">▶ 开始训练</button>
-        <button class="btn btn-secondary" onclick="reset()">↻ 重置</button>
-        <button class="btn btn-warning" onclick="exportData()">⬇ 导出</button>
-    </div>
-
-    <div class="track-progress-container">
-        <div class="track-progress-bar" id="trackProgressBar" onclick="seekToPosition(event)">
-            <div class="track-progress-fill" id="trackProgressFill" style="width:0%"></div>
-        </div>
-        <div class="track-progress-time">
-            <span id="trackCurrentTime">00:00</span>
-            <span id="trackDuration">00:00</span>
-        </div>
-    </div>
-
-    <div class="playlist">
-        <h3>训练曲目 · 点击切换 · 拖拽排序</h3>
-        <div id="trackList"></div>
-    </div>
-
-    <div class="stats-section">
-        <h4>📊 训练统计</h4>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-            <div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;">
-                <div style="font-size:30px;font-weight:700;color:#00d4aa;" id="totalSessions">0</div>
-                <div style="font-size:11px;color:#8892b0;">完成次数</div>
-            </div>
-            <div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;">
-                <div style="font-size:30px;font-weight:700;color:#00d4aa;" id="totalMinutes">0</div>
-                <div style="font-size:11px;color:#8892b0;">总分钟</div>
-            </div>
-            <div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;">
-                <div style="font-size:30px;font-weight:700;color:#00d4aa;" id="currentStreak">0</div>
-                <div style="font-size:11px;color:#8892b0;">连续天数</div>
-            </div>
-            <div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;">
-                <div style="font-size:30px;font-weight:700;color:#00d4aa;" id="lastTraining">-</div>
-                <div style="font-size:11px;color:#8892b0;">上次</div>
-            </div>
-        </div>
-        <div class="chart-tabs">
-            <div class="chart-tab active" data-type="weekly">本周</div>
-            <div class="chart-tab" data-type="monthly">本月</div>
-            <div class="chart-tab" data-type="yearly">全年</div>
-        </div>
-        <div class="chart-container">
-            <canvas id="trainingChart"></canvas>
-        </div>
-    </div>
-
-    <div style="background:rgba(255,255,255,0.03);border-radius:20px;padding:16px;width:100%;max-width:420px;margin:12px 0 80px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-            <div class="toggle-switch active" id="autoSaveToggle" onclick="toggleAutoSave()"></div>
-            <span>自动保存</span>
-        </div>
-        <div style="display:flex;gap:8px;">
-            <button class="btn btn-secondary" onclick="importData()" style="padding:8px 16px;font-size:13px;">📂 导入</button>
-            <button class="btn btn-secondary" onclick="clearAllData()" style="padding:8px 16px;font-size:13px;">🗑️ 清除全部</button>
-        </div>
-    </div>
-
+    <div class="file-input"><h4>🎵 训练曲目 · 点击行复制 | 点击「配置」调整</h4><div id="fileRowsContainer"></div></div>
+    <div class="progress-ring"><svg width="160" height="160"><circle class="bg" cx="80" cy="80" r="72"></circle><circle class="progress" cx="80" cy="80" r="72" stroke-dasharray="452.39" stroke-dashoffset="452.39"></circle></svg><div class="time-display"><div class="current" id="currentTime">00:00</div><div class="total" id="totalTimeLabel">/ 30:00</div></div></div>
+    <div class="stage-info" id="stageInfo"><span class="stage-number">阶段 1/5</span><div class="stage-title" id="stageTitle">坐立战马</div><div class="stage-detail" id="stageDetail"></div></div>
+    <div class="controls"><button class="btn btn-primary" id="playBtn" onclick="togglePlay()">▶ 开始训练</button><button class="btn btn-secondary" onclick="reset()">↻ 重置</button><button class="btn btn-warning" onclick="exportData()">⬇ 导出</button></div>
+    <div class="track-progress-container"><div class="track-progress-bar" id="trackProgressBar" onclick="seekToPosition(event)"><div class="track-progress-fill" id="trackProgressFill" style="width:0%"></div></div><div class="track-progress-time"><span id="trackCurrentTime">00:00</span><span id="trackDuration">00:00</span></div></div>
+    <div class="playlist"><h3>训练曲目 · 点击切换 · 拖拽排序</h3><div id="trackList"></div></div>
+    <div class="stats-section"><h4>📊 训练统计</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;"><div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;"><div style="font-size:30px;font-weight:700;color:#00d4aa;" id="totalSessions">0</div><div style="font-size:11px;color:#8892b0;">完成次数</div></div><div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;"><div style="font-size:30px;font-weight:700;color:#00d4aa;" id="totalMinutes">0</div><div style="font-size:11px;color:#8892b0;">总分钟</div></div><div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;"><div style="font-size:30px;font-weight:700;color:#00d4aa;" id="currentStreak">0</div><div style="font-size:11px;color:#8892b0;">连续天数</div></div><div style="background:rgba(0,0,0,0.25);border-radius:16px;padding:14px 8px;text-align:center;"><div style="font-size:30px;font-weight:700;color:#00d4aa;" id="lastTraining">-</div><div style="font-size:11px;color:#8892b0;">上次</div></div></div><div class="chart-tabs"><div class="chart-tab active" data-type="weekly">本周</div><div class="chart-tab" data-type="monthly">本月</div><div class="chart-tab" data-type="yearly">全年</div></div><div class="chart-container"><canvas id="trainingChart"></canvas></div></div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:20px;padding:16px;width:100%;max-width:420px;margin:12px 0 80px;"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><div class="toggle-switch active" id="autoSaveToggle" onclick="toggleAutoSave()"></div><span>自动保存</span></div><div style="display:flex;gap:8px;"><button class="btn btn-secondary" onclick="importData()" style="padding:8px 16px;font-size:13px;">📂 导入</button><button class="btn btn-secondary" onclick="clearAllData()" style="padding:8px 16px;font-size:13px;">🗑️ 清除全部</button></div></div>
     <input type="file" id="importFile" accept=".json" onchange="handleImport(this)" style="display:none">
-
     <div class="mini-player" id="miniPlayer">
-        <div class="mini-player-info">
-            <div class="mini-player-title" id="miniTitle">坐立战马</div>
-            <div class="mini-player-subtitle" id="miniSubtitle">准备开始</div>
-        </div>
+        <div class="mini-player-info"><div class="mini-player-title" id="miniTitle">坐立战马</div><div class="mini-player-subtitle" id="miniSubtitle">准备开始</div></div>
         <div class="mini-player-controls">
             <button class="mini-btn" onclick="prevTrack()" title="上一首">⏮</button>
             <button class="mini-btn mini-btn-play" id="miniPlayBtn" onclick="togglePlay()">▶</button>
             <button class="mini-btn" onclick="nextTrack()" title="下一首">⏭</button>
         </div>
     </div>
-
     <div class="modal-overlay" id="configModal">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-title" id="configModalTitle">⚙️ 配置 第1阶段</div>
-            <div class="config-section">
-                <h4>📋 核心参数</h4>
-                <div class="param-row"><label>名称</label><input type="text" id="cfg_name"></div>
-                <div class="param-row"><label>BPM</label><input type="number" id="cfg_bpm" min="30" max="200"></div>
-                <div class="param-row"><label>时长(秒)</label><input type="number" id="cfg_duration" min="0" max="7200" step="1"></div>
-                <div class="hint-text">💡 设为 0 则自动使用音频实际时长</div>
-            </div>
-            <div class="config-section">
-                <h4>🎧 音乐来源</h4>
-                <div class="music-source-item" id="localFileItem" style="display:none;">
-                    <span>📁</span>
-                    <div style="flex:1">
-                        <div id="localFileName">—</div>
-                        <div style="font-size:10px;color:#6c7a9e" id="localFileSize">—</div>
-                    </div>
-                    <span class="priority-badge badge-local">优先</span>
-                    <button class="delete-source-btn" id="btnDeleteLocal">✕</button>
-                </div>
-                <div class="music-source-item" id="onlineUrlItem" style="display:none;">
-                    <span>🌐</span>
-                    <div style="flex:1">
-                        <div id="onlineUrlName">—</div>
-                        <div style="font-size:10px;color:#6c7a9e" id="onlineUrlDetail">—</div>
-                    </div>
-                    <span class="priority-badge badge-online">备用</span>
-                    <button class="delete-source-btn" id="btnDeleteOnline">✕</button>
-                </div>
-                <div class="music-source-item" id="noMusicItem" style="background:transparent;border:1px dashed #445;">
-                    <span>🎵</span>
-                    <div style="flex:1"><div>未设置音乐</div></div>
-                </div>
-                <div class="music-actions">
-                    <button class="small-btn" id="btnLocalFile" style="border:1px solid var(--primary-green);background:rgba(0,212,170,0.2);">📁 本地文件</button>
-                    <button class="small-btn" id="btnOnlineLink">🔗 在线链接</button>
-                </div>
-                <div class="link-hint">💡 本地文件不存在时自动使用在线链接</div>
-                <input type="file" id="localFileInput" accept="audio/*" style="display:none">
-            </div>
-            <div class="advanced-toggle" id="advancedToggle">▼ 高级选项 (动作/想象)</div>
-            <div class="advanced-fields" id="advancedFields" style="display:none;">
-                <div class="param-row"><label>动作</label><input type="text" id="cfg_action"></div>
-                <div class="param-row"><label>想象</label><input type="text" id="cfg_imagine"></div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-primary" id="btnSaveConfig" style="flex:1;">💾 保存</button>
-                <button class="btn btn-secondary" id="btnCancelConfig" style="flex:1;">取消</button>
-            </div>
+            <div class="config-section"><h4>📋 核心参数</h4><div class="param-row"><label>名称</label><input type="text" id="cfg_name"></div><div class="param-row"><label>BPM</label><input type="number" id="cfg_bpm" min="30" max="200"></div><div class="param-row"><label>时长(秒)</label><input type="number" id="cfg_duration" min="0" max="7200" step="1"></div><div class="hint-text">💡 设为 0 则自动使用音频实际时长</div></div>
+            <div class="config-section"><h4>🎧 音乐来源</h4><div class="music-source-item" id="localFileItem" style="display:none;"><span>📁</span><div style="flex:1"><div id="localFileName">—</div><div style="font-size:10px;color:#6c7a9e" id="localFileSize">—</div></div><span class="priority-badge badge-local">优先</span><button class="delete-source-btn" id="btnDeleteLocal">✕</button></div><div class="music-source-item" id="onlineUrlItem" style="display:none;"><span>🌐</span><div style="flex:1"><div id="onlineUrlName">—</div><div style="font-size:10px;color:#6c7a9e" id="onlineUrlDetail">—</div></div><span class="priority-badge badge-online">备用</span><button class="delete-source-btn" id="btnDeleteOnline">✕</button></div><div class="music-source-item" id="noMusicItem" style="background:transparent;border:1px dashed #445;"><span>🎵</span><div style="flex:1"><div>未设置音乐</div></div></div><div class="music-actions"><button class="small-btn" id="btnLocalFile" style="border:1px solid var(--primary-green);background:rgba(0,212,170,0.2);">📁 本地文件</button><button class="small-btn" id="btnOnlineLink">🔗 在线链接</button></div><div class="link-hint">💡 本地文件不存在时自动使用在线链接</div><input type="file" id="localFileInput" accept="audio/*" style="display:none"></div>
+            <div class="advanced-toggle" id="advancedToggle">▼ 高级选项 (动作/想象)</div><div class="advanced-fields" id="advancedFields" style="display:none;"><div class="param-row"><label>动作</label><input type="text" id="cfg_action"></div><div class="param-row"><label>想象</label><input type="text" id="cfg_imagine"></div></div>
+            <div class="modal-actions"><button class="btn btn-primary" id="btnSaveConfig" style="flex:1;">💾 保存</button><button class="btn btn-secondary" id="btnCancelConfig" style="flex:1;">取消</button></div>
         </div>
     </div>
 
-<script>
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('pwaInstallHint').classList.add('show');
-});
-document.getElementById('pwaInstallHint').addEventListener('click', async () => {
-    document.getElementById('pwaInstallHint').classList.remove('show');
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-});
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/warehouse/sw.js')
-            .then(() => console.log('SW registered'))
-            .catch(err => console.error('SW registration failed', err));
+    <script>
+    // PWA 安装与 Service Worker
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('pwaInstallHint').classList.add('show');
     });
-}
-
-(function(){
-"use strict";
-
-const SAMPLE_MUSIC = [
-    { name: "将军令（琵琶纯音乐）", url: "https://music.163.com/asset/134293/134293.mp3" },
-    { name: "醉拳（纯音乐版）",     url: "https://music.163.com/asset/143211/143211.mp3" },
-    { name: "流水（古琴）",        url: "https://music.163.com/asset/189201/189201.mp3" },
-    { name: "笑傲江湖（纯音乐）",   url: "https://music.163.com/asset/198763/198763.mp3" },
-    { name: "太极张三丰（随缘）",   url: "https://music.163.com/asset/201155/201155.mp3" }
-];
-
-const DEFAULT_STAGES = [
-    { name: "坐立战马", bpm: 72, duration: 300, action: "坐位平衡，双手扶膝", imagine: "想象骑战马，脊柱逐节直立" },
-    { name: "飞檐走壁", bpm: 108, duration: 420, action: "站立位，重心左右移", imagine: "想象飞檐走壁，足踝灵活调整" },
-    { name: "行云流水", bpm: 66, duration: 360, action: "慢步行走，摆臂自然", imagine: "想象行云流水，关节无阻力滑动" },
-    { name: "凌波微步", bpm: 82, duration: 360, action: "加快速度，小步跑", imagine: "想象凌波微步，轻触地面即起" },
-    { name: "脑体合一", bpm: 60, duration: 360, action: "站立深呼吸，闭眼", imagine: "想象脑体合一，气沉丹田" }
-];
-
-let stages = JSON.parse(JSON.stringify(DEFAULT_STAGES));
-const STAGES_CONFIG_KEY = 'nrc_v16', STORAGE_KEY = 'nrd_v22', AUTO_SAVE_KEY = 'nra3', STATS_KEY = 'nrs3';
-const defaultNames = ['将军令 琵琶版','醉拳 成龙','流水 古琴','笑傲江湖曲','太极张三丰'];
-const AUDIO_DB_NAME = 'NADB_v12', AUDIO_STORE_NAME = 'audioFiles';
-
-let currentStage=0, isPlaying=false, totalTime=0, timer=null;
-let audioContext=null, metronome=null, currentAudio=null;
-let autoSaveEnabled=true;
-let trainingChart=null, currentChartType='weekly';
-let audioFiles=[null,null,null,null,null];
-let audioFileMeta=[null,null,null,null,null];
-let trainingStats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}};
-let editingStageIndex=0;
-let tempMusicFile=null,tempMusicUrl='',tempAudioDuration=0;
-let savedAudioTime=0;
-let sortableInstance=null;
-
-function updateMiniPlayer(){
-    const stage = stages[currentStage];
-    document.getElementById('miniTitle').textContent = stage.name;
-    const meta = audioFileMeta[currentStage];
-    let subtitle = '节拍器模式';
-    if(meta?.localFile) subtitle = '📁 ' + (meta.name || meta.localFile.name);
-    else if(meta?.onlineUrl) subtitle = '🌐 ' + (meta.onlineName || meta.name || '在线链接');
-    document.getElementById('miniSubtitle').textContent = subtitle;
-    document.getElementById('miniPlayBtn').innerHTML = isPlaying ? '⏸' : '▶';
-}
-
-window.prevTrack = function(){ if(currentStage > 0) switchToTrack(currentStage - 1); else switchToTrack(stages.length - 1); };
-window.nextTrack = function(){ if(currentStage < stages.length - 1) switchToTrack(currentStage + 1); else switchToTrack(0); };
-
-async function openAudioDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(AUDIO_DB_NAME,1); r.onerror=rej; r.onsuccess=()=>res(r.result); r.onupgradeneeded=e=>{ if(!e.target.result.objectStoreNames.contains(AUDIO_STORE_NAME)) e.target.result.createObjectStore(AUDIO_STORE_NAME,{keyPath:'id'}); }; }); }
-
-async function saveAudioToDB(id,file,name){ const db=await openAudioDB(); return new Promise((res,rej)=>{ const reader=new FileReader(); reader.onload=()=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readwrite'); tx.objectStore(AUDIO_STORE_NAME).put({id,name:name||file.name,type:file.type,size:file.size,data:reader.result,timestamp:Date.now()}); tx.oncomplete=res; }; reader.onerror=rej; reader.readAsArrayBuffer(file); }); }
-
-async function loadAudioFromDB(id){ const db=await openAudioDB(); return new Promise((res,rej)=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readonly'); const r=tx.objectStore(AUDIO_STORE_NAME).get(id); r.onsuccess=()=>res(r.result); r.onerror=rej; }); }
-
-async function deleteAudioFromDB(id){ const db=await openAudioDB(); return new Promise((res)=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readwrite'); tx.objectStore(AUDIO_STORE_NAME).delete(id); tx.oncomplete=res; }); }
-
-async function clearAllAudioDB(){ const db=await openAudioDB(); return new Promise((res)=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readwrite'); tx.objectStore(AUDIO_STORE_NAME).clear(); tx.oncomplete=res; }); }
-
-function showCopyToast(){ const t=document.getElementById('copyToast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
-
-function toggleAdvanced(){ const el=document.getElementById('advancedFields'),toggle=document.getElementById('advancedToggle'); el.style.display=el.style.display==='none'?'block':'none'; toggle.innerHTML=el.style.display==='none'?'▼ 高级选项 (动作/想象)':'▲ 高级选项 (动作/想象)'; }
-
-function getAudioDuration(file){ return new Promise((resolve)=>{ const a=new Audio(); a.preload='metadata'; a.onloadedmetadata=()=>resolve(a.duration); a.onerror=()=>resolve(0); a.src=URL.createObjectURL(file); }); }
-
-function renderRows(){
-    const c=document.getElementById('fileRowsContainer'); if(!c) return;
-    c.innerHTML=[1,2,3,4,5].map(i=>{
-        const meta=audioFileMeta[i-1];
-        let dn=`${i}. ${defaultNames[i-1]}`,mt='未设置音乐';
-        if(meta&&(meta.localFile||meta.onlineUrl)){
-            dn=`${i}. ${meta.name||defaultNames[i-1]}`;
-            const p=[];
-            if(meta.localFile)p.push('📁本地');
-            if(meta.onlineUrl)p.push('🌐链接');
-            mt=p.join(' · ')+` · ${formatTime(stages[i-1]?.duration||0)}`;
-        }
-        return `<div class="file-row" onclick="copyRowContent(this)" data-copy="${(meta?.onlineUrl||meta?.name||dn).replace(/"/g,'&quot;')}">
-            <div class="file-info">
-                <div class="file-name ${(meta&&(meta.localFile||meta.onlineUrl))?'loaded':''}">${dn}</div>
-                <div class="file-meta">${mt}</div>
-            </div>
-            <button class="config-btn" onclick="event.stopPropagation();openConfigModal(${i-1})">⚙️ 配置</button>
-        </div>`;
-    }).join('');
-}
-
-window.copyRowContent=function(r){
-    const c=r.dataset.copy;
-    navigator.clipboard?.writeText(c).then(showCopyToast).catch(()=>{
-        const t=document.createElement('textarea'); t.value=c; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); showCopyToast();
+    document.getElementById('pwaInstallHint').addEventListener('click', async () => {
+        document.getElementById('pwaInstallHint').classList.remove('show');
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
     });
-};
 
-window.openConfigModal=function(idx){
-    editingStageIndex=idx;
-    const s=stages[idx],m=audioFileMeta[idx];
-    document.getElementById('configModalTitle').textContent=`⚙️ 配置 第${idx+1}阶段 · ${s.name}`;
-    document.getElementById('cfg_name').value=s.name;
-    document.getElementById('cfg_bpm').value=s.bpm;
-    document.getElementById('cfg_duration').value=s.duration;
-    document.getElementById('cfg_action').value=s.action||'';
-    document.getElementById('cfg_imagine').value=s.imagine||'';
-    tempMusicFile=null; tempMusicUrl=''; tempAudioDuration=0;
-    updateMusicSourceDisplay(m);
-    document.getElementById('advancedFields').style.display='none';
-    document.getElementById('advancedToggle').innerHTML='▼ 高级选项 (动作/想象)';
-    document.getElementById('configModal').classList.add('show');
-};
-
-function updateMusicSourceDisplay(m){
-    const li=document.getElementById('localFileItem'),oi=document.getElementById('onlineUrlItem'),nm=document.getElementById('noMusicItem');
-    if(m?.localFile){
-        li.style.display='flex';
-        document.getElementById('localFileName').textContent=m.localFile.name;
-        document.getElementById('localFileSize').textContent=`${((m.localFile.size||0)/1024/1024).toFixed(2)} MB`;
-    } else li.style.display='none';
-    if(m?.onlineUrl){
-        oi.style.display='flex';
-        document.getElementById('onlineUrlName').textContent=m.onlineName||'在线链接';
-        document.getElementById('onlineUrlDetail').textContent=m.onlineUrl;
-    } else oi.style.display='none';
-    nm.style.display=(!m?.localFile&&!m?.onlineUrl)?'flex':'none';
-}
-
-function closeConfigModal(){ document.getElementById('configModal').classList.remove('show'); }
-
-function triggerLocalFile(){ document.getElementById('localFileInput').click(); }
-
-function promptForUrlInConfig(){
-    const input=prompt('请输入音频链接（支持「名称 链接」格式）:');
-    if(!input) return;
-    const urlRegex=/(https?:\/\/[^\s]+)/g;
-    const urls=input.match(urlRegex);
-    if(urls&&urls.length>0){
-        tempMusicUrl=urls[0];
-        let name=input.replace(urls[0],'').trim();
-        if(!name){ name=urls[0].split('/').pop()||'在线音乐'; if(name.includes('?')) name=name.split('?')[0]; }
-        document.getElementById('onlineUrlName').textContent=name;
-        document.getElementById('onlineUrlDetail').textContent=urls[0];
-        document.getElementById('onlineUrlItem').style.display='flex';
-        document.getElementById('noMusicItem').style.display='none';
-        if(document.getElementById('cfg_name').value===stages[editingStageIndex].name)
-            document.getElementById('cfg_name').value=name;
-    } else {
-        try{ new URL(input); tempMusicUrl=input; let name=input.split('/').pop()||'在线音乐'; if(name.includes('?')) name=name.split('?')[0];
-            document.getElementById('onlineUrlName').textContent=name;
-            document.getElementById('onlineUrlDetail').textContent=input;
-            document.getElementById('onlineUrlItem').style.display='flex';
-            document.getElementById('noMusicItem').style.display='none';
-        } catch { alert('无效链接'); }
-    }
-}
-
-function deleteLocalFile(){ tempMusicFile=null; if(audioFileMeta[editingStageIndex]?.localFile) window._pdL=true; document.getElementById('localFileItem').style.display='none'; updateNoMusicDisplay(); }
-function deleteOnlineUrl(){ tempMusicUrl=''; if(audioFileMeta[editingStageIndex]?.onlineUrl) window._pdO=true; document.getElementById('onlineUrlItem').style.display='none'; updateNoMusicDisplay(); }
-function updateNoMusicDisplay(){ const lv=document.getElementById('localFileItem').style.display!=='none',ov=document.getElementById('onlineUrlItem').style.display!=='none'; document.getElementById('noMusicItem').style.display=(!lv&&!ov)?'flex':'none'; }
-
-async function saveConfigFromModal(){
-    const idx=editingStageIndex; let dur=parseInt(document.getElementById('cfg_duration').value)||0;
-    if(dur===0&&tempMusicFile&&tempAudioDuration>0) dur=tempAudioDuration; else if(dur===0) dur=300;
-    stages[idx]={ name:document.getElementById('cfg_name').value.trim()||`阶段${idx+1}`, bpm:parseInt(document.getElementById('cfg_bpm').value)||60, duration:dur, action:document.getElementById('cfg_action').value, imagine:document.getElementById('cfg_imagine').value };
-    const om=audioFileMeta[idx];
-    if(om?.localFile&&audioFiles[idx]){ URL.revokeObjectURL(audioFiles[idx]); audioFiles[idx]=null; }
-    let lfi=om?.localFile||null;
-    if(window._pdL){ if(om?.localFile) await deleteAudioFromDB(idx); lfi=null; window._pdL=false; }
-    if(tempMusicFile){ await saveAudioToDB(idx,tempMusicFile,tempMusicFile.name); const df=await loadAudioFromDB(idx); const blob=new Blob([df.data],{type:tempMusicFile.type}); audioFiles[idx]=URL.createObjectURL(blob); lfi={name:tempMusicFile.name,type:tempMusicFile.type,size:tempMusicFile.size}; }
-    let ou=om?.onlineUrl||'',on=om?.onlineName||'';
-    if(window._pdO){ ou=''; on=''; window._pdO=false; }
-    if(tempMusicUrl){ ou=tempMusicUrl; on=document.getElementById('onlineUrlName').textContent!=='—'?document.getElementById('onlineUrlName').textContent:(tempMusicUrl.split('/').pop()||'在线音乐'); if(on.includes('?')) on=on.split('?')[0]; }
-    audioFileMeta[idx]={name:document.getElementById('cfg_name').value.trim()||`阶段${idx+1}`,localFile:lfi,onlineUrl:ou,onlineName:on};
-    saveFullState(); renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateTotalTimeLabel(); updateButtonState(); updateMiniPlayer();
-    if(currentStage===idx && isPlaying) playStageMusic(currentStage);
-    closeConfigModal();
-}
-
-function saveFullState(){ localStorage.setItem(STAGES_CONFIG_KEY,JSON.stringify(stages)); saveData(); }
-function loadStagesConfig(){ const s=localStorage.getItem(STAGES_CONFIG_KEY); if(s){ try{ const p=JSON.parse(s); if(p&&p.length===5) stages=p; } catch{} } }
-function reorderDataArrays(oi,ni){ const ms=stages.splice(oi,1)[0]; stages.splice(ni,0,ms); const ma=audioFiles.splice(oi,1)[0]; audioFiles.splice(ni,0,ma); const mm=audioFileMeta.splice(oi,1)[0]; audioFileMeta.splice(ni,0,mm); if(currentStage===oi) currentStage=ni; else if(oi<currentStage&&ni>=currentStage) currentStage--; else if(oi>currentStage&&ni<=currentStage) currentStage++; saveFullState(); }
-function loadStats(){ const s=localStorage.getItem(STATS_KEY); if(s){ try{ trainingStats=JSON.parse(s); } catch{} } }
-function saveStats(){ localStorage.setItem(STATS_KEY,JSON.stringify(trainingStats)); }
-function recordSession(){ const today=new Date().toISOString().split('T')[0]; trainingStats.sessions.push({date:today}); trainingStats.totalSessions++; trainingStats.totalMinutes+=30; trainingStats.dailyRecords[today]=(trainingStats.dailyRecords[today]||0)+1; let s=0,d=new Date(); while(trainingStats.dailyRecords[d.toISOString().split('T')[0]]){ s++; d.setDate(d.getDate()-1); } trainingStats.currentStreak=s; trainingStats.lastTrainingDate=today; saveStats(); updateStatsDisplay(); updateChart(); }
-function updateStatsDisplay(){ document.getElementById('totalSessions').textContent=trainingStats.totalSessions; document.getElementById('totalMinutes').textContent=trainingStats.totalMinutes; document.getElementById('currentStreak').textContent=trainingStats.currentStreak; document.getElementById('lastTraining').textContent=trainingStats.lastTrainingDate?new Date(trainingStats.lastTrainingDate).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}):'-'; }
-function initChart(){ const ctx=document.getElementById('trainingChart').getContext('2d'); trainingChart=new Chart(ctx,{type:'bar',data:getChartData('weekly'),options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}}); }
-function getChartData(type){ const l=[],d=[]; if(type==='weekly') for(let i=6;i>=0;i--){ let dt=new Date(); dt.setDate(dt.getDate()-i); const ds=dt.toISOString().split('T')[0]; l.push(dt.toLocaleDateString('zh-CN',{weekday:'short'})); d.push(trainingStats.dailyRecords[ds]||0); } else if(type==='monthly') for(let i=3;i>=0;i--){ let s=new Date(); s.setDate(s.getDate()-(i*7+6)); let e=new Date(s); e.setDate(e.getDate()+6); let c=0; for(let dt=new Date(s);dt<=e;dt.setDate(dt.getDate()+1)) c+=trainingStats.dailyRecords[dt.toISOString().split('T')[0]]||0; l.push(`${s.getMonth()+1}/${s.getDate()}`); d.push(c); } else for(let i=11;i>=0;i--){ let dt=new Date(); dt.setMonth(dt.getMonth()-i); const y=dt.getFullYear(),m=dt.getMonth(); let c=0; for(let day=1;day<=31;day++) c+=trainingStats.dailyRecords[`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`]||0; l.push(dt.toLocaleDateString('zh-CN',{month:'short'})); d.push(c); } return {labels:l,datasets:[{data:d,backgroundColor:'#00d4aa'}]}; }
-function switchChart(type){ currentChartType=type; document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active')); document.querySelector(`[data-type="${type}"]`).classList.add('active'); trainingChart.data=getChartData(type); trainingChart.update(); }
-function updateChart(){ if(trainingChart){ trainingChart.data=getChartData(currentChartType); trainingChart.update(); } }
-async function playStageMusic(idx,resumeTime=0){
-    stopMetronome();
-    if(currentAudio){ currentAudio.pause(); currentAudio.currentTime = 0; currentAudio.src = ''; currentAudio = null; }
-    const meta=audioFileMeta[idx],stage=stages[idx];
-    const updateTrackProgress=()=>{ if(!currentAudio) return; const cur=currentAudio.currentTime,dur=currentAudio.duration; if(isNaN(dur)) return; document.getElementById('trackProgressFill').style.width=(cur/dur*100)+'%'; document.getElementById('trackCurrentTime').textContent=formatTime(cur); document.getElementById('trackDuration').textContent=formatTime(dur); };
-    if(meta?.localFile&&audioFiles[idx]){
-        currentAudio=new Audio(audioFiles[idx]); currentAudio.loop=true; currentAudio.addEventListener('timeupdate',updateTrackProgress); currentAudio.addEventListener('loadedmetadata',updateTrackProgress);
-        try{ if(resumeTime>0) currentAudio.currentTime=resumeTime; await currentAudio.play(); document.getElementById('currentMode').textContent=`${stage.name} · 📁 ${meta.name||meta.localFile.name}`; updateMediaSession(stage, meta); updateMiniPlayer(); return; } catch(e){ console.warn('本地失败',e); }
-    }
-    if(meta?.onlineUrl){
-        currentAudio=new Audio(meta.onlineUrl); currentAudio.loop=true; currentAudio.addEventListener('timeupdate',updateTrackProgress); currentAudio.addEventListener('loadedmetadata',updateTrackProgress);
-        try{ if(resumeTime>0) currentAudio.currentTime=resumeTime; await currentAudio.play(); document.getElementById('currentMode').textContent=`${stage.name} · 🌐 ${meta.onlineName||meta.name||'在线链接'}`; updateMediaSession(stage, meta); updateMiniPlayer(); return; } catch(e){ console.warn('链接失败',e); }
-    }
-    startMetronome(stage.bpm); document.getElementById('currentMode').textContent=`${stage.name} · 节拍器`; document.getElementById('trackProgressFill').style.width='0%'; document.getElementById('trackCurrentTime').textContent='00:00'; document.getElementById('trackDuration').textContent=formatTime(stage.duration); updateMediaSession(stage, meta); updateMiniPlayer();
-}
-function updateMediaSession(stage, meta) {
-    if (!('mediaSession' in navigator)) return;
-    try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: stage.name,
-            artist: meta ? (meta.onlineName || meta.name || '神经重塑训练') : '神经重塑训练',
-            album: '训练曲目'
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => {});
         });
-        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-        ['play', 'pause', 'previoustrack', 'nexttrack'].forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch (e) {} });
-        navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) togglePlay(); });
-        navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) togglePlay(); });
-        navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
-        navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
-    } catch (e) { console.warn("Media Session API error", e); }
-}
-function startMetronome(bpm){ if(!audioContext) audioContext=new(window.AudioContext||window.webkitAudioContext)(); if(audioContext.state==='suspended') audioContext.resume(); const i=60/bpm; playClick(); metronome=setInterval(playClick,i*1000); const d=stages[currentStage].duration; document.getElementById('trackDuration').textContent=formatTime(d); let e=0; const pi=setInterval(()=>{ if(!isPlaying){ clearInterval(pi); return; } e++; document.getElementById('trackProgressFill').style.width=(e/d*100)+'%'; document.getElementById('trackCurrentTime').textContent=formatTime(e); if(e>=d) clearInterval(pi); },1000); if(window._pt) clearInterval(window._pt); window._pt=pi; }
-function playClick(){ if(!audioContext) return; const o=audioContext.createOscillator(),g=audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); o.frequency.value=1000; const n=audioContext.currentTime; g.gain.setValueAtTime(0.15,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.05); o.start(); o.stop(n+0.05); }
-function stopMetronome(){ if(metronome) clearInterval(metronome); metronome=null; if(window._pt) clearInterval(window._pt); }
-window.seekToPosition=function(e){ if(!currentAudio) return; const b=document.getElementById('trackProgressBar'),r=b.getBoundingClientRect(),p=(e.clientX-r.left)/r.width,d=currentAudio.duration; if(!isNaN(d)) currentAudio.currentTime=p*d; };
-window.switchToTrack=function(i){ if(currentStage===i){ if(!isPlaying) togglePlay(); return; } document.querySelectorAll('.track').forEach((t,j)=>t.classList.toggle('active',j===i)); currentStage=i; savedAudioTime=0; updateStageInfo(); updateMiniPlayer(); if(isPlaying) playStageMusic(currentStage); else playStageMusic(currentStage).then(()=>{ if(currentAudio) currentAudio.pause(); }); saveData(); };
-async function play(){ isPlaying=true; document.getElementById('playBtn').textContent='⏸ 暂停'; document.getElementById('miniPlayBtn').innerHTML='⏸'; const rp=savedAudioTime||0; savedAudioTime=0; await playStageMusic(currentStage,rp); timer=setInterval(()=>{ totalTime++; updateDisplay(); if(totalTime-getStageStartTime()>=stages[currentStage].duration) nextStage(); },1000); }
-function pause(){ isPlaying=false; document.getElementById('playBtn').textContent='▶ 继续'; document.getElementById('miniPlayBtn').innerHTML='▶'; clearInterval(timer); if(currentAudio){ savedAudioTime=currentAudio.currentTime; currentAudio.pause(); } stopMetronome(); saveData(); updateMediaSession(stages[currentStage], audioFileMeta[currentStage]); }
-window.togglePlay=async function(){ if(!audioContext){ audioContext=new(window.AudioContext||window.webkitAudioContext)(); await audioContext.resume(); } isPlaying?pause():play(); };
-window.reset=function(){ pause(); currentStage=0; totalTime=0; savedAudioTime=0; updateDisplay(); updateStageInfo(); updateMiniPlayer(); document.getElementById('playBtn').textContent='▶ 开始训练'; document.getElementById('trackProgressFill').style.width='0%'; document.getElementById('trackCurrentTime').textContent='00:00'; initPlaylist(); saveData(); };
-function nextStage(){ if(currentStage<stages.length-1){ document.querySelectorAll('.track')[currentStage].classList.remove('active'); currentStage++; document.querySelectorAll('.track')[currentStage].classList.add('active'); savedAudioTime=0; updateMiniPlayer(); if(isPlaying) playStageMusic(currentStage); updateStageInfo(); saveData(); } else complete(); }
-function complete(){ pause(); recordSession(); document.getElementById('stageTitle').textContent='训练完成'; currentStage=0; totalTime=0; savedAudioTime=0; saveData(); updateStageInfo(); updateMiniPlayer(); document.getElementById('trackProgressFill').style.width='0%'; initPlaylist(); }
-function updateDisplay(){ document.getElementById('currentTime').textContent=formatTime(totalTime); const td=stages.reduce((a,b)=>a+b.duration,0); document.querySelector('.progress').style.strokeDashoffset=452.39*(1-totalTime/td); }
-function updateTotalTimeLabel(){ document.getElementById('totalTimeLabel').textContent=`/ ${formatTime(stages.reduce((a,b)=>a+b.duration,0))}`; }
-function updateStageInfo(){ const s=stages[currentStage]; document.querySelector('.stage-number').textContent=`阶段 ${currentStage+1}/${stages.length}`; document.getElementById('stageTitle').textContent=s.name; document.getElementById('stageDetail').innerHTML=`<span>动作：</span>${s.action}<br><span>BPM：</span>${s.bpm}<br><span>想象：</span>${s.imagine}`; }
-function getStageStartTime(){ let t=0; for(let i=0;i<currentStage;i++) t+=stages[i].duration; return t; }
-function formatTime(s){ if(isNaN(s))s=0; return `${Math.floor(s/60).toString().padStart(2,'0')}:${(Math.floor(s)%60).toString().padStart(2,'0')}`; }
-function initPlaylist(){
-    const c=document.getElementById('trackList'); if(!c) return;
-    c.innerHTML=stages.map((s,i)=>{ const m=audioFileMeta[i]; let st='节拍器'; if(m?.localFile) st='📁本地'; else if(m?.onlineUrl) st='🌐链接'; return `<div class="track ${i===currentStage?'active':''}" data-index="${i}" onclick="switchToTrack(${i})"><span class="drag-handle">⋮⋮</span><div class="track-number">${i+1}</div><div class="track-info"><div>${s.name}</div><small>${s.bpm}BPM · ${st}</small></div><div>${formatTime(s.duration)}</div></div>`; }).join('');
-    if(sortableInstance) sortableInstance.destroy();
-    sortableInstance=new Sortable(c,{handle:'.drag-handle',animation:200,ghostClass:'sortable-ghost',onEnd:e=>{ const oi=e.oldIndex,ni=e.newIndex; if(oi!==ni){ reorderDataArrays(oi,ni); initPlaylist(); updateStageInfo(); updateDisplay(); updateTotalTimeLabel(); updateMiniPlayer(); renderRows(); } }});
-}
-function saveData(){ if(!autoSaveEnabled) return; const mts=audioFileMeta.map(m=>{ if(!m) return null; return {name:m.name,localFile:m.localFile?{name:m.localFile.name,size:m.localFile.size}:null,onlineUrl:m.onlineUrl||'',onlineName:m.onlineName||''}; }); localStorage.setItem(STORAGE_KEY,JSON.stringify({currentStage,totalTime,audioFileMeta:mts})); showSaveStatus(); }
-async function loadSavedData(){ const s=localStorage.getItem(STORAGE_KEY); if(!s) return; try{ const d=JSON.parse(s); currentStage=d.currentStage||0; totalTime=d.totalTime||0; if(d.audioFileMeta){ for(let i=0;i<stages.length;i++){ const m=d.audioFileMeta[i]; if(m){ audioFileMeta[i]={name:m.name||'',localFile:m.localFile||null,onlineUrl:m.onlineUrl||'',onlineName:m.onlineName||''}; if(m.localFile){ const df=await loadAudioFromDB(i); if(df){ const blob=new Blob([df.data],{type:df.type}); audioFiles[i]=URL.createObjectURL(blob); audioFileMeta[i].localFile={name:df.name,type:df.type,size:df.size}; } else { audioFileMeta[i].localFile=null; } } } } } } catch(e){} renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateButtonState(); updateTotalTimeLabel(); updateMiniPlayer(); }
-function showSaveStatus(){ const s=document.getElementById('saveStatus'); s.classList.add('show'); setTimeout(()=>s.classList.remove('show'),1500); }
-window.toggleAutoSave=function(){ autoSaveEnabled=!autoSaveEnabled; localStorage.setItem(AUTO_SAVE_KEY,autoSaveEnabled); document.getElementById('autoSaveToggle').classList.toggle('active',autoSaveEnabled); };
-function updateButtonState(){ document.getElementById('playBtn').textContent=audioFileMeta.some(f=>f&&(f.localFile||f.onlineUrl))?'▶ 开始训练':'♪ 节拍器模式'; }
-function initSampleMusic(){ const s=localStorage.getItem(STORAGE_KEY); if(s) return false; for(let i=0;i<SAMPLE_MUSIC.length;i++){ audioFileMeta[i]={name:SAMPLE_MUSIC[i].name,localFile:null,onlineUrl:SAMPLE_MUSIC[i].url,onlineName:SAMPLE_MUSIC[i].name}; audioFiles[i]=SAMPLE_MUSIC[i].url; } return true; }
-function bindEvents(){
-    ['btnSaveConfig','btnCancelConfig','btnLocalFile','btnOnlineLink','btnDeleteLocal','btnDeleteOnline'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.replaceWith(el.cloneNode(true)); const fn=id==='btnSaveConfig'?saveConfigFromModal:id==='btnCancelConfig'?closeConfigModal:id==='btnLocalFile'?triggerLocalFile:id==='btnOnlineLink'?promptForUrlInConfig:id==='btnDeleteLocal'?deleteLocalFile:deleteOnlineUrl; document.getElementById(id).addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); fn(); }); } });
-    const at=document.getElementById('advancedToggle'); if(at){ at.replaceWith(at.cloneNode(true)); document.getElementById('advancedToggle').addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); toggleAdvanced(); }); }
-    const lfi=document.getElementById('localFileInput'); if(lfi){ lfi.addEventListener('change',async function(e){ const file=e.target.files[0]; if(!file) return; tempMusicFile=file; tempMusicUrl=''; const dur=await getAudioDuration(file); tempAudioDuration=Math.round(dur); document.getElementById('cfg_duration').value=tempAudioDuration||0; document.getElementById('localFileName').textContent=file.name; document.getElementById('localFileSize').textContent=`${(file.size/1024/1024).toFixed(2)} MB`; document.getElementById('localFileItem').style.display='flex'; document.getElementById('noMusicItem').style.display='none'; e.target.value=''; }); }
-    document.querySelectorAll('.chart-tab').forEach(t=>{ t.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); switchChart(this.dataset.type); }); });
-    document.getElementById('configModal').addEventListener('click',function(e){ if(e.target===this) closeConfigModal(); });
-}
-window.exportData=function(){ const blob=new Blob([JSON.stringify({stats:trainingStats,meta:audioFileMeta,stages})],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='neuro_backup.json'; a.click(); };
-window.importData=()=>document.getElementById('importFile').click();
-window.handleImport=async function(i){ alert('导入功能支持中'); };
-window.clearAllData=async function(){ if(!confirm('⚠️ 确定清除所有数据？')) return; pause(); for(let i=0;i<stages.length;i++){ if(audioFiles[i]&&!audioFileMeta[i]?.isUrl) URL.revokeObjectURL(audioFiles[i]); audioFiles[i]=null; audioFileMeta[i]=null; } await clearAllAudioDB(); localStorage.clear(); trainingStats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}}; stages=JSON.parse(JSON.stringify(DEFAULT_STAGES)); currentStage=0; totalTime=0; autoSaveEnabled=true; localStorage.setItem(AUTO_SAVE_KEY,'true'); localStorage.setItem(STAGES_CONFIG_KEY,JSON.stringify(stages)); initSampleMusic(); renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateStatsDisplay(); updateChart(); updateTotalTimeLabel(); updateButtonState(); updateMiniPlayer(); document.getElementById('currentMode').textContent='准备开始'; document.getElementById('playBtn').textContent='▶ 开始训练'; };
-async function init(){
-    loadStagesConfig(); loadStats(); initChart(); updateStatsDisplay();
-    const as=localStorage.getItem(AUTO_SAVE_KEY); if(as!==null) autoSaveEnabled=as==='true';
-    document.getElementById('autoSaveToggle').classList.toggle('active',autoSaveEnabled);
-    const isNew=initSampleMusic();
-    if(!isNew) await loadSavedData();
-    renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateTotalTimeLabel(); updateButtonState(); updateMiniPlayer(); updateChart();
-    bindEvents();
-    setInterval(()=>{ if(autoSaveEnabled) saveData(); },30000);
-    window.addEventListener('beforeunload',()=>{ if(autoSaveEnabled) saveData(); });
-}
-init();
-})();
-</script>
+    }
+    </script>
+
+    <script>
+    (function(){"use strict";
+    const SAMPLE_MUSIC = [
+        { name: "将军令（琵琶纯音乐）", url: "https://music.163.com/asset/134293/134293.mp3" },
+        { name: "醉拳（纯音乐版）",     url: "https://music.163.com/asset/143211/143211.mp3" },
+        { name: "流水（古琴）",        url: "https://music.163.com/asset/189201/189201.mp3" },
+        { name: "笑傲江湖（纯音乐）",   url: "https://music.163.com/asset/198763/198763.mp3" },
+        { name: "太极张三丰（随缘）",   url: "https://music.163.com/asset/201155/201155.mp3" }
+    ];
+    const DEFAULT_STAGES = [
+        { name: "坐立战马", bpm: 72, duration: 300, action: "坐位平衡，双手扶膝", imagine: "想象骑战马，脊柱逐节直立" },
+        { name: "飞檐走壁", bpm: 108, duration: 420, action: "站立位，重心左右移", imagine: "想象飞檐走壁，足踝灵活调整" },
+        { name: "行云流水", bpm: 66, duration: 360, action: "慢步行走，摆臂自然", imagine: "想象行云流水，关节无阻力滑动" },
+        { name: "凌波微步", bpm: 82, duration: 360, action: "加快速度，小步跑", imagine: "想象凌波微步，轻触地面即起" },
+        { name: "脑体合一", bpm: 60, duration: 360, action: "站立深呼吸，闭眼", imagine: "想象脑体合一，气沉丹田" }
+    ];
+    let stages = JSON.parse(JSON.stringify(DEFAULT_STAGES));
+    const STAGES_CONFIG_KEY = 'nrc_v16', STORAGE_KEY = 'nrd_v22', AUTO_SAVE_KEY = 'nra3', STATS_KEY = 'nrs3';
+    const defaultNames = ['将军令 琵琶版','醉拳 成龙','流水 古琴','笑傲江湖曲','太极张三丰'];
+    const AUDIO_DB_NAME = 'NADB_v12', AUDIO_STORE_NAME = 'audioFiles';
+    let currentStage=0, isPlaying=false, totalTime=0, timer=null;
+    let audioContext=null, metronome=null, currentAudio=null;
+    let autoSaveEnabled=true;
+    let trainingChart=null, currentChartType='weekly';
+    let audioFiles=[null,null,null,null,null];
+    let audioFileMeta=[null,null,null,null,null];
+    let trainingStats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}};
+    let editingStageIndex=0;
+    let tempMusicFile=null,tempMusicUrl='',tempAudioDuration=0;
+    let savedAudioTime=0;
+    let sortableInstance=null;
+    function updateMiniPlayer(){
+        const stage = stages[currentStage];
+        document.getElementById('miniTitle').textContent = stage.name;
+        const meta = audioFileMeta[currentStage];
+        let subtitle = '节拍器模式';
+        if(meta?.localFile) subtitle = '📁 ' + (meta.name || meta.localFile.name);
+        else if(meta?.onlineUrl) subtitle = '🌐 ' + (meta.onlineName || meta.name || '在线链接');
+        document.getElementById('miniSubtitle').textContent = subtitle;
+        document.getElementById('miniPlayBtn').innerHTML = isPlaying ? '⏸' : '▶';
+    }
+    window.prevTrack = function(){ if(currentStage > 0) switchToTrack(currentStage - 1); else switchToTrack(stages.length - 1); };
+    window.nextTrack = function(){ if(currentStage < stages.length - 1) switchToTrack(currentStage + 1); else switchToTrack(0); };
+    async function openAudioDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(AUDIO_DB_NAME,1); r.onerror=rej; r.onsuccess=()=>res(r.result); r.onupgradeneeded=e=>{ if(!e.target.result.objectStoreNames.contains(AUDIO_STORE_NAME)) e.target.result.createObjectStore(AUDIO_STORE_NAME,{keyPath:'id'}); }; }); }
+    async function saveAudioToDB(id,file,name){ const db=await openAudioDB(); return new Promise((res,rej)=>{ const reader=new FileReader(); reader.onload=()=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readwrite'); tx.objectStore(AUDIO_STORE_NAME).put({id,name:name||file.name,type:file.type,size:file.size,data:reader.result,timestamp:Date.now()}); tx.oncomplete=res; }; reader.onerror=rej; reader.readAsArrayBuffer(file); }); }
+    async function loadAudioFromDB(id){ const db=await openAudioDB(); return new Promise((res,rej)=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readonly'); const r=tx.objectStore(AUDIO_STORE_NAME).get(id); r.onsuccess=()=>res(r.result); r.onerror=rej; }); }
+    async function deleteAudioFromDB(id){ const db=await openAudioDB(); return new Promise((res)=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readwrite'); tx.objectStore(AUDIO_STORE_NAME).delete(id); tx.oncomplete=res; }); }
+    async function clearAllAudioDB(){ const db=await openAudioDB(); return new Promise((res)=>{ const tx=db.transaction([AUDIO_STORE_NAME],'readwrite'); tx.objectStore(AUDIO_STORE_NAME).clear(); tx.oncomplete=res; }); }
+    function showCopyToast(){ const t=document.getElementById('copyToast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+    function toggleAdvanced(){ const el=document.getElementById('advancedFields'),toggle=document.getElementById('advancedToggle'); el.style.display=el.style.display==='none'?'block':'none'; toggle.innerHTML=el.style.display==='none'?'▼ 高级选项 (动作/想象)':'▲ 高级选项 (动作/想象)'; }
+    function getAudioDuration(file){ return new Promise((resolve)=>{ const a=new Audio(); a.preload='metadata'; a.onloadedmetadata=()=>resolve(a.duration); a.onerror=()=>resolve(0); a.src=URL.createObjectURL(file); }); }
+    
+    function renderRows(){
+        const c=document.getElementById('fileRowsContainer'); if(!c) return;
+        c.innerHTML=[1,2,3,4,5].map(i=>{ const meta=audioFileMeta[i-1]; let dn=`${i}. ${defaultNames[i-1]}`,mt='未设置音乐'; if(meta&&(meta.localFile||meta.onlineUrl)){ dn=`${i}. ${meta.name||defaultNames[i-1]}`; const p=[]; if(meta.localFile)p.push('📁本地'); if(meta.onlineUrl)p.push('🌐链接'); mt=p.join(' · ')+` · ${formatTime(stages[i-1]?.duration||0)}`; } return `<div class="file-row" onclick="copyRowContent(this)" data-copy="${(meta?.onlineUrl||meta?.name||dn).replace(/"/g,'&quot;')}"><div class="file-info"><div class="file-name ${(meta&&(meta.localFile||meta.onlineUrl))?'loaded':''}">${dn}</div><div class="file-meta">${mt}</div></div><button class="config-btn" onclick="event.stopPropagation();openConfigModal(${i-1})">⚙️ 配置</button></div>`; }).join('');
+    }
+    window.copyRowContent=function(r){ const c=r.dataset.copy; navigator.clipboard?.writeText(c).then(showCopyToast).catch(()=>{ const t=document.createElement('textarea'); t.value=c; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); showCopyToast(); }); };
+    window.openConfigModal=function(idx){ editingStageIndex=idx; const s=stages[idx],m=audioFileMeta[idx]; document.getElementById('configModalTitle').textContent=`⚙️ 配置 第${idx+1}阶段 · ${s.name}`; document.getElementById('cfg_name').value=s.name; document.getElementById('cfg_bpm').value=s.bpm; document.getElementById('cfg_duration').value=s.duration; document.getElementById('cfg_action').value=s.action||''; document.getElementById('cfg_imagine').value=s.imagine||''; tempMusicFile=null; tempMusicUrl=''; tempAudioDuration=0; updateMusicSourceDisplay(m); document.getElementById('advancedFields').style.display='none'; document.getElementById('advancedToggle').innerHTML='▼ 高级选项 (动作/想象)'; document.getElementById('configModal').classList.add('show'); };
+    function updateMusicSourceDisplay(m){ const li=document.getElementById('localFileItem'),oi=document.getElementById('onlineUrlItem'),nm=document.getElementById('noMusicItem'); if(m?.localFile){ li.style.display='flex'; document.getElementById('localFileName').textContent=m.localFile.name; document.getElementById('localFileSize').textContent=`${((m.localFile.size||0)/1024/1024).toFixed(2)} MB`; } else { li.style.display='none'; } if(m?.onlineUrl){ oi.style.display='flex'; document.getElementById('onlineUrlName').textContent=m.onlineName||'在线链接'; document.getElementById('onlineUrlDetail').textContent=m.onlineUrl; } else { oi.style.display='none'; } nm.style.display=(!m?.localFile&&!m?.onlineUrl)?'flex':'none'; }
+    function closeConfigModal(){ document.getElementById('configModal').classList.remove('show'); }
+    function triggerLocalFile(){ document.getElementById('localFileInput').click(); }
+    function promptForUrlInConfig(){ const input=prompt('请输入音频链接（支持「名称 链接」格式）:'); if(!input) return; const urlRegex=/(https?:\/\/[^\s]+)/g; const urls=input.match(urlRegex); if(urls&&urls.length>0){ tempMusicUrl=urls[0]; let name=input.replace(urls[0],'').trim(); if(!name){ name=urls[0].split('/').pop()||'在线音乐'; if(name.includes('?')) name=name.split('?')[0]; } document.getElementById('onlineUrlName').textContent=name; document.getElementById('onlineUrlDetail').textContent=urls[0]; document.getElementById('onlineUrlItem').style.display='flex'; document.getElementById('noMusicItem').style.display='none'; if(document.getElementById('cfg_name').value===stages[editingStageIndex].name) document.getElementById('cfg_name').value=name; } else { try{ new URL(input); tempMusicUrl=input; let name=input.split('/').pop()||'在线音乐'; if(name.includes('?')) name=name.split('?')[0]; document.getElementById('onlineUrlName').textContent=name; document.getElementById('onlineUrlDetail').textContent=input; document.getElementById('onlineUrlItem').style.display='flex'; document.getElementById('noMusicItem').style.display='none'; } catch { alert('无效链接'); } } }
+    function deleteLocalFile(){ tempMusicFile=null; if(audioFileMeta[editingStageIndex]?.localFile) window._pdL=true; document.getElementById('localFileItem').style.display='none'; updateNoMusicDisplay(); }
+    function deleteOnlineUrl(){ tempMusicUrl=''; if(audioFileMeta[editingStageIndex]?.onlineUrl) window._pdO=true; document.getElementById('onlineUrlItem').style.display='none'; updateNoMusicDisplay(); }
+    function updateNoMusicDisplay(){ const lv=document.getElementById('localFileItem').style.display!=='none',ov=document.getElementById('onlineUrlItem').style.display!=='none'; document.getElementById('noMusicItem').style.display=(!lv&&!ov)?'flex':'none'; }
+    async function saveConfigFromModal(){
+        const idx=editingStageIndex; let dur=parseInt(document.getElementById('cfg_duration').value)||0;
+        if(dur===0&&tempMusicFile&&tempAudioDuration>0) dur=tempAudioDuration; else if(dur===0) dur=300;
+        stages[idx]={ name:document.getElementById('cfg_name').value.trim()||`阶段${idx+1}`, bpm:parseInt(document.getElementById('cfg_bpm').value)||60, duration:dur, action:document.getElementById('cfg_action').value, imagine:document.getElementById('cfg_imagine').value };
+        const om=audioFileMeta[idx];
+        if(om?.localFile&&audioFiles[idx]){ URL.revokeObjectURL(audioFiles[idx]); audioFiles[idx]=null; }
+        let lfi=om?.localFile||null;
+        if(window._pdL){ if(om?.localFile) await deleteAudioFromDB(idx); lfi=null; window._pdL=false; }
+        if(tempMusicFile){ await saveAudioToDB(idx,tempMusicFile,tempMusicFile.name); const df=await loadAudioFromDB(idx); const blob=new Blob([df.data],{type:tempMusicFile.type}); audioFiles[idx]=URL.createObjectURL(blob); lfi={name:tempMusicFile.name,type:tempMusicFile.type,size:tempMusicFile.size}; }
+        let ou=om?.onlineUrl||'',on=om?.onlineName||'';
+        if(window._pdO){ ou=''; on=''; window._pdO=false; }
+        if(tempMusicUrl){ ou=tempMusicUrl; on=document.getElementById('onlineUrlName').textContent!=='—'?document.getElementById('onlineUrlName').textContent:(tempMusicUrl.split('/').pop()||'在线音乐'); if(on.includes('?')) on=on.split('?')[0]; }
+        audioFileMeta[idx]={name:document.getElementById('cfg_name').value.trim()||`阶段${idx+1}`,localFile:lfi,onlineUrl:ou,onlineName:on};
+        saveFullState(); renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateTotalTimeLabel(); updateButtonState(); updateMiniPlayer();
+        if(currentStage===idx && isPlaying) playStageMusic(currentStage);
+        closeConfigModal();
+    }
+    function saveFullState(){ localStorage.setItem(STAGES_CONFIG_KEY,JSON.stringify(stages)); saveData(); }
+    function loadStagesConfig(){ const s=localStorage.getItem(STAGES_CONFIG_KEY); if(s){ try{ const p=JSON.parse(s); if(p&&p.length===5) stages=p; } catch{} } }
+    function reorderDataArrays(oi,ni){ const ms=stages.splice(oi,1)[0]; stages.splice(ni,0,ms); const ma=audioFiles.splice(oi,1)[0]; audioFiles.splice(ni,0,ma); const mm=audioFileMeta.splice(oi,1)[0]; audioFileMeta.splice(ni,0,mm); if(currentStage===oi) currentStage=ni; else if(oi<currentStage&&ni>=currentStage) currentStage--; else if(oi>currentStage&&ni<=currentStage) currentStage++; saveFullState(); }
+    function loadStats(){ const s=localStorage.getItem(STATS_KEY); if(s){ try{ trainingStats=JSON.parse(s); } catch{} } }
+    function saveStats(){ localStorage.setItem(STATS_KEY,JSON.stringify(trainingStats)); }
+    function recordSession(){ const today=new Date().toISOString().split('T')[0]; trainingStats.sessions.push({date:today}); trainingStats.totalSessions++; trainingStats.totalMinutes+=30; trainingStats.dailyRecords[today]=(trainingStats.dailyRecords[today]||0)+1; let s=0,d=new Date(); while(trainingStats.dailyRecords[d.toISOString().split('T')[0]]){ s++; d.setDate(d.getDate()-1); } trainingStats.currentStreak=s; trainingStats.lastTrainingDate=today; saveStats(); updateStatsDisplay(); updateChart(); }
+    function updateStatsDisplay(){ document.getElementById('totalSessions').textContent=trainingStats.totalSessions; document.getElementById('totalMinutes').textContent=trainingStats.totalMinutes; document.getElementById('currentStreak').textContent=trainingStats.currentStreak; document.getElementById('lastTraining').textContent=trainingStats.lastTrainingDate?new Date(trainingStats.lastTrainingDate).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}):'-'; }
+    function initChart(){ const ctx=document.getElementById('trainingChart').getContext('2d'); trainingChart=new Chart(ctx,{type:'bar',data:getChartData('weekly'),options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}}); }
+    function getChartData(type){ const l=[],d=[]; if(type==='weekly') for(let i=6;i>=0;i--){ let dt=new Date(); dt.setDate(dt.getDate()-i); const ds=dt.toISOString().split('T')[0]; l.push(dt.toLocaleDateString('zh-CN',{weekday:'short'})); d.push(trainingStats.dailyRecords[ds]||0); } else if(type==='monthly') for(let i=3;i>=0;i--){ let s=new Date(); s.setDate(s.getDate()-(i*7+6)); let e=new Date(s); e.setDate(e.getDate()+6); let c=0; for(let dt=new Date(s);dt<=e;dt.setDate(dt.getDate()+1)) c+=trainingStats.dailyRecords[dt.toISOString().split('T')[0]]||0; l.push(`${s.getMonth()+1}/${s.getDate()}`); d.push(c); } else for(let i=11;i>=0;i--){ let dt=new Date(); dt.setMonth(dt.getMonth()-i); const y=dt.getFullYear(),m=dt.getMonth(); let c=0; for(let day=1;day<=31;day++) c+=trainingStats.dailyRecords[`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`]||0; l.push(dt.toLocaleDateString('zh-CN',{month:'short'})); d.push(c); } return {labels:l,datasets:[{data:d,backgroundColor:'#00d4aa'}]}; }
+    function switchChart(type){ currentChartType=type; document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active')); document.querySelector(`[data-type="${type}"]`).classList.add('active'); trainingChart.data=getChartData(type); trainingChart.update(); }
+    function updateChart(){ if(trainingChart){ trainingChart.data=getChartData(currentChartType); trainingChart.update(); } }
+    async function playStageMusic(idx,resumeTime=0){
+        stopMetronome(); 
+        if(currentAudio){ 
+            currentAudio.pause(); 
+            currentAudio.currentTime = 0;
+            currentAudio.src = ''; 
+            currentAudio = null; 
+        }
+        
+        const meta=audioFileMeta[idx],stage=stages[idx];
+        const updateTrackProgress=()=>{ if(!currentAudio) return; const cur=currentAudio.currentTime,dur=currentAudio.duration; if(isNaN(dur)) return; document.getElementById('trackProgressFill').style.width=(cur/dur*100)+'%'; document.getElementById('trackCurrentTime').textContent=formatTime(cur); document.getElementById('trackDuration').textContent=formatTime(dur); };
+        
+        if(meta?.localFile&&audioFiles[idx]){
+            currentAudio=new Audio(audioFiles[idx]); currentAudio.loop=true; currentAudio.addEventListener('timeupdate',updateTrackProgress); currentAudio.addEventListener('loadedmetadata',updateTrackProgress);
+            try{ if(resumeTime>0) currentAudio.currentTime=resumeTime; await currentAudio.play(); document.getElementById('currentMode').textContent=`${stage.name} · 📁 ${meta.name||meta.localFile.name}`; updateMediaSession(stage, meta); updateMiniPlayer(); return; } catch(e){ console.warn('本地失败',e); }
+        }
+        if(meta?.onlineUrl){
+            currentAudio=new Audio(meta.onlineUrl); currentAudio.loop=true; currentAudio.addEventListener('timeupdate',updateTrackProgress); currentAudio.addEventListener('loadedmetadata',updateTrackProgress);
+            try{ if(resumeTime>0) currentAudio.currentTime=resumeTime; await currentAudio.play(); document.getElementById('currentMode').textContent=`${stage.name} · 🌐 ${meta.onlineName||meta.name||'在线链接'}`; updateMediaSession(stage, meta); updateMiniPlayer(); return; } catch(e){ console.warn('链接失败',e); }
+        }
+        startMetronome(stage.bpm); document.getElementById('currentMode').textContent=`${stage.name} · 节拍器`; document.getElementById('trackProgressFill').style.width='0%'; document.getElementById('trackCurrentTime').textContent='00:00'; document.getElementById('trackDuration').textContent=formatTime(stage.duration); updateMediaSession(stage, meta); updateMiniPlayer();
+    }
+    
+    function updateMediaSession(stage, meta) {
+        if (!('mediaSession' in navigator)) return;
+        try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: stage.name,
+                artist: meta ? (meta.onlineName || meta.name || '神经重塑训练') : '神经重塑训练',
+                album: '训练曲目'
+            });
+            navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+            ['play', 'pause', 'previoustrack', 'nexttrack'].forEach(action => {
+                try { navigator.mediaSession.setActionHandler(action, null); } catch (e) {}
+            });
+            navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) togglePlay(); });
+            navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) togglePlay(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
+            navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+        } catch (e) { console.warn("Media Session API error", e); }
+    }
+    function startMetronome(bpm){ if(!audioContext) audioContext=new(window.AudioContext||window.webkitAudioContext)(); if(audioContext.state==='suspended') audioContext.resume(); const i=60/bpm; playClick(); metronome=setInterval(playClick,i*1000); const d=stages[currentStage].duration; document.getElementById('trackDuration').textContent=formatTime(d); let e=0; const pi=setInterval(()=>{ if(!isPlaying){ clearInterval(pi); return; } e++; document.getElementById('trackProgressFill').style.width=(e/d*100)+'%'; document.getElementById('trackCurrentTime').textContent=formatTime(e); if(e>=d) clearInterval(pi); },1000); if(window._pt) clearInterval(window._pt); window._pt=pi; }
+    function playClick(){ if(!audioContext) return; const o=audioContext.createOscillator(),g=audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); o.frequency.value=1000; const n=audioContext.currentTime; g.gain.setValueAtTime(0.15,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.05); o.start(); o.stop(n+0.05); }
+    function stopMetronome(){ if(metronome) clearInterval(metronome); metronome=null; if(window._pt) clearInterval(window._pt); }
+    window.seekToPosition=function(e){ if(!currentAudio) return; const b=document.getElementById('trackProgressBar'),r=b.getBoundingClientRect(),p=(e.clientX-r.left)/r.width,d=currentAudio.duration; if(!isNaN(d)) currentAudio.currentTime=p*d; };
+    window.switchToTrack=function(i){ if(currentStage===i){ if(!isPlaying) togglePlay(); return; } document.querySelectorAll('.track').forEach((t,j)=>t.classList.toggle('active',j===i)); currentStage=i; savedAudioTime=0; updateStageInfo(); updateMiniPlayer(); if(isPlaying) playStageMusic(currentStage); else playStageMusic(currentStage).then(()=>{ if(currentAudio) currentAudio.pause(); }); saveData(); };
+    async function play(){ isPlaying=true; document.getElementById('playBtn').textContent='⏸ 暂停'; document.getElementById('miniPlayBtn').innerHTML='⏸'; const rp=savedAudioTime||0; savedAudioTime=0; await playStageMusic(currentStage,rp); timer=setInterval(()=>{ totalTime++; updateDisplay(); if(totalTime-getStageStartTime()>=stages[currentStage].duration) nextStage(); },1000); }
+    function pause(){ isPlaying=false; document.getElementById('playBtn').textContent='▶ 继续'; document.getElementById('miniPlayBtn').innerHTML='▶'; clearInterval(timer); if(currentAudio){ savedAudioTime=currentAudio.currentTime; currentAudio.pause(); } stopMetronome(); saveData(); updateMediaSession(stages[currentStage], audioFileMeta[currentStage]); }
+    window.togglePlay=async function(){ if(!audioContext){ audioContext=new(window.AudioContext||window.webkitAudioContext)(); await audioContext.resume(); } isPlaying?pause():play(); };
+    window.reset=function(){ pause(); currentStage=0; totalTime=0; savedAudioTime=0; updateDisplay(); updateStageInfo(); updateMiniPlayer(); document.getElementById('playBtn').textContent='▶ 开始训练'; document.getElementById('trackProgressFill').style.width='0%'; document.getElementById('trackCurrentTime').textContent='00:00'; initPlaylist(); saveData(); };
+    function nextStage(){ if(currentStage<stages.length-1){ document.querySelectorAll('.track')[currentStage].classList.remove('active'); currentStage++; document.querySelectorAll('.track')[currentStage].classList.add('active'); savedAudioTime=0; updateMiniPlayer(); if(isPlaying) playStageMusic(currentStage); updateStageInfo(); saveData(); } else complete(); }
+    function complete(){ pause(); recordSession(); document.getElementById('stageTitle').textContent='训练完成'; currentStage=0; totalTime=0; savedAudioTime=0; saveData(); updateStageInfo(); updateMiniPlayer(); document.getElementById('trackProgressFill').style.width='0%'; initPlaylist(); }
+    function updateDisplay(){ document.getElementById('currentTime').textContent=formatTime(totalTime); const td=stages.reduce((a,b)=>a+b.duration,0); document.querySelector('.progress').style.strokeDashoffset=452.39*(1-totalTime/td); }
+    function updateTotalTimeLabel(){ document.getElementById('totalTimeLabel').textContent=`/ ${formatTime(stages.reduce((a,b)=>a+b.duration,0))}`; }
+    function updateStageInfo(){ const s=stages[currentStage]; document.querySelector('.stage-number').textContent=`阶段 ${currentStage+1}/${stages.length}`; document.getElementById('stageTitle').textContent=s.name; document.getElementById('stageDetail').innerHTML=`<span>动作：</span>${s.action}<br><span>BPM：</span>${s.bpm}<br><span>想象：</span>${s.imagine}`; }
+    function getStageStartTime(){ let t=0; for(let i=0;i<currentStage;i++) t+=stages[i].duration; return t; }
+    function formatTime(s){ if(isNaN(s))s=0; return `${Math.floor(s/60).toString().padStart(2,'0')}:${(Math.floor(s)%60).toString().padStart(2,'0')}`; }
+    function initPlaylist(){
+        const c=document.getElementById('trackList'); if(!c) return;
+        c.innerHTML=stages.map((s,i)=>{ const m=audioFileMeta[i]; let st='节拍器'; if(m?.localFile) st='📁本地'; else if(m?.onlineUrl) st='🌐链接'; return `<div class="track ${i===currentStage?'active':''}" data-index="${i}" onclick="switchToTrack(${i})"><span class="drag-handle">⋮⋮</span><div class="track-number">${i+1}</div><div class="track-info"><div>${s.name}</div><small>${s.bpm}BPM · ${st}</small></div><div>${formatTime(s.duration)}</div></div>`; }).join('');
+        if(sortableInstance) sortableInstance.destroy();
+        sortableInstance=new Sortable(c,{handle:'.drag-handle',animation:200,ghostClass:'sortable-ghost',onEnd:e=>{ const oi=e.oldIndex,ni=e.newIndex; if(oi!==ni){ reorderDataArrays(oi,ni); initPlaylist(); updateStageInfo(); updateDisplay(); updateTotalTimeLabel(); updateMiniPlayer(); renderRows(); } }});
+    }
+    function saveData(){ if(!autoSaveEnabled) return; const mts=audioFileMeta.map(m=>{ if(!m) return null; return {name:m.name,localFile:m.localFile?{name:m.localFile.name,size:m.localFile.size}:null,onlineUrl:m.onlineUrl||'',onlineName:m.onlineName||''}; }); localStorage.setItem(STORAGE_KEY,JSON.stringify({currentStage,totalTime,audioFileMeta:mts})); showSaveStatus(); }
+    async function loadSavedData(){ const s=localStorage.getItem(STORAGE_KEY); if(!s) return; try{ const d=JSON.parse(s); currentStage=d.currentStage||0; totalTime=d.totalTime||0; if(d.audioFileMeta){ for(let i=0;i<stages.length;i++){ const m=d.audioFileMeta[i]; if(m){ audioFileMeta[i]={name:m.name||'',localFile:m.localFile||null,onlineUrl:m.onlineUrl||'',onlineName:m.onlineName||''}; if(m.localFile){ const df=await loadAudioFromDB(i); if(df){ const blob=new Blob([df.data],{type:df.type}); audioFiles[i]=URL.createObjectURL(blob); audioFileMeta[i].localFile={name:df.name,type:df.type,size:df.size}; } else { audioFileMeta[i].localFile=null; } } } } } } catch(e){} renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateButtonState(); updateTotalTimeLabel(); updateMiniPlayer(); }
+    function showSaveStatus(){ const s=document.getElementById('saveStatus'); s.classList.add('show'); setTimeout(()=>s.classList.remove('show'),1500); }
+    window.toggleAutoSave=function(){ autoSaveEnabled=!autoSaveEnabled; localStorage.setItem(AUTO_SAVE_KEY,autoSaveEnabled); document.getElementById('autoSaveToggle').classList.toggle('active',autoSaveEnabled); };
+    function updateButtonState(){ document.getElementById('playBtn').textContent=audioFileMeta.some(f=>f&&(f.localFile||f.onlineUrl))?'▶ 开始训练':'♪ 节拍器模式'; }
+    function initSampleMusic(){ const s=localStorage.getItem(STORAGE_KEY); if(s) return false; for(let i=0;i<SAMPLE_MUSIC.length;i++){ audioFileMeta[i]={name:SAMPLE_MUSIC[i].name,localFile:null,onlineUrl:SAMPLE_MUSIC[i].url,onlineName:SAMPLE_MUSIC[i].name}; audioFiles[i]=SAMPLE_MUSIC[i].url; } return true; }
+    function bindEvents(){
+        ['btnSaveConfig','btnCancelConfig','btnLocalFile','btnOnlineLink','btnDeleteLocal','btnDeleteOnline'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.replaceWith(el.cloneNode(true)); const fn=id==='btnSaveConfig'?saveConfigFromModal:id==='btnCancelConfig'?closeConfigModal:id==='btnLocalFile'?triggerLocalFile:id==='btnOnlineLink'?promptForUrlInConfig:id==='btnDeleteLocal'?deleteLocalFile:deleteOnlineUrl; document.getElementById(id).addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); fn(); }); } });
+        const at=document.getElementById('advancedToggle'); if(at){ at.replaceWith(at.cloneNode(true)); document.getElementById('advancedToggle').addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); toggleAdvanced(); }); }
+        const lfi=document.getElementById('localFileInput'); if(lfi){ lfi.addEventListener('change',async function(e){ const file=e.target.files[0]; if(!file) return; tempMusicFile=file; tempMusicUrl=''; const dur=await getAudioDuration(file); tempAudioDuration=Math.round(dur); document.getElementById('cfg_duration').value=tempAudioDuration||0; document.getElementById('localFileName').textContent=file.name; document.getElementById('localFileSize').textContent=`${(file.size/1024/1024).toFixed(2)} MB`; document.getElementById('localFileItem').style.display='flex'; document.getElementById('noMusicItem').style.display='none'; e.target.value=''; }); }
+        document.querySelectorAll('.chart-tab').forEach(t=>{ t.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); switchChart(this.dataset.type); }); });
+        document.getElementById('configModal').addEventListener('click',function(e){ if(e.target===this) closeConfigModal(); });
+    }
+    window.exportData=function(){ const blob=new Blob([JSON.stringify({stats:trainingStats,meta:audioFileMeta,stages})],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='neuro_backup.json'; a.click(); };
+    window.importData=()=>document.getElementById('importFile').click();
+    window.handleImport=async function(i){ alert('导入功能支持中'); };
+    window.clearAllData=async function(){ if(!confirm('⚠️ 确定清除所有数据？')) return; pause(); for(let i=0;i<stages.length;i++){ if(audioFiles[i]&&!audioFileMeta[i]?.isUrl) URL.revokeObjectURL(audioFiles[i]); audioFiles[i]=null; audioFileMeta[i]=null; } await clearAllAudioDB(); localStorage.clear(); trainingStats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}}; stages=JSON.parse(JSON.stringify(DEFAULT_STAGES)); currentStage=0; totalTime=0; autoSaveEnabled=true; localStorage.setItem(AUTO_SAVE_KEY,'true'); localStorage.setItem(STAGES_CONFIG_KEY,JSON.stringify(stages)); initSampleMusic(); renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateStatsDisplay(); updateChart(); updateTotalTimeLabel(); updateButtonState(); updateMiniPlayer(); document.getElementById('currentMode').textContent='准备开始'; document.getElementById('playBtn').textContent='▶ 开始训练'; };
+    async function init(){
+        loadStagesConfig(); loadStats(); initChart(); updateStatsDisplay();
+        const as=localStorage.getItem(AUTO_SAVE_KEY); if(as!==null) autoSaveEnabled=as==='true';
+        document.getElementById('autoSaveToggle').classList.toggle('active',autoSaveEnabled);
+        const isNew=initSampleMusic();
+        if(!isNew) await loadSavedData();
+        renderRows(); initPlaylist(); updateStageInfo(); updateDisplay(); updateTotalTimeLabel(); updateButtonState(); updateMiniPlayer(); updateChart();
+        bindEvents();
+        setInterval(()=>{ if(autoSaveEnabled) saveData(); },30000);
+        window.addEventListener('beforeunload',()=>{ if(autoSaveEnabled) saveData(); });
+    }
+    init();
+    })();
+    </script>
 </body>
 </html>
 
