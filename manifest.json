@@ -1,25 +1,21 @@
 ﻿{
   "name": "神经重塑训练",
   "short_name": "神经重塑",
-  "description": "神经重塑训练音乐播放器",
-  "start_url": "/warehouse/",
+  "start_url": ".",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#00796b",
-  "orientation": "portrait-primary",
-  "scope": "/warehouse/",
+  "theme_color": "#222222",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2995/2995452.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2995/2995452.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
