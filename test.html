@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>神经重塑训练</title>
+
+<!-- PWA 基础配置 全部内嵌 -->
+<meta name="theme-color" content="#20c997">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="神经重塑训练">
+<meta name="description" content="神经重塑训练专用背景音乐播放器，后台播放、锁屏控制、离线可用">
+
+<!-- Base64 图标 无需任何图片文件 -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiB2aWV3Qm94PSIwIDAgMTkyIDE5MiIgZmlsbD0ibm9uZSI+
+<rect width="192" height="192" rx="24" fill="#1a1f36"/>
+<path d="M96 32C64 32 40 56 40 88C40 112 52 136 72 148V160C72 168 80 176 88 176H104C112 176 120 168 120 160V148C152 136 152 112 152 88C152 56 128 32 96 32Z" fill="#20c997"/>
+<path d="M60 80C80 75.5817 83.5817 72 88 72H104C108.418 72 112 75.5817 112 80V96C112 100.418 108.418 104 104 104H88C83.5817 104 80 100.418 80 96V80Z" fill="#1a1f36"/>
+</svg>">
+
+<!-- 内嵌Base64 Manifest 无独立json文件 -->
+<link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuW8oOiuuOW8gOiuuOWTgeWNlyIsCiAgInNob3J0X25hbWUiOiAi56We55Sf6L+9IiwKICAiZGVzY3JpcHRpb24iOiAi56We55Sf6L+96L296LWE5oiR5bCP5L296IO/5ZKM54Ot6KGM6IO9IiwKICAic3RhcnRfdXJsIjogIi4vIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWExZjM2IiwKICAidGhlbWVfY29sb3IiOiAiIzIwYzk5NyIsCiAgIm9yaWVudGF0aW9uIjoicG9ydHJhaXQtcHJpbWFyeSIsCiAgImljb25zIjogW3sKICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlaT2lCc0hVMHRyQXdNV1cxOXpZWhsYUhSMGNITTJ3VjI3Y0k0S0NQb0lEOWhsYkR4bGRqRTFhTVd4Y0NqSGlhRzl1WkRFek1qRTNNQ0k0YjI5M2NtVnlhRzl1WkRFek1qSXdNakl5SWlBNE56UXhPRG93WkdKemVtVnlhRzl1WkRFek16RTNNakV3TUNJNEMzWmhiMmxpYjI5M2VqUmxjbWx3SWlBNE56WTJOemR6WlhKMGFXNW5hRzl1WkRFek16RTNNVGN4SWpBNE56WmhaR0Z6SWpBNE16VTNNekV3SWpBM01qVTJOemsySWpBNE56WTJOemR6WlhKMGFXNW5hRzl1WkRFek16RTJNemR6SWpBNE56WTJOemR6WlhKMGFXNW5hRzl1WkRFek16RTJNelE4SWpBNE56WTJOemR6WlhKMGFXNW5hRzl1WkRFek16RTJNelE4IiwKICAgICJzaXplcyI6ICIxOTJ4MTkyLDUxMng1MTIiLAogICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICB9XQp9">
+
+<style>
+:root{--bg:#1a1f36;--card:rgba(255,255,255,.05);--main:#20c997;--text:#eee;--gray:#aaa}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;padding-bottom:130px}
+.header{text-align:center;padding:2rem 1rem}
+.header h1{font-size:24px;color:var(--main);margin-bottom:6px}
+.header p{color:var(--gray);font-size:15px}
+.phase{margin:1rem;padding:1rem;border:2px solid var(--main);border-radius:16px;text-align:center;font-size:18px;background:rgba(32,201,151,.1)}
+.list{margin:1rem}
+.item{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.name{color:var(--main);font-size:17px;font-weight:600}
+.desc{font-size:13px;color:var(--gray);margin-top:4px}
+.btn{background:rgba(32,201,151,.2);color:var(--main);border:0;border-radius:10px;padding:8px 12px}
+
+/* 底部迷你播放器常驻 */
+.mini-bar{position:fixed;bottom:0;left:0;right:0;background:#151a2b;border-top:1px solid rgba(255,255,255,.1);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.info{flex:1;min-width:0}
+.song-name{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctrl{display:flex;gap:10px}
+.c-btn{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#fff;font-size:18px}
+.c-btn.play{background:linear-gradient(135deg,var(--main),#0dcaf0)}
+
+/* 播放器核心样式 */
+audio{display:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>神经重塑训练</h1>
+    <p>后台播放 · 锁屏控制 · PWA桌面独立应用</p>
+</div>
+
+<div class="phase">当前训练阶段<br>准备就绪</div>
+
+<div class="list">
+    <div class="item">
+        <div>
+            <div class="name">1. 坐立战马</div>
+            <div class="desc">舒缓训练音乐 | 04:30</div>
+        </div>
+        <button class="btn playItem">播放</button>
+    </div>
+    <div class="item">
+        <div>
+            <div class="name">2. 飞檐走壁</div>
+            <div class="desc">专注力训练 | 07:00</div>
+        </div>
+        <button class="btn playItem">播放</button>
+    </div>
+    <div class="item">
+        <div>
+            <div class="name">3. 流水 古琴</div>
+            <div class="desc">放松修复 | 06:00</div>
+        </div>
+        <button class="btn playItem">播放</button>
+    </div>
+    <div class="item">
+        <div>
+            <div class="name">4. 笑傲江湖 纯音乐</div>
+            <div class="desc">神经舒缓 | 06:00</div>
+        </div>
+        <button class="btn playItem">播放</button>
+    </div>
+</div>
+
+<!-- 全局音频播放器 支持锁屏&后台 -->
+<audio id="audio" controls loop>
+
+<!-- 底部迷你控制栏 -->
+<div class="mini-bar">
+    <div class="info">
+        <div class="song-name" id="nowSong">未播放</div>
+    </div>
+    <div class="ctrl">
+        <button class="c-btn" id="prevBtn">⏮</button>
+        <button class="c-btn play" id="playBtn">▶</button>
+        <button class="c-btn" id="nextBtn">⏭</button>
+    </div>
+</div>
+
+<script>
+// 音乐列表 你后续直接替换链接即可
+const musicList = [
+    {title:"坐立战马",src:""},
+    {title:"飞檐走壁",src:""},
+    {title:"流水 古琴",src:""},
+    {title:"笑傲江湖 纯音乐",src:""}
+];
+let nowIndex = 0;
+const audio = document.getElementById('audio');
+const playBtn = document.getElementById('playBtn');
+const nowSongText = document.getElementById('nowSong');
+
+// 播放指定曲目
+function playMusic(idx){
+    nowIndex = idx;
+    const item = musicList[idx];
+    audio.src = item.src;
+    nowSongText.innerText = item.title;
+    audio.play();
+    playBtn.innerText = "⏸";
+    setMediaSession(item.title);
+}
+
+// 锁屏媒体控制 MediaSession 系统级控件
+function setMediaSession(title){
+    if(!window.MediaSession)return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: title,
+        artist: "神经训练",
+        album: "康复训练合集",
+        artwork: [{src:document.querySelector('link[rel="apple-touch-icon"]').href,sizes:"192x192",type:"image/svg+xml"}]
+    });
+    // 锁屏按键
+    navigator.mediaSession.setActionHandler('play',()=>audio.play());
+    navigator.mediaSession.setActionHandler('pause',()=>audio.pause());
+    navigator.mediaSession.setActionHandler('previoustrack',()=>prevMusic());
+    navigator.mediaSession.setActionHandler('nexttrack',()=>nextMusic());
+}
+
+// 上一首 / 下一首
+function prevMusic(){
+    nowIndex = (nowIndex -1 + musicList.length) % musicList.length;
+    playMusic(nowIndex);
+}
+function nextMusic(){
+    nowIndex = (nowIndex +1) % musicList.length;
+    playMusic(nowIndex);
+}
+
+// 播放暂停按钮
+playBtn.addEventListener('click',()=>{
+    if(audio.paused){
+        if(!audio.src) playMusic(0);
+        else audio.play();
+        playBtn.innerText = "⏸";
+    }else{
+        audio.pause();
+        playBtn.innerText = "▶";
+    }
+});
+document.getElementById('prevBtn').onclick = prevMusic;
+document.getElementById('nextBtn').onclick = nextMusic;
+
+// 列表播放按钮
+document.querySelectorAll('.playItem').forEach((btn,i)=>{
+    btn.onclick = ()=>playMusic(i);
+});
+
+// 播放完毕自动下一曲
+audio.addEventListener('ended',nextMusic);
+
+// ========== 内嵌 Service Worker 完整PWA离线+安装 ==========
+if('serviceWorker' in navigator){
+    const swText = `
+    const CACHE_KEY = 'train-pwa-v1';
+    const cacheFiles = ['./','index.html'];
+    self.addEventListener('install',e=>{
+        e.waitUntil(caches.open(CACHE_KEY).then(c=>c.addAll(cacheFiles)).then(()=>self.skipWaiting()));
+    });
+    self.addEventListener('activate',e=>{
+        e.waitUntil(caches.keys().then(list=>Promise.all(list.filter(k=>k!==CACHE_KEY).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+    });
+    self.addEventListener('fetch',e=>{
+        e.respondWith(caches.match(e.request).then(res=>res||fetch(e.request)));
+    });
+    `;
+    const swBlob = new Blob([swText],{type:"application/javascript"});
+    const swUrl = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl);
+}
+</script>
+
+</body>
+</html>
+
