@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>神经重塑训练</title>
 
-  <!-- PWA Manifest 引用（关键！路径必须是根目录） -->
-  <link rel="manifest" href="/manifest.json">
+  <!-- 适配子路径的PWA Manifest引用 -->
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#00796b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,12 +25,14 @@
   <h1>🧠 神经重塑训练</h1>
   <p style="text-align:center;">底部迷你播放器 · 始终可见</p>
 
-  <!-- Service Worker 注册代码（必须放在body末尾） -->
+  <!-- Service Worker 注册代码（适配子路径） -->
   <script>
+    let deferredPrompt;
+
     // 注册 Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('service-worker.js')
           .then((reg) => {
             console.log('✅ Service Worker 注册成功:', reg);
           })
@@ -41,7 +43,6 @@
     }
 
     // 监听安装提示，Chrome会触发beforeinstallprompt事件
-    let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;

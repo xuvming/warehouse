@@ -1,5 +1,5 @@
 ﻿const CACHE_NAME = 'neuro-rebuild-v1';
-const urlsToCache = ['/'];
+const urlsToCache = ['/warehouse/'];
 
 // 安装阶段：缓存根页面
 self.addEventListener('install', (event) => {
