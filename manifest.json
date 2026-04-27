@@ -1,19 +1,26 @@
 ﻿{
-  "name": "康复训练播放器",
-  "short_name": "康复播放器",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192'%3E%3Crect fill='%23000' width='192' height='192' rx='20'/%3E%3Cpath fill='%23fff' d='M60 96L130 96M96 60L96 130' stroke='white' stroke-width='12' stroke-linecap='round'/%3E%3C/svg%3E",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+    "name": "神经重塑训练",
+    "short_name": "神经重塑",
+    "start_url": "/warehouse/media.html",
+    "display": "standalone",
+    "display_override": ["standalone", "fullscreen"],
+    "background_color": "#1a1a2e",
+    "theme_color": "#1a1a2e",
+    "orientation": "portrait-primary",
+    "scope": "/warehouse/",
+    "icons": [
+        {
+            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAGACAYAAABziFnFAAAAAXNSR0IArs4c6QAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9gDFB0NLCDpQ5YAAAAdaEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBkLmHUwZUAACJqSFhJWE5BTUUzLjk5LjVFeE15AEb8d8AAAAASUVORK5CYII=",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "prefer_related_applications": false,
+    "categories": ["health", "productivity"],
+    "description": "神经重塑训练控制器 | 脑机协调训练",
+    "launch_handler": {
+        "client_mode": "navigate-existing"
     }
-  ]
 }
 
