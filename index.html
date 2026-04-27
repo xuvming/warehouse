@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>音乐播放器</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>康复播放器</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
@@ -18,14 +18,15 @@ body{
   flex-direction:column;
   align-items:center;
   justify-content:center;
+  font-size:18px;
   font-family:sans-serif;
 }
-h1{font-size:50px;margin-bottom:15px}
-.desc{opacity:0.7;font-size:18px;margin-bottom:45px}
+h1{font-size:52px;margin-bottom:16px}
+.desc{opacity:0.7;margin-bottom:40px}
 #installBtn{
-  padding:15px 45px;
-  font-size:21px;
-  background:#fff;
+  padding:14px 36px;
+  font-size:20px;
+  background:#ffffff;
   color:#000;
   border:0;
   border-radius:999px;
@@ -36,39 +37,32 @@ h1{font-size:50px;margin-bottom:15px}
 </head>
 <body>
   <h1>PWA 已就绪</h1>
-  <p class="desc">点击按钮安装，自动添加到桌面</p>
+  <p class="desc">点击安装，自动添加至手机桌面</p>
   <button id="installBtn">点击安装APP</button>
 
 <script>
 let installPrompt = null;
-const installBtn = document.getElementById("installBtn");
+const btn = document.getElementById("installBtn");
 
-// 满足PWA条件才显示按钮
-window.addEventListener("beforeinstallprompt", (e) => {
+window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();
   installPrompt = e;
-  installBtn.classList.add("show");
-  console.log("✅ PWA全部条件满足，可以安装");
+  btn.classList.add("show");
 });
 
-// 点击安装
-installBtn.addEventListener("click", async () => {
-  if(!installPrompt) return;
+btn.addEventListener("click",async ()=>{
+  if(!installPrompt)return;
   await installPrompt.prompt();
   installPrompt = null;
 });
 
-// 真正安装完成提示
 window.addEventListener("appinstalled", () => {
-  alert("🎉 安装完成！请到桌面查看【音乐播放器】");
+  alert("✅ 安装完成！图标已添加到桌面");
 });
 
-// 强制注册ServiceWorker
 if('serviceWorker' in navigator){
-  window.addEventListener("load", () => {
+  window.addEventListener("load",()=>{
     navigator.serviceWorker.register("./service-worker.js")
-    .then(res => console.log("✅ SW注册成功",res))
-    .catch(err => console.log("❌ SW失败",err));
   })
 }
 </script>
