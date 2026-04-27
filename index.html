@@ -3,11 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>康复播放器</title>
+<title>PWA播放器</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#000000">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -37,29 +35,28 @@ h1{font-size:52px;margin-bottom:16px}
 </head>
 <body>
   <h1>PWA 已就绪</h1>
-  <p class="desc">点击安装，自动添加至手机桌面</p>
+  <p class="desc">Chrome右上角 / 点击下方按钮安装</p>
   <button id="installBtn">点击安装APP</button>
 
 <script>
 let installPrompt = null;
 const btn = document.getElementById("installBtn");
 
+// 满足PWA条件就显示按钮
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();
   installPrompt = e;
   btn.classList.add("show");
 });
 
+// 点击触发安装
 btn.addEventListener("click",async ()=>{
   if(!installPrompt)return;
   await installPrompt.prompt();
   installPrompt = null;
 });
 
-window.addEventListener("appinstalled", () => {
-  alert("✅ 安装完成！图标已添加到桌面");
-});
-
+// 注册worker
 if('serviceWorker' in navigator){
   window.addEventListener("load",()=>{
     navigator.serviceWorker.register("./service-worker.js")

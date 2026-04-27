@@ -1,4 +1,4 @@
-﻿const CACHE = "player-pwa-huawei";
+﻿const CACHE = "player-pwa-final";
 const files = [
   "./index.html",
   "./manifest.json"
