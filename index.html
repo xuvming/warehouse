@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🧠 神经重塑 · 终极控制器</title>
 
-    <!-- PWA 关键配置 -->
-    <link rel="manifest" href="/warehouse/manifest.json">
+    <!-- PWA 关键配置（修改后：直接引用根目录的manifest.json） -->
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#00d4aa">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -291,7 +291,8 @@ document.getElementById('pwaInstallHint').addEventListener('click', async () => 
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/warehouse/sw.js')
+        // 修改后：注册根目录的sw.js
+        navigator.serviceWorker.register('/sw.js')
             .then(() => console.log('Service Worker 注册成功'))
             .catch(err => console.error('Service Worker 注册失败', err));
     });

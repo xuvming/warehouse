@@ -1,13 +1,11 @@
 ﻿{
   "name": "神经重塑训练",
   "short_name": "神经重塑",
-  "start_url": "/warehouse/media.html",
-  "display": "browser",
+  "start_url": "/warehouse/index.html",
+  "display": "standalone",
   "background_color": "#1a1a2e",
-  "theme_color": "#1a1a2e",
-  "orientation": "portrait",
-  "scope": "/warehouse/",
-  "lang": "zh-CN",
-  "dir": "ltr"
+  "theme_color": "#00d4aa",
+  "description": "神经重塑训练PWA应用，支持离线运行与自定义安装",
+  "lang": "zh-CN"
 }
 
