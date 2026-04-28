@@ -1,26 +1,13 @@
 ﻿{
-    "name": "神经重塑训练",
-    "short_name": "神经重塑",
-    "start_url": "/warehouse/media.html",
-    "display": "standalone",
-    "display_override": ["standalone", "fullscreen"],
-    "background_color": "#1a1a2e",
-    "theme_color": "#1a1a2e",
-    "orientation": "portrait-primary",
-    "scope": "/warehouse/",
-    "icons": [
-        {
-            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAGACAYAAABziFnFAAAAAXNSR0IArs4c6QAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9gDFB0NLCDpQ5YAAAAdaEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBkLmHUwZUAACJqSFhJWE5BTUUzLjk5LjVFeE15AEb8d8AAAAASUVORK5CYII=",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "any maskable"
-        }
-    ],
-    "prefer_related_applications": false,
-    "categories": ["health", "productivity"],
-    "description": "神经重塑训练控制器 | 脑机协调训练",
-    "launch_handler": {
-        "client_mode": "navigate-existing"
-    }
+  "name": "神经重塑训练",
+  "short_name": "神经重塑",
+  "start_url": "/warehouse/media.html",
+  "display": "browser",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "scope": "/warehouse/",
+  "lang": "zh-CN",
+  "dir": "ltr"
 }
 
