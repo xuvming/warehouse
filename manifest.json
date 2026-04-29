@@ -1,11 +1,12 @@
 ﻿{
   "name": "神经重塑训练",
   "short_name": "神经重塑",
+  "description": "一个支持离线运行的神经重塑训练控制器 PWA 应用",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",
-  "theme_color": "#1a1a2e",
-  "description": "神经重塑PWA训练应用，支持离线运行与自定义安装",
-  "lang": "zh-CN"
+  "theme_color": "#00d4aa",
+  "icons": []
 }
 
