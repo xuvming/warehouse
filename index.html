@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🧠 神经重塑 · 终极控制器</title>
 
-    <!-- PWA 关键配置（修改后：直接引用根目录的manifest.json） -->
-    <link rel="manifest" href="/manifest.json">
+    <!-- PWA 核心配置 -->
+    <link rel="manifest" href="/warehouse/manifest.json">
     <meta name="theme-color" content="#00d4aa">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="神经重塑">
 
+    <!-- 外部依赖（CDN） -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
@@ -21,9 +22,21 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-light) 100%); min-height: 100vh; color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: 20px 12px 100px; }
         .header { text-align: center; margin-bottom: 16px; }
         .header h1 { font-size: 26px; background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; }
+        
+        /* 自定义安装按钮（顶部显示） */
+        #pwaInstallHint {
+            position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+            background: #00d4aa; color: #000; border-radius: 30px; padding: 8px 16px;
+            font-size: 13px; font-weight: 600; z-index: 999; opacity: 0;
+            transition: opacity 0.3s; cursor: pointer;
+        }
+        #pwaInstallHint.show { opacity: 1; }
+
         .save-status, .copy-toast { position: fixed; top: 16px; right: 16px; background: rgba(0, 212, 170, 0.15); border: 1px solid var(--primary-green); border-radius: 30px; padding: 6px 16px; font-size: 12px; color: var(--primary-green); opacity: 0; transition: opacity 0.3s; z-index: 1000; backdrop-filter: blur(4px); }
         .copy-toast { top: auto; bottom: 80px; right: 50%; transform: translateX(50%); color: #121212; background: var(--primary-green); }
         .save-status.show, .copy-toast.show { opacity: 1; }
+
+        /* 其余样式与文档1一致（省略重复部分，保持功能完整） */
         .music-status { background: rgba(0,212,170,0.08); border: 1px solid var(--primary-green); border-radius: 20px; padding: 12px 20px; margin-bottom: 18px; max-width: 420px; width: 100%; text-align: center; }
         .file-input { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 16px; width: 100%; max-width: 420px; margin-bottom: 16px; border: 1px solid rgba(0,212,170,0.25); }
         .file-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 12px 10px; background: rgba(0,0,0,0.2); border-radius: 14px; cursor: pointer; transition: background 0.2s; }
@@ -96,17 +109,10 @@
         .mini-btn { width: 40px; height: 40px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; background: rgba(255,255,255,0.1); color: #fff; transition: all 0.2s; }
         .mini-btn-play { width: 48px; height: 48px; background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); color: #121212; font-size: 22px; }
         .mini-btn:active { transform: scale(0.9); }
-
-        #pwaInstallHint {
-            position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
-            background: #00d4aa; color: #000; border-radius: 30px; padding: 8px 16px;
-            font-size: 13px; font-weight: 600; z-index: 999; opacity: 0;
-            transition: opacity 0.3s; cursor: pointer;
-        }
-        #pwaInstallHint.show { opacity: 1; }
     </style>
 </head>
 <body>
+    <!-- 自定义安装按钮（顶部居中显示） -->
     <div id="pwaInstallHint">📲 点击添加到桌面</div>
     <div class="save-status" id="saveStatus">✓ 已自动保存</div>
     <div class="copy-toast" id="copyToast">📋 已复制到剪贴板</div>
@@ -276,11 +282,15 @@
 
 <script>
 let deferredPrompt;
+// 捕获PWA安装提示事件
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
+    // 显示顶部安装按钮
     document.getElementById('pwaInstallHint').classList.add('show');
 });
+
+// 点击安装按钮触发系统安装流程
 document.getElementById('pwaInstallHint').addEventListener('click', async () => {
     document.getElementById('pwaInstallHint').classList.remove('show');
     if (!deferredPrompt) return;
@@ -289,15 +299,16 @@ document.getElementById('pwaInstallHint').addEventListener('click', async () => 
     deferredPrompt = null;
 });
 
+// 注册Service Worker（支持离线运行）
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 修改后：注册根目录的sw.js
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('/warehouse/sw.js')
             .then(() => console.log('Service Worker 注册成功'))
             .catch(err => console.error('Service Worker 注册失败', err));
     });
 }
 
+// 以下为原文档1的功能逻辑（保持完整，确保应用可用）
 (function(){
 "use strict";
 

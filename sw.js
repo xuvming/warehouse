@@ -1,9 +1,8 @@
 ﻿const CACHE_NAME = 'neuro-shaping-v1';
-// 修改后：缓存根目录的资源（去掉/warehouse/前缀）
 const ASSETS_TO_CACHE = [
-  '/index.html',
-  '/manifest.json',
-  '/sw.js',
+  '/warehouse/index.html',
+  '/warehouse/manifest.json',
+  '/warehouse/sw.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
   'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js'
 ];
@@ -30,12 +29,12 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// fetch阶段：缓存优先策略
+//  fetch阶段：缓存优先策略（离线可用）
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => response || fetch(event.request))
-      .catch(() => caches.match('/index.html'))
+      .catch(() => caches.match('/warehouse/index.html'))
   );
 });
 
