@@ -1,7 +1,7 @@
-﻿// Service Worker v4.0 - 神经重塑训练（华为锁屏控制最终版）
-const CACHE_VERSION = 'neuro-v4.0';
+﻿// Service Worker v5.0 - 神经重塑训练（媒体通知按钮版）
+const CACHE_VERSION = 'neuro-v5.0';
 const CACHE_NAME = CACHE_VERSION;
-const RUNTIME_CACHE = 'neuro-runtime-v4.0';
+const RUNTIME_CACHE = 'neuro-runtime-v5.0';
 
 const CORE_ASSETS = [
   './',
@@ -15,149 +15,73 @@ const AUDIO_EXTENSIONS = /\.(mp3|wav|ogg|m4a|aac|flac|webm|oga|opus)(\?.*)?$/i;
 
 // ========== 安装 ==========
 self.addEventListener('install', (event) => {
-  console.log('[SW v4.0] 安装中...');
+  console.log('[SW v5.0] 安装中...');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('[SW] 缓存核心资源...');
-        return Promise.allSettled(
-          CORE_ASSETS.map(asset => {
-            try {
-              const url = new URL(asset, self.location.origin).href;
-              return cache.add(url).catch(err => console.warn('[SW] 缓存失败:', asset, err.message));
-            } catch (e) {
-              return Promise.resolve();
-            }
-          })
-        );
-      })
-      .then(() => {
-        console.log('[SW] 核心资源缓存完成，跳过等待');
-        return self.skipWaiting();
-      })
+      .then(cache => Promise.allSettled(
+        CORE_ASSETS.map(asset => {
+          try { return cache.add(new URL(asset, self.location.origin).href).catch(err => console.warn('[SW] 缓存失败:', asset, err.message)); }
+          catch (e) { return Promise.resolve(); }
+        })
+      ))
+      .then(() => self.skipWaiting())
   );
 });
 
 // ========== 激活 ==========
 self.addEventListener('activate', (event) => {
-  console.log('[SW v4.0] 激活中...');
+  console.log('[SW v5.0] 激活中...');
   event.waitUntil(
     caches.keys()
-      .then(keys => {
-        return Promise.all(
-          keys
-            .filter(key => key !== CACHE_NAME && key !== RUNTIME_CACHE)
-            .map(key => {
-              console.log('[SW] 清理旧缓存:', key);
-              return caches.delete(key);
-            })
-        );
-      })
-      .then(() => {
-        console.log('[SW] 激活完成，接管客户端');
-        return self.clients.claim();
-      })
+      .then(keys => Promise.all(
+        keys.filter(key => key !== CACHE_NAME && key !== RUNTIME_CACHE)
+            .map(key => { console.log('[SW] 清理旧缓存:', key); return caches.delete(key); })
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
 // ========== 请求拦截 ==========
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  
-  // 只处理 HTTP/HTTPS 请求
   if (!request.url.startsWith('http')) return;
-  
   const url = new URL(request.url);
-  
-  // 音频文件使用网络优先策略
-  if (AUDIO_EXTENSIONS.test(url.pathname)) {
-    event.respondWith(networkFirst(request));
-    return;
-  }
-  
-  // 页面导航使用网络优先策略
-  if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, './index.html'));
-    return;
-  }
-  
-  // 其他资源使用缓存优先策略
+  if (AUDIO_EXTENSIONS.test(url.pathname)) { event.respondWith(networkFirst(request)); return; }
+  if (request.mode === 'navigate') { event.respondWith(networkFirst(request, './index.html')); return; }
   event.respondWith(cacheFirst(request));
 });
 
-// ========== 缓存优先策略 ==========
 async function cacheFirst(request) {
-  const cachedResponse = await caches.match(request);
-  
-  if (cachedResponse) {
-    // 后台更新缓存
-    fetch(request)
-      .then(response => {
-        if (response && response.status === 200) {
-          caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-        }
-      })
-      .catch(() => {});
-    
-    return cachedResponse;
+  const cached = await caches.match(request);
+  if (cached) {
+    fetch(request).then(r => { if (r?.status === 200) caches.open(CACHE_NAME).then(c => c.put(request, r.clone())); }).catch(() => {});
+    return cached;
   }
-  
   try {
-    const networkResponse = await fetch(request);
-    
-    if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.warn('[SW] 网络请求失败:', request.url);
-    return new Response('离线状态，资源不可用', {
-      status: 503,
-      statusText: 'Service Unavailable',
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-    });
-  }
+    const network = await fetch(request);
+    if (network?.status === 200) { const cache = await caches.open(CACHE_NAME); cache.put(request, network.clone()); }
+    return network;
+  } catch (e) { return new Response('离线不可用', { status: 503 }); }
 }
 
-// ========== 网络优先策略 ==========
-async function networkFirst(request, fallbackUrl = null) {
+async function networkFirst(request, fallbackUrl) {
   try {
-    const networkResponse = await fetch(request, {
-      cache: 'no-cache',
-      credentials: 'same-origin'
-    });
-    
-    if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, networkResponse.clone());
-      return networkResponse;
-    }
-  } catch (error) {
-    console.log('[SW] 网络请求失败，尝试缓存:', request.url);
-  }
-  
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) return cachedResponse;
-  
+    const network = await fetch(request, { cache: 'no-cache' });
+    if (network?.status === 200) { const cache = await caches.open(RUNTIME_CACHE); cache.put(request, network.clone()); return network; }
+  } catch (e) {}
+  const cached = await caches.match(request);
+  if (cached) return cached;
   if (fallbackUrl) {
-    try {
-      const fallback = await caches.match(new URL(fallbackUrl, self.location.origin).href);
-      if (fallback) return fallback;
-    } catch (e) {}
+    try { const fb = await caches.match(new URL(fallbackUrl, self.location.origin).href); if (fb) return fb; } catch (e) {}
   }
-  
-  return new Response('离线状态，请连接网络后重试', {
-    status: 503,
-    statusText: 'Service Unavailable',
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-  });
+  return new Response('离线不可用', { status: 503 });
 }
 
-// ========== 通知点击处理 ==========
+// ========== 🔑 核心：通知点击处理（支持按钮操作） ==========
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] 通知被点击:', event.action);
+  console.log('[SW] 通知被点击, action:', event.action, ', tag:', event.notification.tag);
+  
+  // 必须关闭通知
   event.notification.close();
   
   const action = event.action || 'default';
@@ -165,27 +89,35 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
-        // 查找主窗口
+        console.log('[SW] 找到窗口数:', clientList.length);
+        
+        // 查找已有窗口
         let target = clientList.find(c => c.url.includes(self.location.origin));
         
-        if (target && 'focus' in target) {
-          target.focus();
-        } else if (clients.openWindow) {
-          target = clients.openWindow('./index.html');
-        }
+        // 发送操作命令
+        const sendCommand = (client) => {
+          if (client) {
+            const msg = {
+              type: 'MEDIA_ACTION',
+              action: action,
+              timestamp: Date.now()
+            };
+            console.log('[SW] 发送媒体操作:', msg);
+            client.postMessage(msg);
+          }
+        };
         
-        // 发送媒体操作命令到客户端
         if (target) {
-          (target.then ? target : Promise.resolve(target)).then(client => {
-            if (client) {
-              client.postMessage({
-                type: 'MEDIA_ACTION',
-                action: action,
-                timestamp: Date.now()
-              });
-            }
+          if ('focus' in target) target.focus();
+          sendCommand(target);
+        } else if (clients.openWindow) {
+          clients.openWindow('./index.html').then(newClient => {
+            // 等待窗口加载
+            setTimeout(() => sendCommand(newClient), 1500);
           });
         }
+        
+        return Promise.resolve();
       })
   );
 });
@@ -201,30 +133,14 @@ self.addEventListener('message', (event) => {
       
     case 'CLEAR_CACHE':
       caches.keys()
-        .then(keys => Promise.all(keys.map(key => caches.delete(key))))
-        .then(() => {
-          console.log('[SW] 所有缓存已清除');
-          if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage({ success: true });
-          }
-        })
-        .catch(err => {
-          console.error('[SW] 清除缓存失败:', err);
-          if (event.ports && event.ports[0]) {
-            event.ports[0].postMessage({ success: false, error: err.message });
-          }
-        });
+        .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => event.ports[0]?.postMessage({ success: true }));
       break;
       
     case 'GET_VERSION':
-      if (event.ports && event.ports[0]) {
-        event.ports[0].postMessage({ version: CACHE_VERSION });
-      }
+      event.ports[0]?.postMessage({ version: CACHE_VERSION });
       break;
-      
-    default:
-      console.log('[SW] 未知消息类型:', event.data.type);
   }
 });
 
-console.log('[SW v4.0] Service Worker 已加载');
+console.log('[SW v5.0] Service Worker 已加载 - 媒体通知按钮版');
