@@ -24,70 +24,61 @@
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
     <style>
-        :root { --primary-green: #00d4aa; --primary-blue: #00a8e8; --bg-dark: #1a1a2e; --bg-light: #16213e; --text-main: #fff; --text-secondary: #b0c4de; --text-muted: #6c7a9e; --danger: #ff6b6b; --warning: #ffd93d; --success: #4caf50; }
+        :root { --primary-green: #00d4aa; --primary-blue: #00a8e8; --bg-dark: #1a1a2e; --bg-light: #16213e; --text-main: #ffffff; --text-secondary: #b0c4de; --text-muted: #6c7a9e; --danger: #ff6b6b; --warning: #ffd93d; --success: #4caf50; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'HarmonyOS Sans', sans-serif; background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-light) 100%); min-height: 100vh; min-height: 100dvh; color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: env(safe-area-inset-top, 20px) 12px env(safe-area-inset-bottom, 100px); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'HarmonyOS Sans', sans-serif; background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-light) 100%); min-height: 100dvh; color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: env(safe-area-inset-top, 20px) 12px env(safe-area-inset-bottom, 100px); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(0,212,170,0.3); border-radius: 4px; }
         .header { text-align: center; margin-bottom: 20px; padding-top: 10px; }
-        .header h1 { font-size: clamp(22px, 5vw, 28px); background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; letter-spacing: 1px; }
+        .header h1 { font-size: clamp(22px, 5vw, 28px); background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; margin-bottom: 4px; }
         .header .subtitle { font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
         .status-bar { position: fixed; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; pointer-events: none; }
-        .toast { background: rgba(26,26,46,0.95); border-radius: 30px; padding: 8px 18px; font-size: 12px; opacity: 0; transform: translateX(100%); transition: all 0.3s; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); pointer-events: auto; white-space: nowrap; }
+        .toast { background: rgba(26,26,46,0.95); border-radius: 30px; padding: 8px 18px; font-size: 12px; opacity: 0; transform: translateX(100%); transition: all 0.3s; backdrop-filter: blur(20px); pointer-events: auto; white-space: nowrap; }
         .toast.save { border: 1px solid var(--primary-green); color: var(--primary-green); }
         .toast.system { border: 1px solid var(--warning); color: var(--warning); cursor: pointer; }
         .toast.error { border: 1px solid var(--danger); color: var(--danger); }
         .toast.show { opacity: 1; transform: translateX(0); }
-        .copy-toast { position: fixed; bottom: 30%; left: 50%; transform: translate(-50%, 50%) scale(0.8); color: #121212; background: var(--primary-green); border-radius: 30px; padding: 12px 24px; font-size: 14px; font-weight: 600; z-index: 1001; opacity: 0; pointer-events: none; transition: all 0.3s; box-shadow: 0 8px 32px rgba(0,212,170,0.3); }
-        .copy-toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        .copy-toast { position: fixed; bottom: 30%; left: 50%; transform: translate(-50%,50%) scale(0.8); color: #121212; background: var(--primary-green); border-radius: 30px; padding: 12px 24px; font-size: 14px; font-weight: 600; z-index: 1001; opacity: 0; pointer-events: none; transition: all 0.3s; }
+        .copy-toast.show { opacity: 1; transform: translate(-50%,0) scale(1); }
         .lock-hint { background: rgba(0,168,232,0.15); border: 1.5px solid var(--primary-blue); border-radius: 20px; padding: 14px 18px; margin-bottom: 12px; text-align: center; font-size: 13px; color: var(--primary-blue); cursor: pointer; max-width: 420px; width: 100%; display: none; backdrop-filter: blur(10px); animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
         .lock-hint.show { display: block; }
-        .diag-panel { background: rgba(0,0,0,0.5); border: 1px solid var(--warning); border-radius: 20px; padding: 16px; margin-bottom: 12px; max-width: 420px; width: 100%; display: none; backdrop-filter: blur(10px); animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+        .diag-panel { background: rgba(0,0,0,0.5); border: 1px solid var(--warning); border-radius: 20px; padding: 16px; margin-bottom: 12px; max-width: 420px; width: 100%; display: none; backdrop-filter: blur(10px); }
         .diag-panel.show { display: block; }
-        .diag-panel h4 { color: var(--warning); margin-bottom: 12px; }
-        .diag-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .diag-label { color: var(--text-muted); }
-        .diag-val { color: var(--text-secondary); font-weight: 500; }
-        .diag-val.ok { color: var(--success); } .diag-val.warn { color: var(--warning); } .diag-val.error { color: var(--danger); }
+        .diag-panel h4 { color: var(--warning); margin-bottom: 10px; font-size: 14px; }
+        .diag-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .diag-label { color: var(--text-muted); } .diag-value { color: var(--text-secondary); font-weight: 500; }
+        .diag-value.ok { color: var(--success); } .diag-value.warn { color: var(--warning); } .diag-value.error { color: var(--danger); }
         .music-status { background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.3); border-radius: 20px; padding: 14px 20px; margin-bottom: 20px; max-width: 420px; width: 100%; text-align: center; backdrop-filter: blur(10px); }
-        .music-status .label { font-size: 11px; color: var(--text-muted); letter-spacing: 2px; }
+        .music-status .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
         .music-status .song { font-size: 17px; font-weight: 600; color: var(--primary-green); }
         .file-input { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 18px; width: 100%; max-width: 420px; margin-bottom: 20px; border: 1px solid rgba(0,212,170,0.2); backdrop-filter: blur(10px); }
         .file-input h4 { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
         .file-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 14px 12px; background: rgba(0,0,0,0.25); border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
         .file-row:active { background: rgba(0,212,170,0.12); border-color: var(--primary-green); transform: scale(0.98); }
-        .file-info { flex: 1; pointer-events: none; }
-        .file-name { color: var(--text-secondary); font-size: 14px; font-weight: 500; } .file-name.loaded { color: var(--primary-green); }
-        .file-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .file-info { flex: 1; pointer-events: none; } .file-name { color: var(--text-secondary); font-size: 14px; font-weight: 500; }
+        .file-name.loaded { color: var(--primary-green); } .file-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
         .config-btn { padding: 8px 16px; background: rgba(0,168,232,0.2); border: 1px solid var(--primary-blue); border-radius: 30px; color: var(--primary-blue); cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; }
-        .config-btn:active { background: rgba(0,168,232,0.4); transform: scale(0.95); }
         .progress-ring { width: 160px; height: 160px; position: relative; margin: 0 auto 20px; filter: drop-shadow(0 0 15px rgba(0,212,170,0.2)); }
         .progress-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-        .progress-ring circle { fill: none; stroke-width: 8; }
-        .progress-ring .bg { stroke: rgba(255,255,255,0.08); }
+        .progress-ring circle { fill: none; stroke-width: 8; } .progress-ring .bg { stroke: rgba(255,255,255,0.08); }
         .progress-ring .progress { stroke: url(#gradient); stroke-linecap: round; transition: stroke-dashoffset 0.5s; }
         .time-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
         .time-display .current { font-size: 38px; font-weight: 700; color: var(--primary-green); }
         .time-display .total { font-size: 12px; color: var(--text-muted); }
         .stage-info { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 18px; width: 100%; max-width: 420px; margin-bottom: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
         .stage-number { display: inline-block; background: linear-gradient(90deg,var(--primary-green),var(--primary-blue)); color: #1a1a2e; padding: 5px 16px; border-radius: 30px; font-size: 12px; font-weight: 700; }
-        .stage-title { font-size: 22px; margin: 10px 0 6px; font-weight: 700; }
-        .stage-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+        .stage-title { font-size: 22px; margin: 10px 0 6px; font-weight: 700; } .stage-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
         .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
         .btn { padding: 12px 28px; border-radius: 30px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; }
-        .btn:active { transform: scale(0.95); }
-        .btn-primary { background: linear-gradient(135deg,var(--primary-green),var(--primary-blue)); color: #121212; border: none; box-shadow: 0 4px 16px rgba(0,212,170,0.3); }
+        .btn:active { transform: scale(0.95); } .btn-primary { background: var(--primary-green); color: #121212; border: none; box-shadow: 0 4px 16px rgba(0,212,170,0.3); font-weight: 700; }
         .btn-danger { background: rgba(255,107,107,0.15); border-color: var(--danger); color: var(--danger); }
         .btn-warning { background: rgba(255,217,61,0.15); border-color: var(--warning); color: var(--warning); }
         .track-progress-container { width: 100%; max-width: 420px; margin: 8px 0 18px; }
         .track-progress-bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; cursor: pointer; }
         .track-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg,var(--primary-green),var(--primary-blue)); border-radius: 6px; transition: width 0.1s; pointer-events: none; }
         .track-progress-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
-        .playlist { width: 100%; max-width: 420px; margin-bottom: 16px; }
-        .playlist h3 { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+        .playlist { width: 100%; max-width: 420px; margin-bottom: 16px; } .playlist h3 { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
         .track { display: flex; align-items: center; padding: 12px 14px 12px 8px; border-radius: 12px; margin-bottom: 6px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; }
-        .track:active { background: rgba(0,212,170,0.1); }
         .track.active { background: rgba(0,212,170,0.15); border-color: var(--primary-green); }
         .drag-handle { padding: 6px 4px; margin-right: 4px; cursor: grab; color: var(--text-muted); font-size: 20px; opacity: 0.5; }
         .track-number { width: 26px; height: 26px; border-radius: 26px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; margin-right: 10px; flex-shrink: 0; }
@@ -95,59 +86,32 @@
         .track-info { flex: 1; min-width: 0; } .track-info div { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .track-info small { font-size: 11px; color: var(--text-muted); }
         .stats-section { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 20px; width: 100%; max-width: 420px; margin-top: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
-        .stats-section h4 { font-size: 14px; margin-bottom: 14px; color: var(--text-secondary); }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
         .stat-card { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px 10px; text-align: center; }
-        .stat-value { font-size: 32px; font-weight: 700; color: var(--primary-green); }
-        .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
-        .chart-container { height: 180px; }
-        .chart-tabs { display: flex; gap: 8px; margin-bottom: 16px; justify-content: center; }
+        .stat-value { font-size: 32px; font-weight: 700; color: var(--primary-green); } .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+        .chart-container { height: 180px; } .chart-tabs { display: flex; gap: 8px; margin-bottom: 16px; justify-content: center; }
         .chart-tab { padding: 7px 20px; background: rgba(255,255,255,0.04); border-radius: 30px; cursor: pointer; font-size: 13px; border: 1px solid transparent; }
         .chart-tab.active { background: rgba(0,212,170,0.2); border-color: var(--primary-green); color: var(--primary-green); font-weight: 600; }
-        .toggle-switch { position: relative; width: 48px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 28px; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
+        .toggle-switch { position: relative; width: 48px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 28px; cursor: pointer; flex-shrink: 0; }
         .toggle-switch.active { background: var(--primary-green); }
         .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; transition: transform 0.3s; }
         .toggle-switch.active::after { transform: translateX(20px); }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); }
-        .modal-overlay.show { display: flex; }
-        .modal-content { background: linear-gradient(135deg,#1e1e3a,#16213e); border-radius: 20px; padding: 24px; width: 92%; max-width: 420px; max-height: 85vh; overflow-y: auto; border: 1px solid var(--primary-green); }
-        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--primary-green); }
-        .config-section { margin-bottom: 22px; }
-        .config-section h4 { color: var(--primary-green); margin-bottom: 14px; font-size: 15px; }
-        .param-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-        .param-row label { width: 60px; font-size: 13px; color: var(--text-secondary); flex-shrink: 0; }
-        .param-row input { flex: 1; padding: 11px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 12px; font-size: 15px; outline: none; }
-        .param-row input:focus { border-color: var(--primary-green); }
-        .hint-text { font-size: 11px; color: var(--text-muted); margin-left: 72px; margin-top: -8px; margin-bottom: 10px; }
-        .music-source-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 8px; }
-        .delete-source-btn { width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(255,107,107,0.2); color: var(--danger); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .music-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-        .small-btn { padding: 9px 14px; background: rgba(255,255,255,0.08); border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; font-size: 12px; }
-        .small-btn:active { transform: scale(0.95); }
-        .priority-badge { font-size: 10px; padding: 3px 10px; border-radius: 10px; font-weight: 600; }
-        .badge-local { background: rgba(0,212,170,0.25); color: var(--primary-green); }
-        .badge-online { background: rgba(0,168,232,0.25); color: var(--primary-blue); }
-        .advanced-toggle { margin-top: 14px; color: var(--text-muted); font-size: 13px; cursor: pointer; }
-        .advanced-fields { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
-        .sortable-ghost { opacity: 0.4; background: rgba(0,212,170,0.2); border: 2px dashed var(--primary-green) !important; }
         .mini-player { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(22,33,62,0.98); border-top: 2px solid rgba(0,212,170,0.5); padding: 10px 18px env(safe-area-inset-bottom,10px); display: flex; align-items: center; gap: 14px; z-index: 1500; backdrop-filter: blur(20px); }
-        .mini-player-info { flex: 1; min-width: 0; } .mini-player-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .mini-player-subtitle { font-size: 11px; color: var(--text-muted); }
-        .mini-player-controls { display: flex; align-items: center; gap: 10px; }
+        .mini-player-info { flex: 1; min-width: 0; } .mini-player-title { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mini-player-subtitle { font-size: 11px; color: var(--text-muted); } .mini-player-controls { display: flex; align-items: center; gap: 10px; }
         .mini-btn { width: 42px; height: 42px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; background: rgba(255,255,255,0.12); color: #fff; }
-        .mini-btn:active { transform: scale(0.9); }
         .mini-btn-play { width: 50px; height: 50px; background: var(--primary-green); color: #121212; font-size: 22px; }
-        #pwaInstallHint { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--primary-green); color: #121212; border-radius: 30px; padding: 12px 24px; font-size: 14px; font-weight: 700; z-index: 999; opacity: 0; transition: all 0.3s; cursor: pointer; }
-        #pwaInstallHint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #pwaHint { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--primary-green); color: #121212; border-radius: 30px; padding: 12px 24px; font-size: 14px; font-weight: 700; z-index: 999; opacity: 0; transition: all 0.3s; cursor: pointer; white-space: nowrap; }
+        #pwaHint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
     </style>
 </head>
 <body>
-    <div id="pwaInstallHint">📲 点击添加到桌面</div>
+    <div id="pwaHint">📲 点击添加到桌面</div>
     <div class="status-bar">
-        <div class="toast save" id="saveStatus">✓ 已保存</div>
-        <div class="toast system" id="systemToast" onclick="this.classList.remove('show')">📱</div>
-        <div class="toast error" id="errorToast">⚠</div>
+        <div class="toast save" id="saveToast">✓ 已保存</div>
+        <div class="toast system" id="sysToast" onclick="this.classList.remove('show')">📱</div>
+        <div class="toast error" id="errToast">⚠</div>
     </div>
     <div class="copy-toast" id="copyToast">📋 已复制</div>
 
@@ -155,226 +119,263 @@
 
     <div class="diag-panel" id="diagPanel">
         <h4>🔍 锁屏控制诊断</h4>
-        <div class="diag-row"><span class="diag-label">PWA模式</span><span class="diag-val" id="dPWA">-</span></div>
-        <div class="diag-row"><span class="diag-label">通知权限</span><span class="diag-val" id="dNotif">-</span></div>
-        <div class="diag-row"><span class="diag-label">SW状态</span><span class="diag-val" id="dSW">-</span></div>
-        <div class="diag-row"><span class="diag-label">MediaSession</span><span class="diag-val" id="dMS">-</span></div>
-        <div class="diag-row"><span class="diag-label">音频状态</span><span class="diag-val" id="dAudio">-</span></div>
-        <div class="diag-row"><span class="diag-label">播放状态</span><span class="diag-val" id="dPlay">-</span></div>
-        <div class="diag-row"><span class="diag-label">媒体通知</span><span class="diag-val" id="dMediaNotif">-</span></div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.sendTestNotif()">📢 发送测试通知</button>
-            <button class="btn" style="flex:1;min-width:80px;padding:10px;font-size:12px;" onclick="document.getElementById('diagPanel').classList.remove('show')">关闭</button>
+        <div class="diag-row"><span class="diag-label">PWA模式</span><span class="diag-value" id="dPWA">-</span></div>
+        <div class="diag-row"><span class="diag-label">通知权限</span><span class="diag-value" id="dNotif">-</span></div>
+        <div class="diag-row"><span class="diag-label">媒体通知</span><span class="diag-value" id="dMediaN">-</span></div>
+        <div class="diag-row"><span class="diag-label">MediaSession</span><span class="diag-value" id="dMedia">-</span></div>
+        <div class="diag-row"><span class="diag-label">音频上下文</span><span class="diag-value" id="dAudio">-</span></div>
+        <div class="diag-row"><span class="diag-label">ServiceWorker</span><span class="diag-value" id="dSW">-</span></div>
+        <div class="diag-row"><span class="diag-label">播放状态</span><span class="diag-value" id="dPlay">-</span></div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.showGuide()">⚙️ 通知设置指南</button>
+            <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.testNotif()">📢 发送测试通知</button>
+            <button class="btn" style="flex:1;min-width:80px;padding:10px;font-size:12px;" onclick="$('diagPanel').classList.remove('show')">关闭</button>
         </div>
     </div>
 
     <svg width="0" height="0"><defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00d4aa"/><stop offset="100%" stop-color="#00a8e8"/></linearGradient></defs></svg>
 
     <div class="header"><h1>🧠 神经重塑训练</h1><p class="subtitle">锁屏控制 · PWA离线可用</p></div>
-    <div class="music-status"><div class="label">当前阶段</div><div class="song" id="currentMode">准备开始</div></div>
-    <div class="file-input"><h4>🎵 训练曲目 · 点击行复制 | 点击「配置」调整</h4><div id="fileRowsContainer"></div></div>
-    <div class="progress-ring"><svg viewBox="0 0 160 160"><circle class="bg" cx="80" cy="80" r="72"></circle><circle class="progress" cx="80" cy="80" r="72" stroke-dasharray="452.39" stroke-dashoffset="452.39"></circle></svg><div class="time-display"><div class="current" id="currentTime">00:00</div><div class="total" id="totalTimeLabel">/ 30:00</div></div></div>
-    <div class="stage-info"><span class="stage-number" id="stageNumber">阶段 1/5</span><div class="stage-title" id="stageTitle">坐立战马</div><div class="stage-detail" id="stageDetail"></div></div>
+    <div class="music-status"><div class="label">当前阶段</div><div class="song" id="curMode">准备开始</div></div>
+    <div class="file-input"><h4>🎵 训练曲目 · 点击行复制 | 点击「配置」调整</h4><div id="fileRows"></div></div>
+    <div class="progress-ring"><svg viewBox="0 0 160 160"><circle class="bg" cx="80" cy="80" r="72"></circle><circle class="progress" cx="80" cy="80" r="72" stroke-dasharray="452.39" stroke-dashoffset="452.39"></circle></svg><div class="time-display"><div class="current" id="curTime">00:00</div><div class="total" id="totalLabel">/ 30:00</div></div></div>
+    <div class="stage-info"><span class="stage-number" id="stageNum">阶段 1/5</span><div class="stage-title" id="stageTitle">坐立战马</div><div class="stage-detail" id="stageDetail"></div></div>
     <div class="controls"><button class="btn btn-primary" id="playBtn">▶ 开始训练</button><button class="btn" id="resetBtn">↻ 重置</button><button class="btn" id="exportBtn">⬇ 导出</button></div>
-    <div class="track-progress-container"><div class="track-progress-bar" id="trackProgressBar"><div class="track-progress-fill" id="trackProgressFill" style="width:0%"></div></div><div class="track-progress-time"><span id="trackCurrentTime">00:00</span><span id="trackDuration">00:00</span></div></div>
+    <div class="track-progress-container"><div class="track-progress-bar" id="trackBar"><div class="track-progress-fill" id="trackFill" style="width:0%"></div></div><div class="track-progress-time"><span id="trackCur">00:00</span><span id="trackDur">00:00</span></div></div>
     <div class="playlist"><h3>📋 训练曲目 · 点击切换 · 拖拽排序</h3><div id="trackList"></div></div>
-    <div class="stats-section"><h4>📊 训练统计</h4><div class="stats-grid"><div class="stat-card"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">完成次数</div></div><div class="stat-card"><div class="stat-value" id="totalMinutes">0</div><div class="stat-label">总分钟</div></div><div class="stat-card"><div class="stat-value" id="currentStreak">0</div><div class="stat-label">连续天数</div></div><div class="stat-card"><div class="stat-value" id="lastTraining">-</div><div class="stat-label">上次</div></div></div><div class="chart-tabs"><div class="chart-tab active" data-type="weekly">本周</div><div class="chart-tab" data-type="monthly">本月</div><div class="chart-tab" data-type="yearly">全年</div></div><div class="chart-container"><canvas id="trainingChart"></canvas></div></div>
-    <div style="background:rgba(255,255,255,0.03);border-radius:20px;padding:18px;width:100%;max-width:420px;margin:16px 0 100px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.05);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="display:flex;align-items:center;gap:12px;"><div class="toggle-switch active" id="autoSaveToggle"></div><span>自动保存</span></div></div><div style="display:flex;gap:10px;"><button class="btn" id="importBtn" style="padding:10px 18px;font-size:13px;flex:1;">📂 导入</button><button class="btn btn-danger" id="clearBtn" style="padding:10px 18px;font-size:13px;flex:1;">🗑️ 清除</button></div></div>
+    <div class="stats-section"><h4>📊 训练统计</h4><div class="stats-grid"><div class="stat-card"><div class="stat-value" id="totalSess">0</div><div class="stat-label">完成次数</div></div><div class="stat-card"><div class="stat-value" id="totalMin">0</div><div class="stat-label">总分钟</div></div><div class="stat-card"><div class="stat-value" id="streak">0</div><div class="stat-label">连续天数</div></div><div class="stat-card"><div class="stat-value" id="lastTrain">-</div><div class="stat-label">上次</div></div></div><div class="chart-tabs"><div class="chart-tab active" data-type="weekly">本周</div><div class="chart-tab" data-type="monthly">本月</div><div class="chart-tab" data-type="yearly">全年</div></div><div class="chart-container"><canvas id="chart"></canvas></div></div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:20px;padding:18px;width:100%;max-width:420px;margin:16px 0 100px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.05);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="display:flex;align-items:center;gap:12px;"><div class="toggle-switch active" id="autoToggle"></div><span>自动保存</span></div></div><div style="display:flex;gap:10px;"><button class="btn" id="importBtn" style="padding:10px 18px;font-size:13px;flex:1;">📂 导入</button><button class="btn btn-danger" id="clearBtn" style="padding:10px 18px;font-size:13px;flex:1;">🗑️ 清除</button></div></div>
     <input type="file" id="importFile" accept=".json" style="display:none">
-    <div class="mini-player"><div class="mini-player-info"><div class="mini-player-title" id="miniTitle">坐立战马</div><div class="mini-player-subtitle" id="miniSubtitle">准备开始</div></div><div class="mini-player-controls"><button class="mini-btn" id="prevBtn">⏮</button><button class="mini-btn mini-btn-play" id="miniPlayBtn">▶</button><button class="mini-btn" id="nextBtn">⏭</button></div></div>
-
-    <div class="modal-overlay" id="configModal">
-        <div class="modal-content">
-            <div class="modal-title" id="configModalTitle">⚙️ 配置阶段</div>
-            <div class="config-section"><h4>📋 核心参数</h4><div class="param-row"><label>名称</label><input type="text" id="cfg_name"></div><div class="param-row"><label>BPM</label><input type="number" id="cfg_bpm" min="30" max="200"></div><div class="param-row"><label>时长(秒)</label><input type="number" id="cfg_duration" min="0" max="7200"></div><div class="hint-text">💡 0 = 使用音频实际时长</div></div>
-            <div class="config-section"><h4>🎧 音乐来源</h4>
-                <div class="music-source-item" id="localFileItem" style="display:none;"><span>📁</span><div style="flex:1;min-width:0;"><div id="localFileName" style="font-size:13px;">—</div><div style="font-size:10px;color:var(--text-muted)" id="localFileSize">—</div></div><span class="priority-badge badge-local">优先</span><button class="delete-source-btn" id="btnDeleteLocal">✕</button></div>
-                <div class="music-source-item" id="onlineUrlItem" style="display:none;"><span>🌐</span><div style="flex:1;min-width:0;"><div id="onlineUrlName" style="font-size:13px;">—</div><div style="font-size:10px;color:var(--text-muted)" id="onlineUrlDetail">—</div></div><span class="priority-badge badge-online">备用</span><button class="delete-source-btn" id="btnDeleteOnline">✕</button></div>
-                <div class="music-source-item" id="noMusicItem" style="background:transparent;border:1px dashed rgba(255,255,255,0.15);"><span>🎵</span><div style="flex:1"><div style="color:var(--text-muted);">未设置音乐 · 使用节拍器</div></div></div>
-                <div class="music-actions"><button class="small-btn" id="btnLocalFile" style="border:1px solid var(--primary-green);background:rgba(0,212,170,0.15);">📁 本地文件</button><button class="small-btn" id="btnOnlineLink">🔗 在线链接</button></div>
-                <div class="link-hint">💡 本地文件优先，不可用时使用在线链接</div>
-                <input type="file" id="localFileInput" accept="audio/*" style="display:none">
-            </div>
-            <div class="advanced-toggle" id="advancedToggle">▼ 高级选项</div>
-            <div class="advanced-fields" id="advancedFields" style="display:none;"><div class="param-row"><label>动作</label><input type="text" id="cfg_action"></div><div class="param-row"><label>想象</label><input type="text" id="cfg_imagine"></div></div>
-            <div class="modal-actions"><button class="btn btn-primary" id="btnSaveConfig" style="flex:1;">💾 保存</button><button class="btn" id="btnCancelConfig" style="flex:1;">取消</button></div>
-        </div>
-    </div>
+    <div class="mini-player"><div class="mini-player-info"><div class="mini-player-title" id="miniTitle">坐立战马</div><div class="mini-player-subtitle" id="miniSub">准备开始</div></div><div class="mini-player-controls"><button class="mini-btn" id="prevBtn">⏮</button><button class="mini-btn mini-btn-play" id="miniPlay">▶</button><button class="mini-btn" id="nextBtn">⏭</button></div></div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <script>
-    (function() {
-        'use strict';
-        const V = '5.0.0-final', $ = id => document.getElementById(id);
-        const DEF = [{name:"坐立战马",bpm:72,duration:300,action:"坐位平衡，双手扶膝",imagine:"想象骑战马，脊柱逐节直立"},{name:"飞檐走壁",bpm:108,duration:420,action:"站立位，重心左右移",imagine:"想象飞檐走壁，足踝灵活调整"},{name:"行云流水",bpm:66,duration:360,action:"慢步行走，摆臂自然",imagine:"想象行云流水，关节无阻力滑动"},{name:"凌波微步",bpm:82,duration:360,action:"加快速度，小步跑",imagine:"想象凌波微步，轻触地面即起"},{name:"脑体合一",bpm:60,duration:360,action:"站立深呼吸，闭眼",imagine:"想象脑体合一，气沉丹田"}];
-        let S = structuredClone(DEF), cs = 0, ip = false, tt = 0, ac = null, ca = null, as2 = true, tc = null, ct2 = 'weekly', am = [null,null,null,null,null], ts = {sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}}, ei = 0, tf = null, tu = '', td2 = 0, st2 = 0, si2 = null, mi2 = null, mpi = null, ml = null, mst = 0, bo = null, bg = null, wl = null, ec = 0, ih = false, dp = null;
+    (function(){
+    'use strict';
+    const V='5.0.0-lockscreen-fix', $=id=>document.getElementById(id);
+    const DEF=[{name:"坐立战马",bpm:72,duration:300,action:"坐位平衡，双手扶膝",imagine:"想象骑战马，脊柱逐节直立"},{name:"飞檐走壁",bpm:108,duration:420,action:"站立位，重心左右移",imagine:"想象飞檐走壁，足踝灵活调整"},{name:"行云流水",bpm:66,duration:360,action:"慢步行走，摆臂自然",imagine:"想象行云流水，关节无阻力滑动"},{name:"凌波微步",bpm:82,duration:360,action:"加快速度，小步跑",imagine:"想象凌波微步，轻触地面即起"},{name:"脑体合一",bpm:60,duration:360,action:"站立深呼吸，闭眼",imagine:"想象脑体合一，气沉丹田"}];
+    let S=structuredClone(DEF),cs=0,ip=false,tt=0,ac=null,ca=null,au=true,ch=null,ct='weekly',am=[null,null,null,null,null],st={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}},ei=0,tf=null,tu='',td2=0,sa=0,si=null,mi=null,mp=null,ml=null,ms=0,bo=null,bg=null,wl=null,ec=0,ih=false,dp=null;
+    function lg(...a){console.log('[NeuroApp v'+V+']',...a);}
+    function ft(s){if(!isFinite(s)||isNaN(s))s=0;const m=Math.floor(Math.abs(s)/60),sec=Math.floor(Math.abs(s)%60);return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');}
+    function td(){return S.reduce((s,st2)=>s+(st2.duration||0),0);}
+    function gs(idx){let t=0;for(let i=0;i<idx;i++)t+=S[i]?.duration||0;return t;}
+    function st2(id,m,d=3000){const e=$(id);if(!e)return;e.textContent=m;e.classList.add('show');clearTimeout(e._to);e._to=setTimeout(()=>e.classList.remove('show'),d);}
+    function se(m){ec++;console.error('[Error]',m);st2('errToast','⚠ '+m,4000);if(ec>5){ra2();ec=0;}}
+    function gi(){const c=document.createElement('canvas');c.width=192;c.height=192;const x=c.getContext('2d');x.fillStyle='#00d4aa';x.beginPath();x.roundRect(0,0,192,192,32);x.fill();x.fillStyle='#1a1a2e';x.font='bold 90px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🧠',96,96);return c.toDataURL('image/png');}
 
-        function log(...a) { console.log('[NeuroApp v'+V+']', ...a); }
-        function fmt(s) { if(!isFinite(s)||isNaN(s))s=0; const m=Math.floor(Math.abs(s)/60),sec=Math.floor(Math.abs(s)%60); return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
-        function tdur() { return S.reduce((s,st)=>s+(st.duration||0),0); }
-        function gst2(i) { let t=0; for(let j=0;j<i;j++) t+=S[j]?.duration||0; return t; }
-        function st3(id,m,d=3000) { const e=$(id); if(!e)return; e.textContent=m; e.classList.add('show'); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove('show'),d); }
-        function se2(m) { ec++; console.error('[Err]',m); st3('errorToast','⚠ '+m,4000); if(ec>5){ra2();ec=0;} }
-        function gi2() { const c=document.createElement('canvas'); c.width=192;c.height=192; const x=c.getContext('2d'); x.fillStyle='#00d4aa'; x.beginPath();x.roundRect(0,0,192,192,32);x.fill(); x.fillStyle='#1a1a2e';x.font='bold 90px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🧠',96,96); return c.toDataURL('image/png'); }
+    // ===== IndexedDB =====
+    function odb(){return new Promise((rv,rj)=>{const r=indexedDB.open('NADB_v19',1);r.onerror=()=>rj(r.error);r.onsuccess=()=>rv(r.result);r.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains('af'))e.target.result.createObjectStore('af',{keyPath:'id'});};});}
+    async function sadb(id,f,n){const db=await odb();return new Promise((rv,rj)=>{const rd=new FileReader();rd.onload=()=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').put({id,name:n||f.name,type:f.type,size:f.size,data:rd.result,ts:Date.now()});tx.oncomplete=()=>rv();tx.onerror=()=>rj(tx.error);};rd.onerror=()=>rj(rd.error);rd.readAsArrayBuffer(f);});}
+    async function ladb(id){try{const db=await odb();return new Promise((rv,rj)=>{const tx=db.transaction(['af'],'readonly');const r=tx.objectStore('af').get(id);r.onsuccess=()=>rv(r.result);r.onerror=()=>rj(r.error);});}catch(e){return null;}}
+    async function dadb(id){try{const db=await odb();return new Promise(r=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').delete(id);tx.oncomplete=()=>r();});}catch(e){}}
+    async function cadb(){try{const db=await odb();return new Promise(r=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').clear();tx.oncomplete=()=>r();});}catch(e){}}
 
-        // IndexedDB
-        async function odb2(){return new Promise((rv,rj)=>{const r=indexedDB.open('NADB_v20',1);r.onerror=()=>rj(r.error);r.onsuccess=()=>rv(r.result);r.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains('af'))e.target.result.createObjectStore('af',{keyPath:'id'});};});}
-        async function sadb2(id,f,n){const db=await odb2();return new Promise((rv,rj)=>{const rd=new FileReader();rd.onload=()=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').put({id,name:n||f.name,type:f.type,size:f.size,data:rd.result,ts:Date.now()});tx.oncomplete=()=>rv();tx.onerror=()=>rj(tx.error);};rd.onerror=()=>rj(rd.error);rd.readAsArrayBuffer(f);});}
-        async function ladb2(id){try{const db=await odb2();return new Promise((rv,rj)=>{const tx=db.transaction(['af'],'readonly');const r=tx.objectStore('af').get(id);r.onsuccess=()=>rv(r.result);r.onerror=()=>rj(r.error);});}catch(e){return null;}}
-        async function dadb2(id){try{const db=await odb2();return new Promise(r=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').delete(id);tx.oncomplete=()=>r();});}catch(e){}}
-        async function cadb2(){try{const db=await odb2();return new Promise(r=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').clear();tx.oncomplete=()=>r();});}catch(e){}}
+    // ===== 音频 =====
+    async function eac(){if(!ac||ac.state==='closed')ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')await ac.resume();return ac;}
+    function saa(){sbg2();sm2();if(ca){try{ca.pause();if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);ca.src='';}catch(e){}ca=null;}}
+    function sbg2(){if(bo){try{bo.stop();}catch(e){}bo=null;}if(bg){try{bg.disconnect();}catch(e){}bg=null;}}
+    function sm2(){if(mi){clearInterval(mi);mi=null;}if(mp){clearInterval(mp);mp=null;}}
+    function cai2(){sm2();if(ml){clearInterval(ml);ml=null;}}
+    async function ra2(){saa();cai2();if(ac&&ac.state!=='closed'){try{await ac.close();}catch(e){}ac=null;}ca=null;rwl();ec=0;}
+    function gd(f){return new Promise(rv=>{const a=new Audio();a.preload='metadata';let d=false;const t=setTimeout(()=>{if(!d){d=true;rv(0);}},5000);a.onloadedmetadata=()=>{if(!d){d=true;clearTimeout(t);const dr=Math.round(a.duration);rv(dr>0?dr:0);}};a.onerror=()=>{if(!d){d=true;clearTimeout(t);rv(0);}};a.src=URL.createObjectURL(f);});}
+    function sbm(bpm){sm2();const stg=S[cs];const d=stg.duration||300;$('trackDur').textContent=ft(d);$('trackCur').textContent='00:00';$('trackFill').style.width='0%';ms=performance.now();pc2();mi=setInterval(()=>{if(ip)pc2();},(60/bpm)*1000);mp=setInterval(()=>{if(!ip)return;const e=(performance.now()-ms)/1000;const p=Math.min((e/d)*100,100);$('trackFill').style.width=p+'%';$('trackCur').textContent=ft(e);ump2(e,d);if(e>=d){sm2();ns();}},50);}
+    function pc2(){if(!ac||ac.state==='closed')return;try{const o=ac.createOscillator();const g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=1000;const n=ac.currentTime;g.gain.setValueAtTime(0.12,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.05);o.start(n);o.stop(n+0.05);}catch(e){}}
+    async function cbg(stg){sbg2();try{const ctx=await eac();bo=ctx.createOscillator();bg=ctx.createGain();bo.connect(bg);bg.connect(ctx.destination);bo.frequency.value=440;bg.gain.value=0.0001;bo.start();}catch(e){}sbm(stg.bpm);$('curMode').textContent=stg.name+' · 节拍器';ums(stg,null);ump2();sh2();}
+    async function psm(idx,rt=0){saa();const m=am[idx],stg=S[idx];const ou=()=>{if(!ca)return;const c=ca.currentTime,d=ca.duration;if(!isFinite(d)||d<=0)return;$('trackFill').style.width=((c/d)*100)+'%';$('trackCur').textContent=ft(c);$('trackDur').textContent=ft(d);ump2(c,d);};if(m?.localFile){try{const dbe=await ladb(idx);if(dbe?.data){if(ca){try{ca.pause();}catch(e){}if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);}ca=new Audio(URL.createObjectURL(new Blob([dbe.data],{type:dbe.type||'audio/mpeg'})));ca.loop=true;ca.addEventListener('timeupdate',ou);ca.addEventListener('loadedmetadata',ou);return await pa(ca,rt,stg.name+' · 📁 '+(m.name||dbe.name));}}catch(e){}}
+    if(m?.onlineUrl){try{if(ca){try{ca.pause();}catch(e){}if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);}ca=new Audio(m.onlineUrl);ca.crossOrigin='anonymous';ca.loop=true;ca.addEventListener('timeupdate',ou);ca.addEventListener('loadedmetadata',ou);return await pa(ca,rt,stg.name+' · 🌐 '+(m.onlineName||'在线链接'));}catch(e){}}await cbg(stg);return false;}
+    async function pa(a,rt,dt){return new Promise(rv=>{let d=false;const dp2=async()=>{if(d)return;d=true;try{if(rt>0&&isFinite(rt))a.currentTime=rt;if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';await a.play();$('curMode').textContent=dt;ums(S[cs],am[cs]);ump2();sh2();if(ih)smn();rv(true);}catch(e){await cbg(S[cs]);rv(false);}};dp2();setTimeout(()=>{if(!d){d=true;cbg(S[cs]);rv(false);}},5000);});}
 
-        // 音频核心
-        async function eac2(){if(!ac||ac.state==='closed')ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')await ac.resume();return ac;}
-        function saa2(){sbg2();sm2();if(ca){try{ca.pause();if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);ca.src='';}catch(e){}ca=null;}}
-        function sbg2(){if(bo){try{bo.stop();}catch(e){}bo=null;}if(bg){try{bg.disconnect();}catch(e){}bg=null;}}
-        function sm2(){if(mi2){clearInterval(mi2);mi2=null;}if(mpi){clearInterval(mpi);mpi=null;}}
-        function cl2(){sm2();if(ml){clearInterval(ml);ml=null;}}
-        async function ra2(){saa2();cl2();if(ac&&ac.state!=='closed'){try{await ac.close();}catch(e){}ac=null;}ca=null;rwl2();ec=0;}
-        function gdf2(f){return new Promise(rv=>{const a=new Audio();a.preload='metadata';let d=false;const t=setTimeout(()=>{if(!d){d=true;rv(0);}},5000);a.onloadedmetadata=()=>{if(!d){d=true;clearTimeout(t);const dr=Math.round(a.duration);rv(dr>0?dr:0);}};a.onerror=()=>{if(!d){d=true;clearTimeout(t);rv(0);}};a.src=URL.createObjectURL(f);});}
-
-        function sbm2(bpm){sm2();const stg=S[cs];const d=stg.duration||300;$('trackDuration').textContent=fmt(d);$('trackCurrentTime').textContent='00:00';$('trackProgressFill').style.width='0%';mst=performance.now();pc2();mi2=setInterval(()=>{if(ip)pc2();},(60/bpm)*1000);mpi=setInterval(()=>{if(!ip)return;const e=(performance.now()-mst)/1000;const p=Math.min((e/d)*100,100);$('trackProgressFill').style.width=p+'%';$('trackCurrentTime').textContent=fmt(e);ump2(e,d);if(e>=d){sm2();ns2();}},50);}
-        function pc2(){if(!ac||ac.state==='closed')return;try{const o=ac.createOscillator();const g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=1000;const n=ac.currentTime;g.gain.setValueAtTime(0.12,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.05);o.start(n);o.stop(n+0.05);}catch(e){}}
-        async function cbg2(stg){sbg2();try{const ctx=await eac2();bo=ctx.createOscillator();bg=ctx.createGain();bo.connect(bg);bg.connect(ctx.destination);bo.frequency.value=440;bg.gain.value=0.0001;bo.start();}catch(e){}sbm2(stg.bpm);$('currentMode').textContent=stg.name+' · 节拍器';ums2(stg,null);upm2();slh2();}
-
-        async function psm2(idx,rt=0){saa2();const m=am[idx],stg=S[idx];const ou=()=>{if(!ca)return;const c=ca.currentTime,d=ca.duration;if(!isFinite(d)||d<=0)return;$('trackProgressFill').style.width=((c/d)*100)+'%';$('trackCurrentTime').textContent=fmt(c);$('trackDuration').textContent=fmt(d);ump2(c,d);};if(m?.localFile){try{const e=await ladb2(idx);if(e?.data){if(ca){try{ca.pause();}catch(e){}if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);}ca=new Audio(URL.createObjectURL(new Blob([e.data],{type:e.type||'audio/mpeg'})));ca.loop=true;ca.addEventListener('timeupdate',ou);ca.addEventListener('loadedmetadata',ou);return await pa2(ca,rt,stg.name+' · 📁 '+(m.name||e.name));}}catch(e){}}if(m?.onlineUrl){try{if(ca){try{ca.pause();}catch(e){}if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);}ca=new Audio(m.onlineUrl);ca.crossOrigin='anonymous';ca.loop=true;ca.addEventListener('timeupdate',ou);ca.addEventListener('loadedmetadata',ou);return await pa2(ca,rt,stg.name+' · 🌐 '+(m.onlineName||'在线链接'));}catch(e){}}await cbg2(stg);return false;}
-        async function pa2(a,rt,dt){return new Promise(rv=>{let d=false;const dp2=async()=>{if(d)return;d=true;try{if(rt>0&&isFinite(rt))a.currentTime=rt;if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';await a.play();$('currentMode').textContent=dt;ums2(S[cs],am[cs]);upm2();slh2();if(ih)amc();rv(true);}catch(e){await cbg2(S[cs]);rv(false);}};dp2();setTimeout(()=>{if(!d){d=true;cbg2(S[cs]);rv(false);}},5000);});}
-
-        // 🔑 华为媒体控制（双重策略）
-        async function amc(){
-            log('[媒体] 激活控制...');
-            if('mediaSession' in navigator){try{navigator.mediaSession.playbackState='none';await new Promise(r=>setTimeout(r,200));navigator.mediaSession.playbackState='playing';const s=S[cs];navigator.mediaSession.metadata=new MediaMetadata({title:s.name,artist:'神经重塑训练',album:'阶段'+(cs+1)+'/'+S.length+' · '+s.bpm+'BPM',artwork:[{src:gi2(),sizes:'512x512',type:'image/png'}]});}catch(e){}}
-            await snm();
+    // ===== 🔑 发送媒体通知（通过SW，带按钮） =====
+    async function smn(){
+        lg('[媒体] 发送媒体通知...');
+        // 1. 更新MediaSession
+        if('mediaSession' in navigator){
+            try{
+                navigator.mediaSession.playbackState='none';
+                await new Promise(r=>setTimeout(r,200));
+                navigator.mediaSession.playbackState='playing';
+                const s2=S[cs],m2=am[cs];
+                navigator.mediaSession.metadata=new MediaMetadata({title:s2.name,artist:m2?.name||'神经重塑训练',album:'阶段'+(cs+1)+'/'+S.length+' · '+s2.bpm+'BPM',artwork:[{src:gi(),sizes:'512x512',type:'image/png'}]});
+            }catch(e){}
         }
-        async function snm(){
-            if(!('serviceWorker' in navigator))return;
-            try{const reg=await navigator.serviceWorker.ready;const s=S[cs];const old=await reg.getNotifications({tag:'neuro-media'});old.forEach(n=>n.close());
-                // 策略1：通过SW发消息
-                if(reg.active){reg.active.postMessage({type:'UPDATE_MEDIA_NOTIFICATION',payload:{title:'🎵 '+s.name,body:'阶段'+(cs+1)+'/'+S.length+' · '+s.bpm+'BPM · '+(s.action||''),icon:gi2(),stage:cs,playing:ip,timestamp:Date.now()}});}
-                // 策略2：直接发通知（备用）
-                await reg.showNotification('🎵 '+s.name,{body:'阶段'+(cs+1)+'/'+S.length+' · '+s.bpm+'BPM',icon:gi2(),badge:gi2(),tag:'neuro-media',requireInteraction:false,silent:false,vibrate:ip?[200,100,200]:[],actions:[{action:'prev',title:'⏮ 上一首'},{action:'playpause',title:ip?'⏸ 暂停':'▶ 播放'},{action:'next',title:'⏭ 下一首'}],timestamp:Date.now(),data:{stage:cs,playing:ip,type:'media-control'}});
-                log('[媒体] 通知已发送');
-            }catch(e){log('[媒体] 通知失败:',e);}
-        }
-        async function cln(){
-            if(!('serviceWorker' in navigator))return;
-            try{const reg=await navigator.serviceWorker.ready;const ns=await reg.getNotifications({tag:'neuro-media'});ns.forEach(n=>n.close());if(reg.active)reg.active.postMessage({type:'CLOSE_MEDIA_NOTIFICATION'});}catch(e){}
-        }
-        async function stn(){
-            if(!ip){await eac2();if(!bo&&!ca)await cbg2(S[cs]);ip=true;}
-            await amc();st3('systemToast','📢 测试通知已发送，请立即锁屏查看',5000);udi();if(!ca&&!bo)ip=false;
-        }
+        // 2. 通过SW发送通知
+        if(!('serviceWorker' in navigator))return;
+        try{
+            const reg=await navigator.serviceWorker.ready;
+            if(!reg||!reg.active){lg('[媒体] SW未就绪');return;}
+            const s2=S[cs];
+            // 清除旧通知
+            const old=await reg.getNotifications({tag:'neuro-media'});
+            old.forEach(n=>n.close());
+            // 🔑 发送带actions的非静默通知
+            await reg.showNotification('🎵 '+s2.name,{
+                body:'阶段'+(cs+1)+'/'+S.length+' · '+s2.bpm+'BPM · '+(s2.action||'神经重塑训练'),
+                icon:gi(),badge:gi(),tag:'neuro-media',
+                requireInteraction:false,
+                silent:false,
+                vibrate:ip?[200,100,200]:[],
+                actions:[
+                    {action:'prev',title:'⏮ 上一首'},
+                    {action:'playpause',title:ip?'⏸ 暂停':'▶ 播放'},
+                    {action:'next',title:'⏭ 下一首'}
+                ],
+                timestamp:Date.now(),
+                data:{stage:cs,playing:ip,type:'media-control'}
+            });
+            lg('[媒体] 通知已发送，带3个操作按钮');
+        }catch(e){lg('[媒体] 发送失败:',e);}
+    }
 
-        // Media Session
-        function ums2(stg,m){if(!('mediaSession' in navigator))return;try{navigator.mediaSession.metadata=new MediaMetadata({title:stg?.name||'神经重塑',artist:m?.name||'神经重塑训练',album:'阶段'+(cs+1)+'/'+S.length+' · '+(stg?.bpm||60)+'BPM',artwork:[{src:gi2(),sizes:'512x512',type:'image/png'}]});navigator.mediaSession.playbackState=ip?'playing':'paused';const acts={play:()=>{if(!ip)tp2();},pause:()=>{if(ip)tp2();},previoustrack:()=>pt2(),nexttrack:()=>nt2(),stop:()=>{if(ip)tp2();}};for(const[a,h]of Object.entries(acts)){try{navigator.mediaSession.setActionHandler(a,h);}catch(e){}}ump2();}catch(e){}}
-        function ump2(pos,dur){if(!('mediaSession' in navigator)||!('setPositionState' in navigator.mediaSession))return;try{const p=pos!==undefined?pos:(ca?.currentTime||0);const d=dur!==undefined?dur:(ca?.duration||S[cs]?.duration||0);if(d>0&&isFinite(d))navigator.mediaSession.setPositionState({duration:d,playbackRate:1,position:Math.min(Math.max(p,0),d)});}catch(e){}}
+    // 关闭媒体通知
+    async function cmn(){
+        if(!('serviceWorker' in navigator))return;
+        try{const reg=await navigator.serviceWorker.ready;const ns=await reg.getNotifications({tag:'neuro-media'});ns.forEach(n=>n.close());}catch(e){}
+    }
 
-        // 播放控制
-        async function tp2(){try{if(typeof webkitAudioSession!=='undefined'){try{webkitAudioSession.setCategory('playback');webkitAudioSession.setActive(true);}catch(e){}}await eac2();if(ip)pa3();else await pl2();}catch(e){se2('播放失败');}}
-        async function pl2(){ip=true;ec=0;$('playBtn').textContent='⏸ 暂停';$('miniPlayBtn').textContent='⏸';const rt=st2||0;st2=0;await psm2(cs,rt);if(ih)amc();ml=setInterval(()=>{if(!ip)return;tt++;ud3();if(tt-gst2(cs)>=(S[cs]?.duration||300))ns2();},1000);ums2(S[cs],am[cs]);await rwl3();slh2();udi();}
-        function pa3(){ip=false;$('playBtn').textContent='▶ 继续';$('miniPlayBtn').textContent='▶';clearInterval(ml);ml=null;if(ca){st2=ca.currentTime;ca.pause();}sm2();sbg2();if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';rwl2();sd2();udi();cln();}
-        function ns2(){if(cs<S.length-1)stt2(cs+1);else comp2();}
-        function comp2(){pa3();saa2();rs2();$('stageTitle').textContent='🎉 训练完成！';cs=0;tt=0;st2=0;ud3();usi2();upm2();$('trackProgressFill').style.width='0%';$('playBtn').textContent='▶ 开始训练';ipl2();sd2();rwl2();cln();}
-        function reset2(){pa3();saa2();cs=0;tt=0;st2=0;ud3();usi2();upm2();$('playBtn').textContent='▶ 开始训练';$('trackProgressFill').style.width='0%';$('trackCurrentTime').textContent='00:00';$('currentMode').textContent='准备开始';ipl2();sd2();rwl2();}
-        function stt2(idx){if(idx===cs&&!ip){tp2();return;}const wp=ip;if(ip)pa3();cs=idx;st2=0;usi2();upm2();if(wp)setTimeout(()=>pl2(),150);else psm2(cs).then(()=>{if(ca)setTimeout(()=>{if(!ip)ca.pause();},200);});sd2();}
-        function pt2(){stt2(cs>0?cs-1:S.length-1);}function nt2(){stt2(cs<S.length-1?cs+1:0);}
-        function skp2(e){if(!ca)return;try{const b=$('trackProgressBar'),r=b.getBoundingClientRect(),p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),d=ca.duration;if(!isFinite(d)||d<=0)return;ca.currentTime=p*d;st2=p*d;ump2(p*d,d);}catch(e){}}
+    // 公开的测试通知方法
+    async function testNotif(){
+        if(!ip){await eac();if(!bo&&!ca)await cbg(S[cs]);ip=true;}
+        await smn();
+        st2('sysToast','📢 带按钮的通知已发送！请立即锁屏查看',5000);
+        ud2();
+        if(!ca&&!bo){ip=false;}
+    }
 
-        // 诊断
-        function udi(){const sa=window.matchMedia('(display-mode: standalone)').matches;const np=Notification.permission;const hm='mediaSession' in navigator;const hsw='serviceWorker' in navigator&&!!navigator.serviceWorker.controller;const sv=(id,v,cl)=>{const e=$(id);if(e){e.textContent=v;e.className='diag-val '+cl;}};sv('dPWA',sa?'✅ PWA已安装':'❌ 浏览器模式',sa?'ok':'error');sv('dNotif',np==='granted'?'✅ 已授权':np==='denied'?'❌ 已拒绝':'⚠ 未设置',np==='granted'?'ok':np==='denied'?'error':'warn');sv('dSW',hsw?'✅ SW就绪':'❌ SW未就绪',hsw?'ok':'error');sv('dMS',hm?'✅ 支持':'❌ 不支持',hm?'ok':'error');sv('dAudio',ac&&ac.state!=='closed'?'✅ 就绪':'⚠ 未激活',ac?'ok':'warn');sv('dPlay',ip?'▶ 播放中':'⏸ 暂停',ip?'ok':'');sv('dMediaNotif',np==='granted'&&hsw?'✅ 可发送':'❌ 不可用',np==='granted'&&hsw?'ok':'error');}
-        function sdi(){const p=$('diagPanel');if(p){p.classList.toggle('show');if(p.classList.contains('show')){udi();$('lockHint').classList.remove('show');}}}
-        function slh2(){const h=$('lockHint');if(h){h.classList.add('show');clearTimeout(h._t);h._t=setTimeout(()=>h.classList.remove('show'),8000);}}
+    function showGuide(){
+        const ov=document.createElement('div');ov.className='guide-overlay';
+        ov.innerHTML=`<div style="background:linear-gradient(135deg,#1e1e3a,#16213e);border:2px solid #ffd93d;border-radius:24px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);"><div style="font-size:48px;margin-bottom:16px;">🔔</div><h3 style="color:#ffd93d;margin-bottom:16px;">华为通知设置</h3><div style="text-align:left;color:#b0c4de;font-size:13px;line-height:2.2;"><p>📱 <strong>设置 → 通知 → Chrome</strong></p><p>✅ 1. 开启「允许通知」</p><p style="color:#ff6b6b;">🔑 2. 关闭「静默通知」</p><p>✅ 3. 锁屏通知 → 「显示」</p><p>✅ 4. 横幅通知 → 「开启」</p><p style="color:#ff6b6b;">🔑 5. 点击「其他」→ 关闭静默</p><p style="color:#ff6b6b;">🔑 6. 「其他」提醒方式 → 铃声</p></div><button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(90deg,#ffd93d,#ffa500);color:#000;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;">我知道了</button></div>`;
+        ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+        document.body.appendChild(ov);
+        setTimeout(()=>{if(ov.parentElement)ov.remove();},20000);
+    }
 
-        // UI
-        function ud3(){$('currentTime').textContent=fmt(tt);const td=tdur();if(td>0){const c=document.querySelector('.progress-ring .progress');if(c)c.style.strokeDashoffset=452.39*(1-Math.min(tt/td,1));}}
-        function utl2(){$('totalTimeLabel').textContent='/ '+fmt(tdur());}
-        function usi2(){const s=S[cs];if(!s)return;$('stageNumber').textContent='阶段 '+(cs+1)+'/'+S.length;$('stageTitle').textContent=s.name;$('stageDetail').innerHTML='动作：'+(s.action||'未设置')+'<br>BPM：'+s.bpm+'<br>想象：'+(s.imagine||'未设置');}
-        function upm2(){const s=S[cs],m=am[cs];$('miniTitle').textContent=s?.name||'—';let sb='节拍器模式';if(m?.localFile)sb='📁 '+(m.name||'本地文件');else if(m?.onlineUrl)sb='🌐 '+(m.onlineName||'在线链接');$('miniSubtitle').textContent=sb;$('miniPlayBtn').textContent=ip?'⏸':'▶';}
+    // ===== Media Session =====
+    function ums(stg,m){if(!('mediaSession' in navigator))return;try{navigator.mediaSession.metadata=new MediaMetadata({title:stg?.name||'神经重塑',artist:m?.name||'神经重塑训练',album:'阶段'+(cs+1)+'/'+S.length+' · '+(stg?.bpm||60)+'BPM',artwork:[{src:gi(),sizes:'512x512',type:'image/png'}]});navigator.mediaSession.playbackState=ip?'playing':'paused';const acts={play:()=>{if(!ip)tp2();},pause:()=>{if(ip)tp2();},previoustrack:()=>pt2(),nexttrack:()=>nt2(),stop:()=>{if(ip)tp2();}};for(const[a,h]of Object.entries(acts)){try{navigator.mediaSession.setActionHandler(a,h);}catch(e){}}ump2();}catch(e){}}
+    function ump2(pos,dur){if(!('mediaSession' in navigator)||!('setPositionState' in navigator.mediaSession))return;try{const p=pos!==undefined?pos:(ca?.currentTime||0);const d=dur!==undefined?dur:(ca?.duration||S[cs]?.duration||0);if(d>0&&isFinite(d))navigator.mediaSession.setPositionState({duration:d,playbackRate:1,position:Math.min(Math.max(p,0),d)});}catch(e){}}
 
-        // PWA
-        function ipw2(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('pwaInstallHint').classList.add('show');});$('pwaInstallHint').addEventListener('click',async()=>{if(!dp)return;dp.prompt();const{outcome}=await dp.userChoice;dp=null;$('pwaInstallHint').classList.remove('show');if(outcome==='accepted')st3('systemToast','✅ 安装成功！',3000);});window.addEventListener('appinstalled',()=>{$('pwaInstallHint').classList.remove('show');});}
-        function rsw2(){if(!('serviceWorker' in navigator))return;window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(r=>{log('SW注册成功 scope:',r.scope);r.addEventListener('updatefound',()=>{const w=r.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller&&confirm('新版本可用，更新？'))window.location.reload();});});}).catch(e=>log('SW注册失败:',e));});let rf=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rf){rf=true;window.location.reload();}});
-            // 🔑 监听SW消息
-            navigator.serviceWorker.addEventListener('message',e=>{log('收到SW消息:',e.data);if(e.data?.type==='MEDIA_ACTION'){const h={playpause:tp2,prev:pt2,next:nt2,play:()=>{if(!ip)tp2();},pause:()=>{if(ip)tp2();}};if(h[e.data.action]){log('执行:',e.data.action);h[e.data.action]();}}});}
+    // ===== 播放控制 =====
+    async function tp2(){try{if(typeof webkitAudioSession!=='undefined'){try{webkitAudioSession.setCategory('playback');webkitAudioSession.setActive(true);}catch(e){}}await eac();if(ip)pau();else await ply();}catch(e){se('播放控制失败');}}
+    async function ply(){ip=true;ec=0;$('playBtn').textContent='⏸ 暂停';$('miniPlay').textContent='⏸';const rt=sa||0;sa=0;await psm(cs,rt);if(ih)smn();ml=setInterval(()=>{if(!ip)return;tt++;ud3();if(tt-gs(cs)>=(S[cs]?.duration||300))ns();},1000);ums(S[cs],am[cs]);await rwl2();sh2();ud2();}
+    function pau(){ip=false;$('playBtn').textContent='▶ 继续';$('miniPlay').textContent='▶';clearInterval(ml);ml=null;if(ca){sa=ca.currentTime;ca.pause();}sm2();sbg2();if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';rwl();sv();ud2();cmn();}
+    function ns(){if(cs<S.length-1)swt(cs+1);else comp();}
+    function comp(){pau();saa();rcs();$('stageTitle').textContent='🎉 训练完成！';cs=0;tt=0;sa=0;ud3();usi();umi();$('trackFill').style.width='0%';$('playBtn').textContent='▶ 开始训练';ipl();sv();rwl();cmn();}
+    function reset2(){pau();saa();cs=0;tt=0;sa=0;ud3();usi();umi();$('playBtn').textContent='▶ 开始训练';$('trackFill').style.width='0%';$('trackCur').textContent='00:00';$('curMode').textContent='准备开始';ipl();sv();rwl();cmn();}
+    function swt(idx){if(idx===cs&&!ip){tp2();return;}const wp=ip;if(ip)pau();cs=idx;sa=0;usi();umi();if(wp)setTimeout(()=>ply(),150);else psm(cs).then(()=>{if(ca)setTimeout(()=>{if(!ip)ca.pause();},200);});sv();}
+    function pt2(){swt(cs>0?cs-1:S.length-1);}function nt2(){swt(cs<S.length-1?cs+1:0);}
+    function skp(e){if(!ca)return;try{const b=$('trackBar'),r=b.getBoundingClientRect();const p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));const d=ca.duration;if(!isFinite(d)||d<=0)return;ca.currentTime=p*d;sa=p*d;ump2(p*d,d);}catch(e){}}
 
-        // 播放列表
-        function ipl2(){const c=$('trackList');if(!c)return;c.innerHTML=S.map((s,i)=>{const m=am[i];return`<div class="track ${i===cs?'active':''}" data-index="${i}"><span class="drag-handle">⋮⋮</span><div class="track-number">${i+1}</div><div class="track-info"><div>${s.name}</div><small>${s.bpm}BPM · ${fmt(s.duration)} · ${m?.localFile?'📁本地':m?.onlineUrl?'🌐链接':'节拍器'}</small></div></div>`;}).join('');c.querySelectorAll('.track').forEach(t=>t.addEventListener('click',e=>{if(!e.target.classList.contains('drag-handle'))stt2(parseInt(t.dataset.index));}));if(si2)si2.destroy();try{si2=new Sortable(c,{handle:'.drag-handle',animation:200,ghostClass:'sortable-ghost',onEnd:e=>{if(e.oldIndex!==e.newIndex){ro2(e.oldIndex,e.newIndex);ipl2();usi2();ud3();utl2();upm2();rr2();}}});}catch(e){}}
-        function ro2(oi,ni){S.splice(ni,0,S.splice(oi,1)[0]);am.splice(ni,0,am.splice(oi,1)[0]);if(cs===oi)cs=ni;else if(oi<cs&&ni>=cs)cs--;else if(oi>cs&&ni<=cs)cs++;sa2();}
-        function rr2(){const c=$('fileRowsContainer');if(!c)return;c.innerHTML=S.map((s,i)=>{const m=am[i];let dn=(i+1)+'. '+s.name,mt='未设置音乐';if(m&&(m.localFile||m.onlineUrl)){dn=(i+1)+'. '+(m.name||s.name);mt=(m.localFile?'📁本地':'')+(m.localFile&&m.onlineUrl?' · ':'')+(m.onlineUrl?'🌐链接':'')+' · '+fmt(s.duration);}return`<div class="file-row" data-copy="${(m?.onlineUrl||m?.name||s.name||'').replace(/"/g,'&quot;')}"><div class="file-info"><div class="file-name ${(m&&(m.localFile||m.onlineUrl))?'loaded':''}">${dn}</div><div class="file-meta">${mt}</div></div><button class="config-btn" data-stage="${i}">⚙️ 配置</button></div>`;}).join('');c.querySelectorAll('.file-row').forEach(r=>r.addEventListener('click',e=>{if(!e.target.classList.contains('config-btn'))cr2(r.dataset.copy);}));c.querySelectorAll('.config-btn').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();oc2(parseInt(b.dataset.stage));}));}
-        function cr2(c){if(navigator.clipboard?.writeText)navigator.clipboard.writeText(c).then(()=>st3('copyToast','📋 已复制',2000)).catch(()=>fc2(c));else fc2(c);}
-        function fc2(t){const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0;';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');st3('copyToast','📋 已复制',2000);}catch(e){}document.body.removeChild(ta);}
+    // ===== 诊断 =====
+    function ud2(){const sa2=window.matchMedia('(display-mode: standalone)').matches;const np=Notification.permission;const hm2='mediaSession' in navigator;const hsw='serviceWorker' in navigator&&!!navigator.serviceWorker.controller;const sv2=(id,v,cl='')=>{const el=$(id);if(el){el.textContent=v;el.className='diag-value '+cl;}};sv2('dPWA',sa2?'✅ 已安装PWA':'❌ 浏览器模式',sa2?'ok':'error');sv2('dNotif',np==='granted'?'✅ 已授权':np==='denied'?'❌ 已拒绝':'⚠ 未设置',np==='granted'?'ok':np==='denied'?'error':'warn');sv2('dMediaN',np==='granted'?'✅ 可发送':'❌ 无权限',np==='granted'?'ok':'error');sv2('dMedia',hm2?'✅ 支持':'❌ 不支持',hm2?'ok':'error');sv2('dAudio',ac&&ac.state!=='closed'?'✅ 就绪':'⚠ 未激活',ac?'ok':'warn');sv2('dSW',hsw?'✅ 已注册':'❌ 未注册',hsw?'ok':'error');sv2('dPlay',ip?'▶ 播放中':'⏸ 暂停',ip?'ok':'');}
+    function shd2(){const p=$('diagPanel');if(p){p.classList.toggle('show');if(p.classList.contains('show')){ud2();$('lockHint').classList.remove('show');}}}
+    function sh2(){const h=$('lockHint');if(h){h.classList.add('show');clearTimeout(h._ht);h._ht=setTimeout(()=>h.classList.remove('show'),8000);}}
 
-        // 配置弹窗
-        function oc2(idx){ei=idx;const s=S[idx],m=am[idx];$('configModalTitle').textContent='⚙️ 配置 第'+(idx+1)+'阶段 · '+s.name;$('cfg_name').value=s.name||'';$('cfg_bpm').value=s.bpm||60;$('cfg_duration').value=s.duration||300;$('cfg_action').value=s.action||'';$('cfg_imagine').value=s.imagine||'';tf=null;tu='';td2=0;window._dl=false;window._do=false;usd2(m);$('advancedFields').style.display='none';$('advancedToggle').textContent='▼ 高级选项';$('configModal').classList.add('show');}
-        function cc2(){$('configModal').classList.remove('show');}
-        function usd2(m){const li=$('localFileItem'),oi=$('onlineUrlItem'),nm=$('noMusicItem');if(m?.localFile){li.style.display='flex';$('localFileName').textContent=m.localFile.name||'本地文件';$('localFileSize').textContent=((m.localFile.size||0)/1024/1024).toFixed(2)+' MB';}else li.style.display='none';if(m?.onlineUrl){oi.style.display='flex';$('onlineUrlName').textContent=m.onlineName||'在线链接';$('onlineUrlDetail').textContent=m.onlineUrl;}else oi.style.display='none';nm.style.display=(!m?.localFile&&!m?.onlineUrl&&!tf&&!tu)?'flex':'none';}
-        async function sc2(){try{const idx=ei;let dur=parseInt($('cfg_duration').value)||0;if(dur===0&&tf&&td2>0)dur=td2;else if(dur===0)dur=300;S[idx]={name:$('cfg_name').value.trim()||'阶段'+(idx+1),bpm:parseInt($('cfg_bpm').value)||60,duration:dur,action:$('cfg_action').value.trim(),imagine:$('cfg_imagine').value.trim()};const om=am[idx];if(tf){await sadb2(idx,tf,tf.name);am[idx]={name:S[idx].name,localFile:{name:tf.name,type:tf.type,size:tf.size},onlineUrl:om?.onlineUrl||'',onlineName:om?.onlineName||''};}else if(window._dl){await dadb2(idx);if(am[idx])am[idx].localFile=null;window._dl=false;}if(tu){am[idx]={...(am[idx]||{}),onlineUrl:tu,onlineName:$('onlineUrlName').textContent!=='—'?$('onlineUrlName').textContent:(tu.split('/').pop()?.split('?')[0]||'在线音乐')};}else if(window._do){if(am[idx]){am[idx].onlineUrl='';am[idx].onlineName='';}window._do=false;}if(!am[idx])am[idx]={name:S[idx].name,localFile:null,onlineUrl:'',onlineName:''};sa2();rr2();ipl2();usi2();ud3();utl2();upm2();if(cs===idx&&ip)await psm2(cs);cc2();}catch(e){se2('保存失败');}}
-        function tf2(){$('localFileInput').click();}
-        function pu2(){const i=prompt('请输入音频链接:');if(!i)return;const us=i.match(/(https?:\/\/[^\s]+)/g);if(us?.length>0){tu=us[0];let n=i.replace(us[0],'').trim()||us[0].split('/').pop()?.split('?')[0]||'在线音乐';$('onlineUrlName').textContent=n;$('onlineUrlDetail').textContent=us[0];}else{try{new URL(i);tu=i;let n=i.split('/').pop()?.split('?')[0]||'在线音乐';$('onlineUrlName').textContent=n;$('onlineUrlDetail').textContent=i;}catch{alert('无效链接');return;}}$('onlineUrlItem').style.display='flex';$('noMusicItem').style.display='none';}
-        function df2(){tf=null;window._dl=true;$('localFileItem').style.display='none';un2();}
-        function du2(){tu='';window._do=true;$('onlineUrlItem').style.display='none';un2();}
-        function un2(){$('noMusicItem').style.display=($('localFileItem').style.display==='none'&&$('onlineUrlItem').style.display==='none')?'flex':'none';}
-        function ta3(){const f=$('advancedFields');f.style.display=f.style.display==='none'?'block':'none';$('advancedToggle').textContent=f.style.display==='none'?'▼ 高级选项':'▲ 高级选项';}
+    // ===== UI =====
+    function ud3(){$('curTime').textContent=ft(tt);const td3=td();if(td3>0){const c=document.querySelector('.progress-ring .progress');if(c)c.style.strokeDashoffset=452.39*(1-Math.min(tt/td3,1));}}
+    function utl2(){$('totalLabel').textContent='/ '+ft(td());}
+    function usi(){const s2=S[cs];if(!s2)return;$('stageNum').textContent='阶段 '+(cs+1)+'/'+S.length;$('stageTitle').textContent=s2.name;$('stageDetail').innerHTML='动作：'+(s2.action||'未设置')+'<br>BPM：'+s2.bpm+'<br>想象：'+(s2.imagine||'未设置');}
+    function umi(){const s2=S[cs],m2=am[cs];$('miniTitle').textContent=s2?.name||'—';let sb='节拍器模式';if(m2?.localFile)sb='📁 '+(m2.name||'本地文件');else if(m2?.onlineUrl)sb='🌐 '+(m2.onlineName||'在线链接');$('miniSub').textContent=sb;$('miniPlay').textContent=ip?'⏸':'▶';}
 
-        // 数据
-        function sa2(){try{localStorage.setItem('nrc_v30',JSON.stringify(S));sd2();}catch(e){}}
-        function sd2(){if(!as2)return;try{localStorage.setItem('nrd_v30',JSON.stringify({currentStage:cs,totalTime:tt,savedTime:st2,audioMeta:am.map(m=>m?{name:m.name,localFile:m.localFile?{name:m.localFile.name,size:m.localFile.size,type:m.localFile.type}:null,onlineUrl:m.onlineUrl||'',onlineName:m.onlineName||''}:null)}));st3('saveStatus','✓ 已保存',1500);ec=0;}catch(e){}}
-        async function lsd2(){try{const d=JSON.parse(localStorage.getItem('nrd_v30'));if(d){cs=d.currentStage||0;tt=d.totalTime||0;st2=d.savedTime||0;d.audioMeta?.forEach((m,i)=>{if(m)am[i]=m;});}}catch(e){cs=0;tt=0;st2=0;}rr2();ipl2();usi2();ud3();utl2();upm2();}
-        function lsc2(){try{const s=JSON.parse(localStorage.getItem('nrc_v30'));if(Array.isArray(s)&&s.length===5)S=s;}catch(e){}}
-        function lst2(){try{const s=localStorage.getItem('nrs_v30');if(s)ts=JSON.parse(s);}catch(e){}}
-        function sst3(){try{localStorage.setItem('nrs_v30',JSON.stringify(ts));}catch(e){}}
-        function rs2(){const today=new Date().toISOString().split('T')[0];ts.sessions.push({date:today});ts.totalSessions=(ts.totalSessions||0)+1;ts.totalMinutes=(ts.totalMinutes||0)+Math.round(tdur()/60);ts.dailyRecords[today]=(ts.dailyRecords[today]||0)+1;let sk=0,d=new Date();while(ts.dailyRecords[d.toISOString().split('T')[0]]){sk++;d.setDate(d.getDate()-1);}ts.currentStreak=sk;ts.lastTrainingDate=today;sst3();uss2();uc2();}
-        function uss2(){$('totalSessions').textContent=ts.totalSessions||0;$('totalMinutes').textContent=ts.totalMinutes||0;$('currentStreak').textContent=ts.currentStreak||0;$('lastTraining').textContent=ts.lastTrainingDate?new Date(ts.lastTrainingDate).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}):'-';}
-        function ic2(){const c=$('trainingChart');if(!c||!window.Chart)return;try{tc=new Chart(c.getContext('2d'),{type:'bar',data:gcd2('weekly'),options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});}catch(e){}}
-        function gcd2(type){const l=[],d=[],t=new Date();if(type==='weekly'){for(let i=6;i>=0;i--){const dt=new Date(t);dt.setDate(dt.getDate()-i);l.push(dt.toLocaleDateString('zh-CN',{weekday:'short'}));d.push(ts.dailyRecords[dt.toISOString().split('T')[0]]||0);}}else if(type==='monthly'){for(let i=3;i>=0;i--){const e=new Date(t);e.setDate(e.getDate()-i*7);const s=new Date(e);s.setDate(s.getDate()-6);let c=0;for(let dt=new Date(s);dt<=e;dt.setDate(dt.getDate()+1))c+=ts.dailyRecords[dt.toISOString().split('T')[0]]||0;l.push(s.getMonth()+1+'/'+s.getDate());d.push(c);}}else{for(let i=11;i>=0;i--){const dt=new Date(t.getFullYear(),t.getMonth()-i,1);let c=0;for(let day=1;day<=31;day++)c+=ts.dailyRecords[dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(day).padStart(2,'0')]||0;l.push(dt.toLocaleDateString('zh-CN',{month:'short'}));d.push(c);}}return{labels:l,datasets:[{data:d,backgroundColor:'#00d4aa',borderRadius:6}]};}
-        function sc3(type){ct2=type;document.querySelectorAll('.chart-tab').forEach(t=>t.classList.toggle('active',t.dataset.type===type));uc2();}
-        function uc2(){if(tc){tc.data=gcd2(ct2);tc.update();}}
-        function ed2(){try{const b=new Blob([JSON.stringify({version:V,stages:S,audioMeta:am,stats:ts,exportDate:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='neuro_backup_'+new Date().toISOString().split('T')[0]+'.json';a.click();}catch(e){}}
-        function id3(){$('importFile').click();}
-        async function hi2(i){const f=i.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.stages)S=d.stages;if(d.stats){ts=d.stats;sst3();}if(d.audioMeta)am=d.audioMeta;sa2();rr2();ipl2();usi2();ud3();utl2();upm2();uss2();uc2();st3('systemToast','✅ 导入成功',3000);}catch(e){se2('导入失败');}i.value='';}
-        async function ca2(){if(!confirm('⚠️ 确定清除所有数据？此操作不可恢复！'))return;try{pa3();saa2();for(let i=0;i<5;i++)await dadb2(i);await cadb2();localStorage.clear();S=structuredClone(DEF);cs=0;tt=0;st2=0;am=[null,null,null,null,null];as2=true;ts={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}};localStorage.setItem('nra_v30','true');localStorage.setItem('nrc_v30',JSON.stringify(S));rr2();ipl2();usi2();ud3();uss2();uc2();utl2();upm2();$('currentMode').textContent='准备开始';$('playBtn').textContent='▶ 开始训练';$('autoSaveToggle').classList.add('active');alert('✅ 已清除');}catch(e){se2('清除失败');}}
-        function ta4(){as2=!as2;localStorage.setItem('nra_v30',String(as2));$('autoSaveToggle').classList.toggle('active',as2);if(as2)sd2();}
-        async function rwl3(){try{if('wakeLock' in navigator&&ip){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>log('唤醒锁释放'));}}catch(e){}}
-        async function rwl2(){if(wl){try{await wl.release();wl=null;}catch(e){}}}
+    // ===== PWA =====
+    function ipw2(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('pwaHint').classList.add('show');});$('pwaHint').addEventListener('click',async()=>{if(!dp)return;dp.prompt();const{outcome}=await dp.userChoice;dp=null;$('pwaHint').classList.remove('show');if(outcome==='accepted')st2('sysToast','✅ 安装成功！',3000);});window.addEventListener('appinstalled',()=>{$('pwaHint').classList.remove('show');});}
+    function rsw2(){if(!('serviceWorker' in navigator))return;window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(r=>{lg('SW注册成功');r.addEventListener('updatefound',()=>{const w=r.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller&&confirm('新版本可用，更新？'))window.location.reload();});});}).catch(e=>lg('SW注册失败:',e));});let rf=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rf){rf=true;window.location.reload();}});
+    // 🔑 监听来自SW的媒体操作
+    navigator.serviceWorker.addEventListener('message',e=>{lg('收到SW消息:',e.data);if(e.data?.type==='MEDIA_ACTION'){const h={playpause:tp2,prev:pt2,next:nt2,play:()=>{if(!ip)tp2();},pause:()=>{if(ip)tp2();}};if(h[e.data.action])h[e.data.action]();}});}
 
-        // 事件绑定
-        function be2(){
-            $('playBtn').addEventListener('click',tp2);$('resetBtn').addEventListener('click',reset2);
-            $('exportBtn').addEventListener('click',ed2);$('importBtn').addEventListener('click',id3);
-            $('clearBtn').addEventListener('click',ca2);$('miniPlayBtn').addEventListener('click',tp2);
-            $('prevBtn').addEventListener('click',pt2);$('nextBtn').addEventListener('click',nt2);
-            $('trackProgressBar').addEventListener('click',skp2);
-            $('configModal').addEventListener('click',e=>{if(e.target===$('configModal'))cc2();});
-            $('btnSaveConfig').addEventListener('click',sc2);$('btnCancelConfig').addEventListener('click',cc2);
-            $('btnLocalFile').addEventListener('click',tf2);$('btnOnlineLink').addEventListener('click',pu2);
-            $('btnDeleteLocal').addEventListener('click',df2);$('btnDeleteOnline').addEventListener('click',du2);
-            $('advancedToggle').addEventListener('click',ta3);
-            $('localFileInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{tf=f;tu='';td2=await gdf2(f);if(td2>0)$('cfg_duration').value=td2;$('localFileName').textContent=f.name;$('localFileSize').textContent=(f.size/1024/1024).toFixed(2)+' MB';$('localFileItem').style.display='flex';$('noMusicItem').style.display='none';}catch(e){}e.target.value='';});
-            $('importFile').addEventListener('change',function(){hi2(this);});
-            document.querySelectorAll('.chart-tab').forEach(t=>t.addEventListener('click',()=>sc3(t.dataset.type)));
-            $('autoSaveToggle').addEventListener('click',ta4);
-            document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();tp2();}else if(e.code==='ArrowLeft'){e.preventDefault();pt2();}else if(e.code==='ArrowRight'){e.preventDefault();nt2();}});
-            document.addEventListener('visibilitychange',()=>{if(document.hidden&&as2)sd2();if(!document.hidden&&ip){ums2(S[cs],am[cs]);if(ih)amc();}});
-        }
+    // ===== 列表 =====
+    function ipl(){const c=$('trackList');if(!c)return;c.innerHTML=S.map((s2,i)=>{const m2=am[i];return`<div class="track ${i===cs?'active':''}" data-index="${i}"><span class="drag-handle">⋮⋮</span><div class="track-number">${i+1}</div><div class="track-info"><div>${s2.name}</div><small>${s2.bpm}BPM · ${ft(s2.duration)} · ${m2?.localFile?'📁本地':m2?.onlineUrl?'🌐链接':'节拍器'}</small></div></div>`;}).join('');c.querySelectorAll('.track').forEach(t=>t.addEventListener('click',e=>{if(!e.target.classList.contains('drag-handle'))swt(parseInt(t.dataset.index));}));if(si)si.destroy();try{si=new Sortable(c,{handle:'.drag-handle',animation:200,ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',onEnd:e=>{if(e.oldIndex!==e.newIndex){ro2(e.oldIndex,e.newIndex);ipl();usi();ud3();utl2();umi();rr2();}}});}catch(e){}}
+    function ro2(oi,ni){S.splice(ni,0,S.splice(oi,1)[0]);am.splice(ni,0,am.splice(oi,1)[0]);if(cs===oi)cs=ni;else if(oi<cs&&ni>=cs)cs--;else if(oi>cs&&ni<=cs)cs++;sa2();}
+    function rr2(){const c=$('fileRows');if(!c)return;c.innerHTML=S.map((s2,i)=>{const m2=am[i];let dn=(i+1)+'. '+s2.name,mt='未设置音乐';if(m2&&(m2.localFile||m2.onlineUrl)){dn=(i+1)+'. '+(m2.name||s2.name);mt=(m2.localFile?'📁本地':'')+(m2.localFile&&m2.onlineUrl?' · ':'')+(m2.onlineUrl?'🌐链接':'')+' · '+ft(s2.duration);}return`<div class="file-row" data-copy="${(m2?.onlineUrl||m2?.name||s2.name||'').replace(/"/g,'&quot;')}"><div class="file-info"><div class="file-name ${(m2&&(m2.localFile||m2.onlineUrl))?'loaded':''}">${dn}</div><div class="file-meta">${mt}</div></div><button class="config-btn" data-stage="${i}">⚙️ 配置</button></div>`;}).join('');c.querySelectorAll('.file-row').forEach(r=>r.addEventListener('click',e=>{if(!e.target.classList.contains('config-btn'))cr2(r.dataset.copy);}));c.querySelectorAll('.config-btn').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();ocm(parseInt(b.dataset.stage));}));}
+    function cr2(content){if(navigator.clipboard?.writeText)navigator.clipboard.writeText(content).then(()=>st2('copyToast','📋 已复制',2000)).catch(()=>fc2(content));else fc2(content);}
+    function fc2(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');st2('copyToast','📋 已复制',2000);}catch(e){}document.body.removeChild(ta);}
 
-        // 初始化
-        async function init2(){
-            try{log('初始化...');const ua=navigator.userAgent||'';ih=/huawei|honor|harmonyos/i.test(ua);log('设备:',ih?'华为':'其他');
-                ipw2();rsw2();lsc2();lst2();as2=localStorage.getItem('nra_v30')!=='false';$('autoSaveToggle').classList.toggle('active',as2);
-                ic2();await lsd2();uss2();uc2();be2();udi();
-                if(ih&&Notification.permission==='default'){setTimeout(async()=>{const p=await Notification.requestPermission();log('通知权限:',p);if(p!=='granted')st3('systemToast','📱 请允许通知',5000);},3000);}
-                setInterval(()=>{if(as2&&ip)sd2();},15000);window.addEventListener('beforeunload',()=>{if(as2)sd2();});
-                const aa=async()=>{try{await eac2();document.removeEventListener('touchstart',aa);document.removeEventListener('click',aa);}catch(e){}};
-                document.addEventListener('touchstart',aa,{once:true});document.addEventListener('click',aa,{once:true});
-                log('初始化完成');console.log('🧠 神经重塑 v'+V+' | 锁屏控制最终版');
-            }catch(e){se2('初始化失败');}
-        }
+    // ===== 配置 =====
+    function ocm(idx){ei=idx;const s2=S[idx],m2=am[idx];$('configModalTitle').textContent='⚙️ 配置 第'+(idx+1)+'阶段 · '+s2.name;$('cfg_name').value=s2.name||'';$('cfg_bpm').value=s2.bpm||60;$('cfg_duration').value=s2.duration||300;$('cfg_action').value=s2.action||'';$('cfg_imagine').value=s2.imagine||'';tf=null;tu='';td2=0;window._dl=false;window._do=false;usd(m2);$('advancedFields').style.display='none';$('advancedToggle').textContent='▼ 高级选项';$('configModal').classList.add('show');}
+    function ccm2(){$('configModal').classList.remove('show');}
+    function usd(m2){const li=$('localFileItem'),oi=$('onlineUrlItem'),nm=$('noMusicItem');if(m2?.localFile){li.style.display='flex';$('localFileName').textContent=m2.localFile.name||'本地文件';$('localFileSize').textContent=((m2.localFile.size||0)/1024/1024).toFixed(2)+' MB';}else li.style.display='none';if(m2?.onlineUrl){oi.style.display='flex';$('onlineUrlName').textContent=m2.onlineName||'在线链接';$('onlineUrlDetail').textContent=m2.onlineUrl;}else oi.style.display='none';nm.style.display=(!m2?.localFile&&!m2?.onlineUrl&&!tf&&!tu)?'flex':'none';}
+    async function sc2(){try{const idx=ei;let dur=parseInt($('cfg_duration').value)||0;if(dur===0&&tf&&td2>0)dur=td2;else if(dur===0)dur=300;S[idx]={name:$('cfg_name').value.trim()||('阶段'+(idx+1)),bpm:parseInt($('cfg_bpm').value)||60,duration:dur,action:$('cfg_action').value.trim(),imagine:$('cfg_imagine').value.trim()};const om=am[idx];if(tf){await sadb(idx,tf,tf.name);am[idx]={name:S[idx].name,localFile:{name:tf.name,type:tf.type,size:tf.size},onlineUrl:om?.onlineUrl||'',onlineName:om?.onlineName||''};}else if(window._dl){await dadb(idx);if(am[idx])am[idx].localFile=null;window._dl=false;}if(tu){am[idx]={...(am[idx]||{}),onlineUrl:tu,onlineName:$('onlineUrlName').textContent!=='—'?$('onlineUrlName').textContent:(tu.split('/').pop()?.split('?')[0]||'在线音乐')};}else if(window._do){if(am[idx]){am[idx].onlineUrl='';am[idx].onlineName='';}window._do=false;}if(!am[idx])am[idx]={name:S[idx].name,localFile:null,onlineUrl:'',onlineName:''};sa2();rr2();ipl();usi();ud3();utl2();umi();if(cs===idx&&ip)await psm(cs);ccm2();}catch(e){se('保存失败');}}
+    function tlf2(){$('localFileInput').click();}
+    function pfu2(){const i=prompt('请输入音频链接:');if(!i)return;const us=i.match(/(https?:\/\/[^\s]+)/g);if(us?.length>0){tu=us[0];let n=i.replace(us[0],'').trim()||us[0].split('/').pop()?.split('?')[0]||'在线音乐';$('onlineUrlName').textContent=n;$('onlineUrlDetail').textContent=us[0];}else{try{new URL(i);tu=i;let n=i.split('/').pop()?.split('?')[0]||'在线音乐';$('onlineUrlName').textContent=n;$('onlineUrlDetail').textContent=i;}catch{alert('无效链接');return;}}$('onlineUrlItem').style.display='flex';$('noMusicItem').style.display='none';}
+    function dlf2(){tf=null;window._dl=true;$('localFileItem').style.display='none';un2();}
+    function dou2(){tu='';window._do=true;$('onlineUrlItem').style.display='none';un2();}
+    function un2(){$('noMusicItem').style.display=($('localFileItem').style.display==='none'&&$('onlineUrlItem').style.display==='none')?'flex':'none';}
+    function ta3(){const f=$('advancedFields');f.style.display=f.style.display==='none'?'block':'none';$('advancedToggle').textContent=f.style.display==='none'?'▼ 高级选项':'▲ 高级选项';}
 
-        window.app={togglePlay:tp2,reset:reset2,exportData:ed2,importData:id3,clearAll:ca2,toggleAutoSave:ta4,prevTrack:pt2,nextTrack:nt2,switchTrack:stt2,seekPos:skp2,openConfig:oc2,handleImport:hi2,copyRow:cr2,showDiag:sdi,sendTestNotif:stn,updateDiag:udi,get version(){return V;},get isPlaying(){return ip;}};
-        window.togglePlay=tp2;window.reset=reset2;window.exportData=ed2;window.importData=id3;window.clearAllData=ca2;window.toggleAutoSave=ta4;window.prevTrack=pt2;window.nextTrack=nt2;window.switchToTrack=stt2;window.seekToPosition=skp2;window.openConfigModal=oc2;window.handleImport=hi2;window.copyRowContent=cr2;
-        init2();
+    // ===== 数据 =====
+    function sa2(){try{localStorage.setItem('nrc_v50',JSON.stringify(S));sv();}catch(e){}}
+    function sv(){if(!au)return;try{localStorage.setItem('nrd_v50',JSON.stringify({currentStage:cs,totalTime:tt,savedTime:sa,audioMeta:am.map(m=>m?{name:m.name,localFile:m.localFile?{name:m.localFile.name,size:m.localFile.size,type:m.localFile.type}:null,onlineUrl:m.onlineUrl||'',onlineName:m.onlineName||''}:null)}));st2('saveToast','✓ 已保存',1500);ec=0;}catch(e){}}
+    async function lsd2(){try{const d=JSON.parse(localStorage.getItem('nrd_v50'));if(d){cs=d.currentStage||0;tt=d.totalTime||0;sa=d.savedTime||0;d.audioMeta?.forEach((m,i)=>{if(m)am[i]=m;});}}catch(e){cs=0;tt=0;sa=0;}rr2();ipl();usi();ud3();utl2();umi();}
+    function lsc2(){try{const s2=JSON.parse(localStorage.getItem('nrc_v50'));if(Array.isArray(s2)&&s2.length===5)S=s2;}catch(e){}}
+    function lst2(){try{const s2=localStorage.getItem('nrs_v50');if(s2)st=JSON.parse(s2);}catch(e){}}
+    function sst3(){try{localStorage.setItem('nrs_v50',JSON.stringify(st));}catch(e){}}
+    function rcs(){const today=new Date().toISOString().split('T')[0];st.sessions.push({date:today});st.totalSessions=(st.totalSessions||0)+1;st.totalMinutes=(st.totalMinutes||0)+Math.round(td()/60);st.dailyRecords[today]=(st.dailyRecords[today]||0)+1;let sk=0,d=new Date();while(st.dailyRecords[d.toISOString().split('T')[0]]){sk++;d.setDate(d.getDate()-1);}st.currentStreak=sk;st.lastTrainingDate=today;sst3();uss2();uc2();}
+    function uss2(){$('totalSess').textContent=st.totalSessions||0;$('totalMin').textContent=st.totalMinutes||0;$('streak').textContent=st.currentStreak||0;$('lastTrain').textContent=st.lastTrainingDate?new Date(st.lastTrainingDate).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}):'-';}
+    function ic2(){const c=$('chart');if(!c||!window.Chart)return;try{ch=new Chart(c.getContext('2d'),{type:'bar',data:gcd2('weekly'),options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});}catch(e){}}
+    function gcd2(type){const l=[],d=[],t=new Date();if(type==='weekly'){for(let i=6;i>=0;i--){const dt=new Date(t);dt.setDate(dt.getDate()-i);l.push(dt.toLocaleDateString('zh-CN',{weekday:'short'}));d.push(st.dailyRecords[dt.toISOString().split('T')[0]]||0);}}else if(type==='monthly'){for(let i=3;i>=0;i--){const e=new Date(t);e.setDate(e.getDate()-i*7);const s2=new Date(e);s2.setDate(s2.getDate()-6);let c=0;for(let dt=new Date(s2);dt<=e;dt.setDate(dt.getDate()+1))c+=st.dailyRecords[dt.toISOString().split('T')[0]]||0;l.push(s2.getMonth()+1+'/'+s2.getDate());d.push(c);}}else{for(let i=11;i>=0;i--){const dt=new Date(t.getFullYear(),t.getMonth()-i,1);let c=0;for(let day=1;day<=31;day++)c+=st.dailyRecords[dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(day).padStart(2,'0')]||0;l.push(dt.toLocaleDateString('zh-CN',{month:'short'}));d.push(c);}}return{labels:l,datasets:[{data:d,backgroundColor:'#00d4aa',borderRadius:6}]};}
+    function sc3(type){ct=type;document.querySelectorAll('.chart-tab').forEach(t=>t.classList.toggle('active',t.dataset.type===type));uc2();}
+    function uc2(){if(ch){ch.data=gcd2(ct);ch.update();}}
+    function ed2(){try{const b=new Blob([JSON.stringify({version:V,stages:S,audioMeta:am,stats:st,exportDate:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='neuro_backup_'+new Date().toISOString().split('T')[0]+'.json';a.click();}catch(e){}}
+    function id3(){$('importFile').click();}
+    async function hi2(input){const f=input.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.stages)S=d.stages;if(d.stats){st=d.stats;sst3();}if(d.audioMeta)am=d.audioMeta;sa2();rr2();ipl();usi();ud3();utl2();umi();uss2();uc2();st2('sysToast','✅ 导入成功',3000);}catch(e){se('导入失败');}input.value='';}
+    async function ca2(){if(!confirm('⚠️ 确定清除所有数据？'))return;try{pau();saa();for(let i=0;i<5;i++)await dadb(i);await cadb();localStorage.clear();S=structuredClone(DEF);cs=0;tt=0;sa=0;am=[null,null,null,null,null];au=true;st={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}};localStorage.setItem('nra_v50','true');localStorage.setItem('nrc_v50',JSON.stringify(S));rr2();ipl();usi();ud3();uss2();uc2();utl2();umi();$('curMode').textContent='准备开始';$('playBtn').textContent='▶ 开始训练';$('autoToggle').classList.add('active');alert('✅ 已清除');}catch(e){se('清除失败');}}
+    function tau2(){au=!au;localStorage.setItem('nra_v50',String(au));$('autoToggle').classList.toggle('active',au);if(au)sv();}
+    async function rwl2(){try{if('wakeLock' in navigator&&ip){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>lg('唤醒锁释放'));}}catch(e){}}
+    async function rwl(){if(wl){try{await wl.release();wl=null;}catch(e){}}}
+
+    // ===== 事件 =====
+    function be2(){
+        $('playBtn').addEventListener('click',tp2);$('resetBtn').addEventListener('click',reset2);
+        $('exportBtn').addEventListener('click',ed2);$('importBtn').addEventListener('click',id3);
+        $('clearBtn').addEventListener('click',ca2);$('miniPlay').addEventListener('click',tp2);
+        $('prevBtn').addEventListener('click',pt2);$('nextBtn').addEventListener('click',nt2);
+        $('trackBar').addEventListener('click',skp);
+        $('configModal').addEventListener('click',e=>{if(e.target===$('configModal'))ccm2();});
+        $('btnSaveConfig').addEventListener('click',sc2);$('btnCancelConfig').addEventListener('click',ccm2);
+        $('btnLocalFile').addEventListener('click',tlf2);$('btnOnlineLink').addEventListener('click',pfu2);
+        $('btnDeleteLocal').addEventListener('click',dlf2);$('btnDeleteOnline').addEventListener('click',dou2);
+        $('advancedToggle').addEventListener('click',ta3);
+        $('localFileInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{tf=f;tu='';td2=await gd(f);if(td2>0)$('cfg_duration').value=td2;$('localFileName').textContent=f.name;$('localFileSize').textContent=(f.size/1024/1024).toFixed(2)+' MB';$('localFileItem').style.display='flex';$('noMusicItem').style.display='none';}catch(e){}e.target.value='';});
+        $('importFile').addEventListener('change',function(){hi2(this);});
+        document.querySelectorAll('.chart-tab').forEach(t=>t.addEventListener('click',()=>sc3(t.dataset.type)));
+        $('autoToggle').addEventListener('click',tau2);
+        document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();tp2();}else if(e.code==='ArrowLeft'){e.preventDefault();pt2();}else if(e.code==='ArrowRight'){e.preventDefault();nt2();}});
+        document.addEventListener('visibilitychange',()=>{if(document.hidden&&au)sv();if(!document.hidden&&ip){ums(S[cs],am[cs]);if(ih)smn();}});
+    }
+
+    // ===== 初始化 =====
+    async function init2(){
+        try{
+            lg('初始化...');const ua=navigator.userAgent||'';ih=/huawei|honor|harmonyos/i.test(ua);
+            lg('设备:',ih?'华为/Honor':'其他');
+            ipw2();rsw2();lsc2();lst2();
+            au=localStorage.getItem('nra_v50')!=='false';$('autoToggle').classList.toggle('active',au);
+            ic2();await lsd2();uss2();uc2();be2();ud2();
+            if(ih&&Notification.permission==='default'){setTimeout(async()=>{const p=await Notification.requestPermission();lg('通知权限:',p);if(p!=='granted')st2('sysToast','📱 请允许通知获取锁屏控制',5000);},3000);}
+            setInterval(()=>{if(au&&ip)sv();},15000);
+            window.addEventListener('beforeunload',()=>{if(au)sv();});
+            const aa=async()=>{try{await eac();document.removeEventListener('touchstart',aa);document.removeEventListener('click',aa);}catch(e){}};
+            document.addEventListener('touchstart',aa,{once:true});document.addEventListener('click',aa,{once:true});
+            lg('初始化完成');
+            console.log('🧠 神经重塑训练 v'+V+' | 锁屏按钮通知版');
+            console.log('💡 播放音乐后锁屏，通知栏应有：⏮ 上一首 | ⏸ 暂停 | ⏭ 下一首');
+        }catch(e){se('初始化失败');}
+    }
+
+    window.app={
+        togglePlay:tp2,reset:reset2,exportData:ed2,importData:id3,clearAll:ca2,
+        toggleAutoSave:tau2,prevTrack:pt2,nextTrack:nt2,switchTrack:swt,
+        seekPos:skp,openConfig:ocm,handleImport:hi2,copyRow:cr2,
+        showDiag:shd2,testNotif,showGuide,updateDiag:ud2,
+        get version(){return V;},get isPlaying(){return ip;}
+    };
+    window.togglePlay=tp2;window.reset=reset2;window.exportData=ed2;
+    window.importData=id3;window.clearAllData=ca2;window.toggleAutoSave=tau2;
+    window.prevTrack=pt2;window.nextTrack=nt2;window.switchToTrack=swt;
+    window.seekToPosition=skp;window.openConfigModal=ocm;window.handleImport=hi2;
+    window.copyRowContent=cr2;window.showLockScreenGuide=showGuide;
+
+    init2();
     })();
     </script>
 </body>
