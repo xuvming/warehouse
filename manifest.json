@@ -1,28 +1,31 @@
 ﻿{
   "name": "神经重塑训练",
   "short_name": "神经重塑",
-  "description": "神经重塑PWA训练应用，支持锁屏媒体控制与离线运行",
+  "description": "神经重塑PWA训练应用，支持锁屏控制与离线运行",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#00d4aa",
-  "lang": "zh-CN",
-  "scope": "./",
   "orientation": "portrait",
-  "categories": ["health", "fitness", "medical"],
-  "prefer_related_applications": false,
+  "scope": "./",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%2300d4aa'/%3E%3Ctext x='50%25' y='50%25' font-size='100' text-anchor='middle' dominant-baseline='middle' fill='%231a1a2e' font-weight='bold'%3E🧠%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%2300d4aa'/%3E%3Ctext x='96' y='110' font-size='90' text-anchor='middle'%3E🧠%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%2300d4aa'/%3E%3Ctext x='50%25' y='50%25' font-size='280' text-anchor='middle' dominant-baseline='middle' fill='%231a1a2e' font-weight='bold'%3E🧠%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%2300d4aa'/%3E%3Ctext x='256' y='290' font-size='240' text-anchor='middle'%3E🧠%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["health", "fitness", "music"],
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "fullscreen", "minimal-ui"]
 }
+

@@ -19,6 +19,9 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <meta name="layoutmode" content="fitscreen">
+    
+    <!-- 🔑 华为/安卓专用：确保standalone模式 -->
+    <meta name="mobile-web-app-capable" content="yes">
 
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
@@ -146,12 +149,61 @@
         .mini-btn-play { width: 50px; height: 50px; background: linear-gradient(135deg, var(--primary-green), var(--primary-blue)); color: #121212; font-size: 22px; box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3); }
         #pwaInstallHint { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: linear-gradient(135deg, var(--primary-green), var(--primary-blue)); color: #121212; border-radius: var(--radius-lg); padding: 12px 24px; font-size: 14px; font-weight: 700; z-index: 999; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; box-shadow: 0 8px 30px rgba(0, 212, 170, 0.4); white-space: nowrap; }
         #pwaInstallHint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .settings-guide-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.92); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: fadeIn 0.2s ease; }
+        .settings-guide-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.92); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
         @media (max-width: 360px) { body { padding: 12px 8px 90px; } .btn { padding: 10px 20px; font-size: 14px; } }
+        
+        /* 🔑 华为专用：安装引导 */
+        .huawei-install-guide {
+            display: none;
+            background: linear-gradient(135deg, rgba(0,212,170,0.15), rgba(0,168,232,0.15));
+            border: 1.5px solid var(--primary-green);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 16px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+        }
+        .huawei-install-guide.show { display: block; }
+        .huawei-install-guide h3 { color: var(--primary-green); margin-bottom: 8px; font-size: 15px; }
+        .huawei-install-guide p { color: var(--text-secondary); line-height: 1.8; font-size: 12px; }
+        .huawei-install-guide .step { 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 8px; 
+            padding: 8px 12px; 
+            margin: 6px 0; 
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .huawei-install-guide .step-num {
+            background: var(--primary-green);
+            color: #121212;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
     <div id="pwaInstallHint">📲 点击添加到桌面</div>
+    
+    <!-- 🔑 华为安装引导 -->
+    <div class="huawei-install-guide" id="huaweiGuide">
+        <h3>📱 华为浏览器安装指南</h3>
+        <div class="step"><span class="step-num">1</span>点击浏览器底部「⋮」菜单</div>
+        <div class="step"><span class="step-num">2</span>选择「添加到主屏幕」或「桌面快捷方式」</div>
+        <div class="step"><span class="step-num">3</span>从桌面图标打开，即可享受锁屏控制</div>
+        <p style="margin-top:10px;color:var(--warning);">⚠️ 安装后首次使用需点击「开始训练」激活音频</p>
+    </div>
     
     <div class="status-bar">
         <div class="toast save" id="saveStatus">✓ 已保存</div>
@@ -346,7 +398,7 @@
         'use strict';
 
         // ========== 版本和配置 ==========
-        const APP_VERSION = '4.2.0-notifbtns';
+        const APP_VERSION = '4.2.0-huawei';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v42';
         const STATE_KEY = 'nrd_v42';
@@ -407,13 +459,32 @@
             showToast('errorToast', '⚠ ' + msg, 4000);
             if (errCount > 5) { resetAudio(); errCount = 0; }
         }
+        
+        // 🔑 生成内联图标（无需外部文件）
         function genIcon() {
-            const c = document.createElement('canvas'); c.width = 192; c.height = 192;
-            const x = c.getContext('2d'); x.fillStyle = '#00d4aa';
-            x.beginPath(); x.roundRect(0, 0, 192, 192, 32); x.fill();
-            x.fillStyle = '#1a1a2e'; x.font = 'bold 90px sans-serif';
-            x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🧠', 96, 96);
+            const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+            const x = c.getContext('2d');
+            // 背景
+            x.fillStyle = '#00d4aa';
+            x.beginPath(); x.roundRect(0, 0, 512, 512, 64); x.fill();
+            // 内圆
+            x.fillStyle = '#1a1a2e';
+            x.beginPath(); x.roundRect(40, 40, 432, 432, 48); x.fill();
+            // 大脑emoji
+            x.font = 'bold 240px sans-serif';
+            x.textAlign = 'center'; x.textBaseline = 'middle';
+            x.fillText('🧠', 256, 256);
+            // 装饰环
+            x.strokeStyle = '#00d4aa'; x.lineWidth = 8;
+            x.beginPath(); x.arc(256, 256, 220, 0, Math.PI * 2); x.stroke();
             return c.toDataURL('image/png');
+        }
+        
+        // 缓存图标
+        let _cachedIcon = null;
+        function getIcon() {
+            if (!_cachedIcon) _cachedIcon = genIcon();
+            return _cachedIcon;
         }
 
         // ========== IndexedDB ==========
@@ -553,7 +624,7 @@
                         $('currentMode').textContent = text;
                         updateMS(stages[currentStage], audioMeta[currentStage]);
                         updateMini(); showHint();
-                        // 发送媒体通知
+                        // 🔑 发送媒体通知
                         sendMediaNotification();
                         resolve(true);
                     } catch (e) { await createBG(stages[currentStage]); resolve(false); }
@@ -579,7 +650,7 @@
                         title: s.name,
                         artist: m?.name || '神经重塑训练',
                         album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
-                        artwork: [{ src: genIcon(), sizes: '512x512', type: 'image/png' }]
+                        artwork: [{ src: getIcon(), sizes: '512x512', type: 'image/png' }]
                     });
                     log('[媒体] MediaSession已更新');
                 } catch (e) { log('[媒体] MediaSession更新失败:', e); }
@@ -603,8 +674,8 @@
                 // 发送新通知
                 await reg.showNotification('🎵 ' + s.name, {
                     body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM · ' + (s.action || '神经重塑训练'),
-                    icon: genIcon(),
-                    badge: genIcon(),
+                    icon: getIcon(),
+                    badge: getIcon(),
                     tag: MEDIA_NOTIF_TAG,
                     requireInteraction: false,
                     silent: false,
@@ -632,7 +703,7 @@
                         payload: {
                             title: '🎵 ' + stages[currentStage].name,
                             body: '阶段' + (currentStage + 1) + '/' + stages.length,
-                            icon: genIcon(),
+                            icon: getIcon(),
                             stage: currentStage,
                             playing: isPlaying
                         }
@@ -703,7 +774,7 @@
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: stage?.name || '神经重塑', artist: meta?.name || '神经重塑训练',
                     album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + (stage?.bpm || 60) + 'BPM',
-                    artwork: [{ src: genIcon(), sizes: '512x512', type: 'image/png' }]
+                    artwork: [{ src: getIcon(), sizes: '512x512', type: 'image/png' }]
                 });
                 navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
                 const actions = {
@@ -1107,8 +1178,15 @@
         async function init() {
             try {
                 log('初始化开始');
-                const ua = navigator.userAgent || ''; isHuawei = /huawei|honor|harmonyos/i.test(ua);
+                const ua = navigator.userAgent || ''; 
+                isHuawei = /huawei|honor|harmonyos/i.test(ua);
                 log('设备:', isHuawei ? '华为/Honor' : '其他');
+                
+                // 🔑 华为设备显示安装引导
+                if (isHuawei) {
+                    const guide = $('huaweiGuide');
+                    if (guide) guide.classList.add('show');
+                }
                 
                 initPWA(); registerSW();
                 loadStages(); loadStats();
@@ -1118,19 +1196,27 @@
                 updateStats(); updateChartData(); bindEvents();
                 updateDiag();
                 
+                // 🔑 华为设备自动请求通知权限
                 if (isHuawei && Notification.permission === 'default') {
                     setTimeout(async () => {
                         const p = await Notification.requestPermission();
                         log('通知权限:', p);
                         if (p !== 'granted') showToast('systemToast', '📱 请允许通知获取锁屏控制', 5000);
+                        updateDiag();
                     }, 3000);
                 }
                 
                 setInterval(() => { if (autoSave && isPlaying) saveState(); }, 15000);
                 window.addEventListener('beforeunload', () => { if (autoSave) saveState(); });
                 
+                // 🔑 预激活音频上下文（解决华为浏览器限制）
                 const activateAudio = async () => {
-                    try { await ensureAC(); document.removeEventListener('touchstart', activateAudio); document.removeEventListener('click', activateAudio); log('音频上下文已激活'); } catch (e) {}
+                    try { 
+                        await ensureAC(); 
+                        log('音频上下文已激活'); 
+                    } catch (e) {}
+                    document.removeEventListener('touchstart', activateAudio);
+                    document.removeEventListener('click', activateAudio);
                 };
                 document.addEventListener('touchstart', activateAudio, { once: true });
                 document.addEventListener('click', activateAudio, { once: true });
@@ -1138,6 +1224,7 @@
                 log('初始化完成');
                 console.log('🧠 神经重塑训练 v' + APP_VERSION);
                 console.log('💡 功能: 锁屏通知按钮 | 下拉通知栏控制 | PWA离线');
+                console.log('📱 华为模式:', isHuawei ? '已启用' : '未检测到');
             } catch (e) { showError('初始化失败'); }
         }
 
@@ -1159,3 +1246,4 @@
     </script>
 </body>
 </html>
+
