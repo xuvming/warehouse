@@ -1,7 +1,7 @@
-﻿// Service Worker v4.1 - 神经重塑训练（媒体通知按钮版）
-const CACHE_VERSION = 'neuro-v4.1';
+﻿// Service Worker v4.2 - 神经重塑训练（媒体通知按钮版）
+const CACHE_VERSION = 'neuro-v4.2';
 const CACHE_NAME = CACHE_VERSION;
-const RUNTIME_CACHE = 'neuro-runtime-v4.1';
+const RUNTIME_CACHE = 'neuro-runtime-v4.2';
 
 const CORE_ASSETS = [
   './',
@@ -12,10 +12,11 @@ const CORE_ASSETS = [
 ];
 
 const AUDIO_EXTENSIONS = /\.(mp3|wav|ogg|m4a|aac|flac|webm|oga|opus)(\?.*)?$/i;
+const MEDIA_NOTIF_TAG = 'neuro-media-control';
 
 // ========== 安装 ==========
 self.addEventListener('install', (event) => {
-  console.log('[SW v4.1] 安装中...');
+  console.log('[SW v4.2] 安装中...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => Promise.allSettled(
@@ -30,7 +31,7 @@ self.addEventListener('install', (event) => {
 
 // ========== 激活 ==========
 self.addEventListener('activate', (event) => {
-  console.log('[SW v4.1] 激活中...');
+  console.log('[SW v4.2] 激活中...');
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
@@ -77,11 +78,9 @@ async function networkFirst(request, fallbackUrl) {
   return new Response('离线不可用', { status: 503 });
 }
 
-// ========== 🔑 核心：通知点击处理 ==========
+// ========== 🔑 通知点击处理 ==========
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] 通知点击，action:', event.action, 'tag:', event.notification.tag);
-  
-  // 重要：点击通知时必须关闭
+  console.log('[SW] 通知点击, action:', event.action, 'tag:', event.notification.tag);
   event.notification.close();
   
   const action = event.action || 'default';
@@ -90,11 +89,8 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
         console.log('[SW] 找到窗口:', clientList.length);
-        
-        // 查找已有的窗口
         let targetClient = clientList.find(c => c.url.includes(self.location.origin));
         
-        // 发送操作命令
         const sendAction = (client) => {
           if (client) {
             const msg = { type: 'MEDIA_ACTION', action: action, timestamp: Date.now() };
@@ -104,16 +100,11 @@ self.addEventListener('notificationclick', (event) => {
         };
         
         if (targetClient) {
-          // 聚焦已有窗口
-          if ('focus' in targetClient) {
-            targetClient.focus();
-          }
+          if ('focus' in targetClient) targetClient.focus();
           sendAction(targetClient);
         } else if (clients.openWindow) {
-          // 打开新窗口
           clients.openWindow('./index.html').then(newClient => {
-            // 等待新窗口加载完成后发送消息
-            setTimeout(() => sendAction(newClient), 1000);
+            setTimeout(() => sendAction(newClient), 1500);
           });
         }
         
@@ -125,7 +116,6 @@ self.addEventListener('notificationclick', (event) => {
 // ========== 消息处理 ==========
 self.addEventListener('message', (event) => {
   if (!event.data) return;
-  
   console.log('[SW] 收到消息:', event.data.type);
   
   switch (event.data.type) {
@@ -134,101 +124,46 @@ self.addEventListener('message', (event) => {
       break;
       
     case 'UPDATE_MEDIA_NOTIFICATION':
-      // 更新媒体通知
-      updateMediaNotification(event.data.payload);
-      break;
-      
-    case 'CLOSE_MEDIA_NOTIFICATION':
-      // 关闭媒体通知
-      closeMediaNotification();
+      handleUpdateMediaNotification(event.data.payload);
       break;
       
     case 'CLEAR_CACHE':
       caches.keys()
         .then(keys => Promise.all(keys.map(k => caches.delete(k))))
-        .then(() => event.ports[0]?.postMessage({ success: true }));
+        .then(() => event.ports?.[0]?.postMessage({ success: true }));
       break;
   }
 });
 
-// ========== 媒体通知管理 ==========
-let currentMediaTag = 'neuro-media-control';
-
-async function updateMediaNotification(payload) {
+async function handleUpdateMediaNotification(payload) {
   if (!payload) return;
-  
   console.log('[SW] 更新媒体通知:', payload.title);
   
-  // 先关闭旧通知
-  await closeMediaNotification();
-  
-  const { title, body, icon, stage, playing } = payload;
-  
   try {
-    // 🔑 使用 requireInteraction 和 actions
-    const options = {
-      body: body || '神经重塑训练',
-      icon: icon || generateIcon(),
-      badge: icon || generateIcon(),
-      tag: currentMediaTag,
-      requireInteraction: false,  // 允许用户滑动清除
-      silent: false,               // 🔑 非静默！显示在锁屏
-      vibrate: playing ? [200, 100, 200] : [],
-      // 🔑 关键：三个操作按钮对应播放控制
+    const oldNotifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
+    oldNotifs.forEach(n => n.close());
+    
+    await self.registration.showNotification(payload.title || '神经重塑', {
+      body: payload.body || '',
+      icon: payload.icon || '',
+      badge: payload.icon || '',
+      tag: MEDIA_NOTIF_TAG,
+      requireInteraction: false,
+      silent: false,
+      vibrate: payload.playing ? [200, 100, 200] : [],
       actions: [
         { action: 'prev', title: '⏮ 上一首' },
-        { action: 'playpause', title: playing ? '⏸ 暂停' : '▶ 播放' },
+        { action: 'playpause', title: payload.playing ? '⏸ 暂停' : '▶ 播放' },
         { action: 'next', title: '⏭ 下一首' }
       ],
       timestamp: Date.now(),
-      // 🔑 设置为 ongoing（持续通知），不会被轻易滑动清除
-      data: {
-        stage: stage || 0,
-        playing: playing || false,
-        type: 'media-control'
-      }
-    };
+      data: { type: 'media-control', stage: payload.stage, playing: payload.playing }
+    });
     
-    await self.registration.showNotification(title || '神经重塑', options);
-    console.log('[SW] 媒体通知已显示，actions:', options.actions.length);
-    
+    console.log('[SW] 媒体通知已显示');
   } catch (error) {
     console.error('[SW] 显示媒体通知失败:', error);
-    // 回退：不带 actions 的基础通知
-    try {
-      await self.registration.showNotification(title || '神经重塑', {
-        body: body || '',
-        icon: icon || generateIcon(),
-        tag: currentMediaTag,
-        requireInteraction: false,
-        silent: false
-      });
-    } catch (e2) {
-      console.error('[SW] 回退通知也失败:', e2);
-    }
   }
 }
 
-async function closeMediaNotification() {
-  try {
-    const notifications = await self.registration.getNotifications({ tag: currentMediaTag });
-    notifications.forEach(n => {
-      console.log('[SW] 关闭旧通知:', n.tag);
-      n.close();
-    });
-  } catch (e) {
-    console.error('[SW] 关闭通知失败:', e);
-  }
-}
-
-function generateIcon() {
-  // 返回一个简单的 SVG data URL
-  return 'data:image/svg+xml,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">' +
-    '<rect width="192" height="192" rx="32" fill="#00d4aa"/>' +
-    '<text x="96" y="96" font-size="90" text-anchor="middle" dominant-baseline="middle" fill="#1a1a2e" font-weight="bold">🧠</text>' +
-    '</svg>'
-  );
-}
-
-console.log('[SW v4.1] Service Worker 已加载 - 媒体通知按钮版');
+console.log('[SW v4.2] Service Worker 已加载 - 媒体通知按钮版');
