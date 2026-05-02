@@ -1,4 +1,4 @@
-﻿// Service Worker v5.0 - 神经重塑训练（媒体通知按钮版）
+﻿// Service Worker v5.0 - 神经重塑训练
 const CACHE_VERSION = 'neuro-v5.0';
 const CACHE_NAME = CACHE_VERSION;
 const RUNTIME_CACHE = 'neuro-runtime-v5.0';
@@ -13,36 +13,28 @@ const CORE_ASSETS = [
 
 const AUDIO_EXTENSIONS = /\.(mp3|wav|ogg|m4a|aac|flac|webm|oga|opus)(\?.*)?$/i;
 
-// ========== 安装 ==========
-self.addEventListener('install', (event) => {
-  console.log('[SW v5.0] 安装中...');
+self.addEventListener('install', event => {
+  console.log('[SW v5.0] 安装');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => Promise.allSettled(
-        CORE_ASSETS.map(asset => {
-          try { return cache.add(new URL(asset, self.location.origin).href).catch(err => console.warn('[SW] 缓存失败:', asset, err.message)); }
-          catch (e) { return Promise.resolve(); }
-        })
-      ))
+      .then(cache => Promise.allSettled(CORE_ASSETS.map(a => {
+        try { return cache.add(new URL(a, self.location.origin).href).catch(e => console.warn('[SW] 缓存失败:', a, e.message)); }
+        catch (e) { return Promise.resolve(); }
+      })))
       .then(() => self.skipWaiting())
   );
 });
 
-// ========== 激活 ==========
-self.addEventListener('activate', (event) => {
-  console.log('[SW v5.0] 激活中...');
+self.addEventListener('activate', event => {
+  console.log('[SW v5.0] 激活');
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(key => key !== CACHE_NAME && key !== RUNTIME_CACHE)
-            .map(key => { console.log('[SW] 清理旧缓存:', key); return caches.delete(key); })
-      ))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && k !== RUNTIME_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
-// ========== 请求拦截 ==========
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   const { request } = event;
   if (!request.url.startsWith('http')) return;
   const url = new URL(request.url);
@@ -77,70 +69,40 @@ async function networkFirst(request, fallbackUrl) {
   return new Response('离线不可用', { status: 503 });
 }
 
-// ========== 🔑 核心：通知点击处理（支持按钮操作） ==========
-self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] 通知被点击, action:', event.action, ', tag:', event.notification.tag);
-  
-  // 必须关闭通知
+// 🔑 通知点击处理
+self.addEventListener('notificationclick', event => {
+  console.log('[SW] 通知点击 action:', event.action);
   event.notification.close();
-  
   const action = event.action || 'default';
-  
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then(clientList => {
-        console.log('[SW] 找到窗口数:', clientList.length);
-        
-        // 查找已有窗口
-        let target = clientList.find(c => c.url.includes(self.location.origin));
-        
-        // 发送操作命令
-        const sendCommand = (client) => {
-          if (client) {
-            const msg = {
-              type: 'MEDIA_ACTION',
-              action: action,
-              timestamp: Date.now()
-            };
-            console.log('[SW] 发送媒体操作:', msg);
-            client.postMessage(msg);
-          }
-        };
-        
-        if (target) {
-          if ('focus' in target) target.focus();
-          sendCommand(target);
-        } else if (clients.openWindow) {
-          clients.openWindow('./index.html').then(newClient => {
-            // 等待窗口加载
-            setTimeout(() => sendCommand(newClient), 1500);
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      let target = clientList.find(c => c.url.includes(self.location.origin));
+      const sendMsg = (client) => {
+        if (client) {
+          // 使用 then 兼容
+          Promise.resolve(client).then(c => {
+            c.postMessage({ type: 'MEDIA_ACTION', action, timestamp: Date.now() });
           });
         }
-        
-        return Promise.resolve();
-      })
+      };
+      if (target && 'focus' in target) {
+        target.focus();
+        sendMsg(target);
+      } else if (clients.openWindow) {
+        clients.openWindow('./index.html').then(newClient => {
+          setTimeout(() => sendMsg(newClient), 1000);
+        });
+      }
+    })
   );
 });
 
-// ========== 消息处理 ==========
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
   if (!event.data) return;
-  
-  switch (event.data.type) {
-    case 'SKIP_WAITING':
-      self.skipWaiting();
-      break;
-      
-    case 'CLEAR_CACHE':
-      caches.keys()
-        .then(keys => Promise.all(keys.map(k => caches.delete(k))))
-        .then(() => event.ports[0]?.postMessage({ success: true }));
-      break;
-      
-    case 'GET_VERSION':
-      event.ports[0]?.postMessage({ version: CACHE_VERSION });
-      break;
+  if (event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => event.ports[0]?.postMessage({ success: true }));
   }
 });
 
-console.log('[SW v5.0] Service Worker 已加载 - 媒体通知按钮版');
+console.log('[SW v5.0] 已加载');

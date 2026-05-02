@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🧠 神经重塑 · 终极控制器</title>
+    <title>🧠 神经重塑</title>
 
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#1a1a2e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="神经重塑">
-    <meta name="description" content="神经重塑PWA训练应用，支持锁屏媒体控制与离线运行">
+    <meta name="description" content="神经重塑PWA训练应用，支持锁屏控制与离线运行">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="screen-orientation" content="portrait">
     <meta name="x5-orientation" content="portrait">
@@ -24,599 +24,391 @@
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
     <style>
-        :root { --primary-green: #00d4aa; --primary-blue: #00a8e8; --bg-dark: #1a1a2e; --bg-light: #16213e; --text-main: #ffffff; --text-secondary: #b0c4de; --text-muted: #6c7a9e; --danger: #ff6b6b; --warning: #ffd93d; --success: #4caf50; --radius-sm: 12px; --radius-md: 20px; --radius-lg: 30px; }
+        :root { --green: #00d4aa; --blue: #00a8e8; --dark: #1a1a2e; --light: #16213e; --text: #fff; --text2: #b0c4de; --text3: #6c7a9e; --red: #ff6b6b; --yellow: #ffd93d; --ok: #4caf50; --r: 12px; --r2: 20px; --r3: 30px; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'HarmonyOS Sans', 'Noto Sans SC', sans-serif; background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-light) 50%, #0f3460 100%); min-height: 100vh; min-height: 100dvh; color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: env(safe-area-inset-top, 20px) 12px env(safe-area-inset-bottom, 100px); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(0, 212, 170, 0.3); border-radius: 4px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'HarmonyOS Sans', sans-serif; background: linear-gradient(135deg, var(--dark) 0%, var(--light) 100%); min-height: 100dvh; color: var(--text); display: flex; flex-direction: column; align-items: center; padding: env(safe-area-inset-top, 20px) 12px env(safe-area-inset-bottom, 100px); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(0,212,170,0.3); border-radius: 4px; }
         .header { text-align: center; margin-bottom: 20px; padding-top: 10px; }
-        .header h1 { font-size: clamp(22px, 5vw, 28px); background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
-        .header .subtitle { font-size: 12px; color: var(--text-muted); letter-spacing: 2px; opacity: 0.8; }
-        .status-bar { position: fixed; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; pointer-events: none; }
-        .toast { background: rgba(26, 26, 46, 0.95); border-radius: var(--radius-lg); padding: 8px 18px; font-size: 12px; opacity: 0; transform: translateX(100%); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); pointer-events: auto; white-space: nowrap; }
-        .toast.save { border: 1px solid var(--primary-green); color: var(--primary-green); }
-        .toast.system { border: 1px solid var(--warning); color: var(--warning); cursor: pointer; }
-        .toast.error { border: 1px solid var(--danger); color: var(--danger); }
-        .toast.show { opacity: 1; transform: translateX(0); }
-        .copy-toast { position: fixed; bottom: 30%; left: 50%; transform: translate(-50%, 50%) scale(0.8); color: #121212; background: var(--primary-green); border-radius: var(--radius-lg); padding: 12px 24px; font-size: 14px; font-weight: 600; z-index: 1001; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 8px 32px rgba(0, 212, 170, 0.3); }
-        .copy-toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
-        .lock-screen-hint { background: rgba(0, 168, 232, 0.15); border: 1.5px solid var(--primary-blue); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 12px; text-align: center; font-size: 13px; color: var(--primary-blue); cursor: pointer; max-width: 420px; width: 100%; display: none; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: pulse 2s infinite; transition: all 0.3s; }
-        @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(0, 168, 232, 0.1); } 50% { opacity: 0.75; box-shadow: 0 0 20px rgba(0, 168, 232, 0.2); } }
-        .lock-screen-hint.show { display: block; }
-        .diagnostic-panel { background: rgba(0, 0, 0, 0.5); border: 1px solid var(--warning); border-radius: var(--radius-md); padding: 16px; margin-bottom: 12px; max-width: 420px; width: 100%; display: none; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .diagnostic-panel.show { display: block; }
-        .diagnostic-panel h4 { color: var(--warning); margin-bottom: 12px; font-size: 14px; }
-        .diag-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-        .diag-label { color: var(--text-muted); flex-shrink: 0; }
-        .diag-value { color: var(--text-secondary); font-weight: 500; text-align: right; }
-        .diag-value.ok { color: var(--success); } .diag-value.warn { color: var(--warning); } .diag-value.error { color: var(--danger); }
-        .music-status { background: rgba(0, 212, 170, 0.08); border: 1px solid rgba(0, 212, 170, 0.3); border-radius: var(--radius-md); padding: 14px 20px; margin-bottom: 20px; max-width: 420px; width: 100%; text-align: center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-        .music-status .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
-        .music-status .song { font-size: 17px; font-weight: 600; color: var(--primary-green); }
-        .file-input { background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-md); padding: 18px; width: 100%; max-width: 420px; margin-bottom: 20px; border: 1px solid rgba(0, 212, 170, 0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-        .file-input h4 { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; }
-        .file-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 14px 12px; background: rgba(0, 0, 0, 0.25); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
-        .file-row:active { background: rgba(0, 212, 170, 0.12); border-color: var(--primary-green); transform: scale(0.98); }
-        .file-info { flex: 1; pointer-events: none; }
-        .file-name { color: var(--text-secondary); font-size: 14px; font-weight: 500; }
-        .file-name.loaded { color: var(--primary-green); }
-        .file-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-        .config-btn { padding: 8px 16px; background: rgba(0, 168, 232, 0.2); border: 1px solid var(--primary-blue); border-radius: var(--radius-lg); color: var(--primary-blue); cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; transition: all 0.2s; }
-        .config-btn:active { background: rgba(0, 168, 232, 0.4); transform: scale(0.95); }
-        .progress-ring { width: 160px; height: 160px; position: relative; margin: 0 auto 20px; filter: drop-shadow(0 0 15px rgba(0, 212, 170, 0.2)); }
-        .progress-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-        .progress-ring circle { fill: none; stroke-width: 8; }
-        .progress-ring .bg { stroke: rgba(255, 255, 255, 0.08); }
-        .progress-ring .progress { stroke: url(#gradient); stroke-linecap: round; transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1); filter: drop-shadow(0 0 6px rgba(0, 212, 170, 0.4)); }
-        .time-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-        .time-display .current { font-size: 38px; font-weight: 700; color: var(--primary-green); line-height: 1; }
-        .time-display .total { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-        .stage-info { background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-md); padding: 18px; width: 100%; max-width: 420px; margin-bottom: 20px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 0 20px rgba(0, 212, 170, 0.1); }
-        .stage-number { display: inline-block; background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); color: #1a1a2e; padding: 5px 16px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 700; letter-spacing: 1px; }
-        .stage-title { font-size: 22px; margin: 10px 0 6px; font-weight: 700; letter-spacing: 1px; }
-        .stage-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
-        .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
-        .btn { padding: 12px 28px; border-radius: var(--radius-lg); border: none; font-size: 15px; font-weight: 600; cursor: pointer; background: rgba(255, 255, 255, 0.06); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; letter-spacing: 0.5px; -webkit-tap-highlight-color: transparent; }
-        .btn:active { transform: scale(0.95); filter: brightness(1.2); }
-        .btn-primary { background: linear-gradient(135deg, var(--primary-green), var(--primary-blue)); color: #121212; border: none; box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3); font-weight: 700; }
-        .btn-primary:active { box-shadow: 0 2px 8px rgba(0, 212, 170, 0.5); }
-        .btn-danger { background: rgba(255, 107, 107, 0.15); border-color: var(--danger); color: var(--danger); }
-        .btn-warning { background: rgba(255, 217, 61, 0.15); border-color: var(--warning); color: var(--warning); }
-        .track-progress-container { width: 100%; max-width: 420px; margin: 8px 0 18px; }
-        .track-progress-bar { height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 6px; overflow: hidden; cursor: pointer; }
-        .track-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary-green), var(--primary-blue)); border-radius: 6px; transition: width 0.1s linear; pointer-events: none; }
-        .track-progress-time { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
-        .playlist { width: 100%; max-width: 420px; margin-bottom: 16px; }
-        .playlist h3 { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 500; }
-        .track { display: flex; align-items: center; padding: 12px 14px 12px 8px; border-radius: var(--radius-sm); margin-bottom: 6px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer; transition: all 0.2s; }
-        .track:active { background: rgba(0, 212, 170, 0.1); border-color: rgba(0, 212, 170, 0.3); }
-        .track.active { background: rgba(0, 212, 170, 0.15); border-color: var(--primary-green); box-shadow: 0 0 15px rgba(0, 212, 170, 0.1); }
-        .drag-handle { padding: 6px 4px; margin-right: 4px; cursor: grab; color: var(--text-muted); font-size: 20px; user-select: none; opacity: 0.5; }
-        .drag-handle:active { cursor: grabbing; }
-        .track-number { width: 26px; height: 26px; border-radius: 26px; background: rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; margin-right: 10px; flex-shrink: 0; }
-        .track.active .track-number { background: var(--primary-green); color: #121212; font-weight: 700; }
-        .track-info { flex: 1; min-width: 0; }
-        .track-info div { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .track-info small { font-size: 11px; color: var(--text-muted); }
-        .stats-section { background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-md); padding: 20px; width: 100%; max-width: 420px; margin-top: 12px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .stats-section h4 { font-size: 14px; margin-bottom: 14px; color: var(--text-secondary); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
-        .stat-card { background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-sm); padding: 16px 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
-        .stat-value { font-size: 32px; font-weight: 700; color: var(--primary-green); line-height: 1; }
-        .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
-        .chart-container { height: 180px; position: relative; }
-        .chart-tabs { display: flex; gap: 8px; margin-bottom: 16px; justify-content: center; }
-        .chart-tab { padding: 7px 20px; background: rgba(255, 255, 255, 0.04); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.2s; font-size: 13px; border: 1px solid transparent; }
-        .chart-tab.active { background: rgba(0, 212, 170, 0.2); border-color: var(--primary-green); color: var(--primary-green); font-weight: 600; }
-        .toggle-switch { position: relative; width: 48px; height: 28px; background: rgba(255, 255, 255, 0.2); border-radius: 28px; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
-        .toggle-switch.active { background: var(--primary-green); }
-        .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
-        .toggle-switch.active::after { transform: translateX(20px); }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: fadeIn 0.2s ease; }
-        .modal-overlay.show { display: flex; }
-        .modal-content { background: linear-gradient(135deg, #1e1e3a, #16213e); border-radius: var(--radius-md); padding: 24px; width: 92%; max-width: 420px; max-height: 85vh; max-height: 85dvh; overflow-y: auto; border: 1px solid var(--primary-green); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--primary-green); }
-        .config-section { margin-bottom: 22px; }
-        .config-section h4 { color: var(--primary-green); margin-bottom: 14px; font-size: 15px; font-weight: 600; }
-        .param-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-        .param-row label { width: 60px; font-size: 13px; color: var(--text-secondary); flex-shrink: 0; }
-        .param-row input { flex: 1; padding: 11px 14px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; border-radius: var(--radius-sm); font-size: 15px; outline: none; transition: border-color 0.2s; }
-        .param-row input:focus { border-color: var(--primary-green); }
-        .hint-text { font-size: 11px; color: var(--text-muted); margin-left: 72px; margin-top: -8px; margin-bottom: 10px; }
-        .music-source-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(255, 255, 255, 0.05); border-radius: var(--radius-sm); margin-bottom: 8px; }
-        .delete-source-btn { width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(255, 107, 107, 0.2); color: var(--danger); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .music-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-        .small-btn { padding: 9px 14px; background: rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; cursor: pointer; font-size: 12px; transition: all 0.2s; font-weight: 500; }
-        .small-btn:active { transform: scale(0.95); }
-        .priority-badge { display: inline-block; font-size: 10px; padding: 3px 10px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
-        .badge-local { background: rgba(0, 212, 170, 0.25); color: var(--primary-green); }
-        .badge-online { background: rgba(0, 168, 232, 0.25); color: var(--primary-blue); }
-        .advanced-toggle { margin-top: 14px; color: var(--text-muted); font-size: 13px; cursor: pointer; padding: 8px 0; transition: color 0.2s; }
-        .advanced-toggle:hover { color: var(--text-secondary); }
-        .advanced-fields { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
-        .sortable-ghost { opacity: 0.4; background: rgba(0, 212, 170, 0.2); border: 2px dashed var(--primary-green) !important; }
-        .sortable-chosen { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); }
-        .link-hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
-        .mini-player { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(22, 33, 62, 0.98); border-top: 2px solid rgba(0, 212, 170, 0.5); padding: 10px 18px env(safe-area-inset-bottom, 10px); display: flex; align-items: center; gap: 14px; z-index: 1500; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3); }
-        .mini-player-info { flex: 1; min-width: 0; }
-        .mini-player-title { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .mini-player-subtitle { font-size: 11px; color: var(--text-muted); }
-        .mini-player-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        .mini-btn { width: 42px; height: 42px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; background: rgba(255, 255, 255, 0.12); color: #fff; transition: all 0.2s; }
-        .mini-btn:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.2); }
-        .mini-btn-play { width: 50px; height: 50px; background: linear-gradient(135deg, var(--primary-green), var(--primary-blue)); color: #121212; font-size: 22px; box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3); }
-        #pwaInstallHint { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: linear-gradient(135deg, var(--primary-green), var(--primary-blue)); color: #121212; border-radius: var(--radius-lg); padding: 12px 24px; font-size: 14px; font-weight: 700; z-index: 999; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; box-shadow: 0 8px 30px rgba(0, 212, 170, 0.4); white-space: nowrap; }
-        #pwaInstallHint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .settings-guide-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.92); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: fadeIn 0.2s ease; }
-        @media (max-width: 360px) { body { padding: 12px 8px 90px; } .btn { padding: 10px 20px; font-size: 14px; } }
+        .header h1 { font-size: clamp(22px, 5vw, 28px); background: linear-gradient(90deg, var(--green), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+        .header .sub { font-size: 12px; color: var(--text3); letter-spacing: 2px; }
+        .toast-bar { position: fixed; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; pointer-events: none; }
+        .t { background: rgba(26,26,46,0.95); border-radius: var(--r3); padding: 8px 18px; font-size: 12px; opacity: 0; transform: translateX(120%); transition: all 0.3s; backdrop-filter: blur(20px); pointer-events: auto; white-space: nowrap; }
+        .t.s { border: 1px solid var(--green); color: var(--green); }
+        .t.w { border: 1px solid var(--yellow); color: var(--yellow); cursor: pointer; }
+        .t.e { border: 1px solid var(--red); color: var(--red); }
+        .t.on { opacity: 1; transform: translateX(0); }
+        .copy-t { position: fixed; bottom: 30%; left: 50%; transform: translate(-50%, 50%) scale(0.8); color: #121212; background: var(--green); border-radius: var(--r3); padding: 12px 24px; font-size: 14px; font-weight: 600; z-index: 1001; opacity: 0; pointer-events: none; transition: all 0.3s; }
+        .copy-t.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        .hint { background: rgba(0,168,232,0.15); border: 1.5px solid var(--blue); border-radius: var(--r2); padding: 14px 18px; margin-bottom: 12px; text-align: center; font-size: 13px; color: var(--blue); cursor: pointer; max-width: 420px; width: 100%; display: none; backdrop-filter: blur(10px); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+        .hint.on { display: block; }
+        .diag { background: rgba(0,0,0,0.5); border: 1px solid var(--yellow); border-radius: var(--r2); padding: 16px; margin-bottom: 12px; max-width: 420px; width: 100%; display: none; backdrop-filter: blur(10px); }
+        .diag.on { display: block; }
+        .diag h4 { color: var(--yellow); margin-bottom: 12px; font-size: 14px; }
+        .dr { display: flex; justify-content: space-between; padding: 7px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .dl { color: var(--text3); } .dv { color: var(--text2); font-weight: 500; }
+        .dv.g { color: var(--ok); } .dv.y { color: var(--yellow); } .dv.r { color: var(--red); }
+        .mu { background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.3); border-radius: var(--r2); padding: 14px 20px; margin-bottom: 20px; max-width: 420px; width: 100%; text-align: center; backdrop-filter: blur(10px); }
+        .mu .l { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+        .mu .s { font-size: 17px; font-weight: 600; color: var(--green); }
+        .fi { background: rgba(255,255,255,0.03); border-radius: var(--r2); padding: 18px; width: 100%; max-width: 420px; margin-bottom: 20px; border: 1px solid rgba(0,212,170,0.2); backdrop-filter: blur(10px); }
+        .fi h4 { font-size: 13px; color: var(--text2); margin-bottom: 12px; }
+        .fr { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 14px 12px; background: rgba(0,0,0,0.25); border-radius: var(--r); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .fr:active { background: rgba(0,212,170,0.12); border-color: var(--green); }
+        .fi2 { flex: 1; pointer-events: none; }
+        .fn { color: var(--text2); font-size: 14px; } .fn.ld { color: var(--green); }
+        .fm { font-size: 11px; color: var(--text3); margin-top: 4px; }
+        .cb { padding: 8px 16px; background: rgba(0,168,232,0.2); border: 1px solid var(--blue); border-radius: var(--r3); color: var(--blue); cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .ring { width: 160px; height: 160px; position: relative; margin: 0 auto 20px; filter: drop-shadow(0 0 15px rgba(0,212,170,0.2)); }
+        .ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+        .ring circle { fill: none; stroke-width: 8; }
+        .ring .bg { stroke: rgba(255,255,255,0.08); }
+        .ring .p { stroke: url(#g); stroke-linecap: round; transition: stroke-dashoffset 0.5s; }
+        .td { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+        .td .c { font-size: 38px; font-weight: 700; color: var(--green); }
+        .td .t2 { font-size: 12px; color: var(--text3); }
+        .si { background: rgba(255,255,255,0.03); border-radius: var(--r2); padding: 18px; width: 100%; max-width: 420px; margin-bottom: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .sn { display: inline-block; background: linear-gradient(90deg,var(--green),var(--blue)); color: #1a1a2e; padding: 5px 16px; border-radius: var(--r3); font-size: 12px; font-weight: 700; }
+        .st { font-size: 22px; margin: 10px 0 6px; font-weight: 700; }
+        .sd { font-size: 13px; color: var(--text2); line-height: 1.6; }
+        .ctls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .btn { padding: 12px 28px; border-radius: var(--r3); border: none; font-size: 15px; font-weight: 600; cursor: pointer; background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-p { background: linear-gradient(135deg,var(--green),var(--blue)); color: #121212; border: none; box-shadow: 0 4px 16px rgba(0,212,170,0.3); font-weight: 700; }
+        .btn-d { background: rgba(255,107,107,0.15); border-color: var(--red); color: var(--red); }
+        .btn-y { background: rgba(255,217,61,0.15); border-color: var(--yellow); color: var(--yellow); }
+        .tpc { width: 100%; max-width: 420px; margin: 8px 0 18px; }
+        .tpb { height: 6px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; cursor: pointer; }
+        .tpf { height: 100%; width: 0%; background: linear-gradient(90deg,var(--green),var(--blue)); border-radius: 6px; transition: width 0.1s; pointer-events: none; }
+        .tpt { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-top: 6px; }
+        .pl { width: 100%; max-width: 420px; margin-bottom: 16px; }
+        .pl h3 { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+        .tr { display: flex; align-items: center; padding: 12px 14px 12px 8px; border-radius: var(--r); margin-bottom: 6px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; }
+        .tr:active { background: rgba(0,212,170,0.1); }
+        .tr.act { background: rgba(0,212,170,0.15); border-color: var(--green); box-shadow: 0 0 15px rgba(0,212,170,0.1); }
+        .dh { padding: 6px 4px; margin-right: 4px; cursor: grab; color: var(--text3); font-size: 20px; opacity: 0.5; }
+        .tn { width: 26px; height: 26px; border-radius: 26px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; margin-right: 10px; flex-shrink: 0; }
+        .tr.act .tn { background: var(--green); color: #121212; }
+        .ti { flex: 1; min-width: 0; } .ti div { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ti small { font-size: 11px; color: var(--text3); }
+        .stats { background: rgba(255,255,255,0.03); border-radius: var(--r2); padding: 20px; width: 100%; max-width: 420px; margin-top: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .stats h4 { font-size: 14px; margin-bottom: 14px; color: var(--text2); }
+        .sg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+        .sc { background: rgba(0,0,0,0.3); border-radius: var(--r); padding: 16px 10px; text-align: center; }
+        .sv { font-size: 32px; font-weight: 700; color: var(--green); }
+        .sl { font-size: 11px; color: var(--text3); margin-top: 6px; }
+        .ch { height: 180px; }
+        .ctt { display: flex; gap: 8px; margin-bottom: 16px; justify-content: center; }
+        .ctb { padding: 7px 20px; background: rgba(255,255,255,0.04); border-radius: var(--r3); cursor: pointer; font-size: 13px; border: 1px solid transparent; }
+        .ctb.act { background: rgba(0,212,170,0.2); border-color: var(--green); color: var(--green); font-weight: 600; }
+        .ts { position: relative; width: 48px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 28px; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
+        .ts.act { background: var(--green); }
+        .ts::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; transition: transform 0.3s; }
+        .ts.act::after { transform: translateX(20px); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(8px); }
+        .modal.on { display: flex; }
+        .mc { background: linear-gradient(135deg,#1e1e3a,#16213e); border-radius: var(--r2); padding: 24px; width: 92%; max-width: 420px; max-height: 85dvh; overflow-y: auto; border: 1px solid var(--green); }
+        .mt { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--green); }
+        .cs { margin-bottom: 22px; } .cs h4 { color: var(--green); margin-bottom: 14px; font-size: 15px; font-weight: 600; }
+        .pr { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .pr label { width: 60px; font-size: 13px; color: var(--text2); flex-shrink: 0; }
+        .pr input { flex: 1; padding: 11px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: var(--r); font-size: 15px; outline: none; }
+        .pr input:focus { border-color: var(--green); }
+        .ht { font-size: 11px; color: var(--text3); margin-left: 72px; margin-top: -8px; margin-bottom: 10px; }
+        .msi { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(255,255,255,0.05); border-radius: var(--r); margin-bottom: 8px; }
+        .del { width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(255,107,107,0.2); color: var(--red); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ma { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .smb { padding: 9px 14px; background: rgba(255,255,255,0.08); border-radius: var(--r3); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; font-size: 12px; }
+        .smb:active { transform: scale(0.95); }
+        .badge { display: inline-block; font-size: 10px; padding: 3px 10px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+        .b-l { background: rgba(0,212,170,0.25); color: var(--green); }
+        .b-o { background: rgba(0,168,232,0.25); color: var(--blue); }
+        .adv-t { margin-top: 14px; color: var(--text3); font-size: 13px; cursor: pointer; padding: 8px 0; }
+        .adv-f { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .mod-a { display: flex; gap: 12px; margin-top: 24px; }
+        .s-g { opacity: 0.4; background: rgba(0,212,170,0.2); border: 2px dashed var(--green) !important; }
+        .lh { font-size: 11px; color: var(--text3); margin-top: 8px; }
+        .mp { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(22,33,62,0.98); border-top: 2px solid rgba(0,212,170,0.5); padding: 10px 18px env(safe-area-inset-bottom,10px); display: flex; align-items: center; gap: 14px; z-index: 1500; backdrop-filter: blur(20px); }
+        .mpi { flex: 1; min-width: 0; }
+        .mpt { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mps { font-size: 11px; color: var(--text3); }
+        .mpc { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .mb { width: 42px; height: 42px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; background: rgba(255,255,255,0.12); color: #fff; }
+        .mb:active { transform: scale(0.9); }
+        .mbp { width: 50px; height: 50px; background: var(--green); color: #121212; font-size: 22px; }
+        #pih { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--green); color: #121212; border-radius: var(--r3); padding: 12px 24px; font-size: 14px; font-weight: 700; z-index: 999; opacity: 0; transition: all 0.3s; cursor: pointer; }
+        #pih.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .guide-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
     </style>
 </head>
 <body>
-    <div id="pwaInstallHint">📲 点击添加到桌面</div>
-    
-    <div class="status-bar">
-        <div class="toast save" id="saveStatus">✓ 已保存</div>
-        <div class="toast system" id="systemToast" onclick="this.classList.remove('show')">📱</div>
-        <div class="toast error" id="errorToast">⚠ 错误</div>
+    <div id="pih">📲 点击添加到桌面</div>
+    <div class="toast-bar">
+        <div class="t s" id="saveStatus">✓ 已保存</div>
+        <div class="t w" id="sysToast" onclick="this.classList.remove('on')">📱</div>
+        <div class="t e" id="errToast">⚠</div>
     </div>
-    <div class="copy-toast" id="copyToast">📋 已复制</div>
+    <div class="copy-t" id="copyToast">📋 已复制</div>
 
-    <div class="lock-screen-hint" id="lockScreenHint" onclick="app.showDiagnostic()">
-        💡 正在播放 · 点击诊断锁屏控制
-    </div>
+    <div class="hint" id="lockHint" onclick="app.showDiag()">💡 正在播放 · 点击诊断</div>
 
-    <div class="diagnostic-panel" id="diagnosticPanel">
+    <div class="diag" id="diagPanel">
         <h4>🔍 锁屏控制诊断</h4>
-        <div class="diag-row"><span class="diag-label">PWA模式</span><span class="diag-value" id="diagPWA">-</span></div>
-        <div class="diag-row"><span class="diag-label">通知权限</span><span class="diag-value" id="diagNotif">-</span></div>
-        <div class="diag-row"><span class="diag-label">媒体通知状态</span><span class="diag-value" id="diagMediaNotif">-</span></div>
-        <div class="diag-row"><span class="diag-label">MediaSession API</span><span class="diag-value" id="diagMedia">-</span></div>
-        <div class="diag-row"><span class="diag-label">音频上下文</span><span class="diag-value" id="diagAudio">-</span></div>
-        <div class="diag-row"><span class="diag-label">Service Worker</span><span class="diag-value" id="diagSW">-</span></div>
-        <div class="diag-row"><span class="diag-label">播放状态</span><span class="diag-value" id="diagPlaying">-</span></div>
+        <div class="dr"><span class="dl">PWA模式</span><span class="dv" id="dPWA">-</span></div>
+        <div class="dr"><span class="dl">通知权限</span><span class="dv" id="dNotif">-</span></div>
+        <div class="dr"><span class="dl">MediaSession</span><span class="dv" id="dMedia">-</span></div>
+        <div class="dr"><span class="dl">SW状态</span><span class="dv" id="dSW">-</span></div>
+        <div class="dr"><span class="dl">音频状态</span><span class="dv" id="dAudio">-</span></div>
+        <div class="dr"><span class="dl">播放状态</span><span class="dv" id="dPlay">-</span></div>
+        <div class="dr"><span class="dl">通知音</span><span class="dv" id="dSilent">-</span></div>
         <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.showNotifSettingsGuide()">⚙️ 通知设置指南</button>
-            <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.sendTestNotification()">📢 发送测试通知</button>
-            <button class="btn" style="flex:1;min-width:80px;padding:10px;font-size:12px;" onclick="document.getElementById('diagnosticPanel').classList.remove('show')">关闭</button>
+            <button class="btn btn-y" style="flex:1;min-width:90px;padding:10px;font-size:12px;" onclick="app.showGuide()">⚙️ 设置指南</button>
+            <button class="btn btn-y" style="flex:1;min-width:90px;padding:10px;font-size:12px;" onclick="app.testNotif()">📢 测试通知</button>
+            <button class="btn" style="flex:1;min-width:70px;padding:10px;font-size:12px;" onclick="document.getElementById('diagPanel').classList.remove('on')">关闭</button>
         </div>
     </div>
 
-    <svg width="0" height="0" aria-hidden="true">
-        <defs>
-            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#00d4aa"/>
-                <stop offset="100%" stop-color="#00a8e8"/>
-            </linearGradient>
-        </defs>
-    </svg>
+    <svg width="0" height="0"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00d4aa"/><stop offset="100%" stop-color="#00a8e8"/></linearGradient></defs></svg>
 
-    <div class="header">
-        <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏控制 · PWA离线可用</p>
-    </div>
-
-    <div class="music-status">
-        <div class="label">当前阶段</div>
-        <div class="song" id="currentMode">准备开始</div>
-    </div>
-
-    <div class="file-input">
-        <h4>🎵 训练曲目 · 点击行复制 | 点击「配置」调整</h4>
-        <div id="fileRowsContainer"></div>
-    </div>
-
-    <div class="progress-ring">
-        <svg viewBox="0 0 160 160" width="160" height="160">
-            <circle class="bg" cx="80" cy="80" r="72"></circle>
-            <circle class="progress" cx="80" cy="80" r="72" stroke-dasharray="452.39" stroke-dashoffset="452.39"></circle>
-        </svg>
-        <div class="time-display">
-            <div class="current" id="currentTime">00:00</div>
-            <div class="total" id="totalTimeLabel">/ 30:00</div>
-        </div>
-    </div>
-
-    <div class="stage-info" id="stageInfo">
-        <span class="stage-number" id="stageNumber">阶段 1/5</span>
-        <div class="stage-title" id="stageTitle">坐立战马</div>
-        <div class="stage-detail" id="stageDetail"></div>
-    </div>
-
-    <div class="controls">
-        <button class="btn btn-primary" id="playBtn">▶ 开始训练</button>
-        <button class="btn" id="resetBtn">↻ 重置</button>
-        <button class="btn" id="exportBtn">⬇ 导出</button>
-    </div>
-
-    <div class="track-progress-container">
-        <div class="track-progress-bar" id="trackProgressBar">
-            <div class="track-progress-fill" id="trackProgressFill" style="width:0%"></div>
-        </div>
-        <div class="track-progress-time">
-            <span id="trackCurrentTime">00:00</span>
-            <span id="trackDuration">00:00</span>
-        </div>
-    </div>
-
-    <div class="playlist">
-        <h3>📋 训练曲目 · 点击切换 · 拖拽排序</h3>
-        <div id="trackList"></div>
-    </div>
-
-    <div class="stats-section">
-        <h4>📊 训练统计</h4>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">完成次数</div></div>
-            <div class="stat-card"><div class="stat-value" id="totalMinutes">0</div><div class="stat-label">总分钟</div></div>
-            <div class="stat-card"><div class="stat-value" id="currentStreak">0</div><div class="stat-label">连续天数</div></div>
-            <div class="stat-card"><div class="stat-value" id="lastTraining">-</div><div class="stat-label">上次</div></div>
-        </div>
-        <div class="chart-tabs">
-            <div class="chart-tab active" data-type="weekly">本周</div>
-            <div class="chart-tab" data-type="monthly">本月</div>
-            <div class="chart-tab" data-type="yearly">全年</div>
-        </div>
-        <div class="chart-container"><canvas id="trainingChart"></canvas></div>
-    </div>
-
-    <div style="background:rgba(255,255,255,0.03);border-radius:20px;padding:18px;width:100%;max-width:420px;margin:16px 0 100px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.05);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <div class="toggle-switch active" id="autoSaveToggle"></div>
-                <span style="font-size:14px;">自动保存</span>
-            </div>
-        </div>
-        <div style="display:flex;gap:10px;">
-            <button class="btn" id="importBtn" style="padding:10px 18px;font-size:13px;flex:1;">📂 导入</button>
-            <button class="btn btn-danger" id="clearBtn" style="padding:10px 18px;font-size:13px;flex:1;">🗑️ 清除</button>
-        </div>
-    </div>
-
+    <div class="header"><h1>🧠 神经重塑训练</h1><p class="sub">锁屏控制 · PWA离线可用</p></div>
+    <div class="mu"><div class="l">当前阶段</div><div class="s" id="curMode">准备开始</div></div>
+    <div class="fi"><h4>🎵 训练曲目 · 点击行复制 | 点击「配置」调整</h4><div id="rows"></div></div>
+    <div class="ring"><svg viewBox="0 0 160 160"><circle class="bg" cx="80" cy="80" r="72"></circle><circle class="p" cx="80" cy="80" r="72" stroke-dasharray="452.39" stroke-dashoffset="452.39"></circle></svg><div class="td"><div class="c" id="curTime">00:00</div><div class="t2" id="totalLabel">/ 30:00</div></div></div>
+    <div class="si"><span class="sn" id="stageNum">阶段 1/5</span><div class="st" id="stageTitle">坐立战马</div><div class="sd" id="stageDetail"></div></div>
+    <div class="ctls"><button class="btn btn-p" id="playBtn">▶ 开始训练</button><button class="btn" id="resetBtn">↻ 重置</button><button class="btn" id="exportBtn">⬇ 导出</button></div>
+    <div class="tpc"><div class="tpb" id="trackBar"><div class="tpf" id="trackFill" style="width:0%"></div></div><div class="tpt"><span id="trackCur">00:00</span><span id="trackDur">00:00</span></div></div>
+    <div class="pl"><h3>📋 训练曲目 · 点击切换 · 拖拽排序</h3><div id="trackList"></div></div>
+    <div class="stats"><h4>📊 训练统计</h4><div class="sg"><div class="sc"><div class="sv" id="totSess">0</div><div class="sl">完成次数</div></div><div class="sc"><div class="sv" id="totMin">0</div><div class="sl">总分钟</div></div><div class="sc"><div class="sv" id="streak">0</div><div class="sl">连续天数</div></div><div class="sc"><div class="sv" id="lastTr">-</div><div class="sl">上次</div></div></div><div class="ctt"><div class="ctb act" data-type="weekly">本周</div><div class="ctb" data-type="monthly">本月</div><div class="ctb" data-type="yearly">全年</div></div><div class="ch"><canvas id="chart"></canvas></div></div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:20px;padding:18px;width:100%;max-width:420px;margin:16px 0 100px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.05);"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="display:flex;align-items:center;gap:12px;"><div class="ts act" id="autoToggle"></div><span>自动保存</span></div></div><div style="display:flex;gap:10px;"><button class="btn" id="importBtn" style="padding:10px 18px;font-size:13px;flex:1;">📂 导入</button><button class="btn btn-d" id="clearBtn" style="padding:10px 18px;font-size:13px;flex:1;">🗑️ 清除</button></div></div>
     <input type="file" id="importFile" accept=".json" style="display:none">
-
-    <div class="mini-player" id="miniPlayer">
-        <div class="mini-player-info">
-            <div class="mini-player-title" id="miniTitle">坐立战马</div>
-            <div class="mini-player-subtitle" id="miniSubtitle">准备开始</div>
-        </div>
-        <div class="mini-player-controls">
-            <button class="mini-btn" id="prevBtn" title="上一首" aria-label="上一首">⏮</button>
-            <button class="mini-btn mini-btn-play" id="miniPlayBtn" aria-label="播放/暂停">▶</button>
-            <button class="mini-btn" id="nextBtn" title="下一首" aria-label="下一首">⏭</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="configModal">
-        <div class="modal-content">
-            <div class="modal-title" id="configModalTitle">⚙️ 配置阶段</div>
-            <div class="config-section">
-                <h4>📋 核心参数</h4>
-                <div class="param-row"><label>名称</label><input type="text" id="cfg_name" placeholder="阶段名称"></div>
-                <div class="param-row"><label>BPM</label><input type="number" id="cfg_bpm" min="30" max="200" placeholder="60"></div>
-                <div class="param-row"><label>时长(秒)</label><input type="number" id="cfg_duration" min="0" max="7200" step="1" placeholder="300"></div>
-                <div class="hint-text">💡 设为 0 则使用音频实际时长</div>
-            </div>
-            <div class="config-section">
-                <h4>🎧 音乐来源</h4>
-                <div class="music-source-item" id="localFileItem" style="display:none;">
-                    <span>📁</span>
-                    <div style="flex:1;min-width:0;">
-                        <div id="localFileName" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
-                        <div style="font-size:10px;color:var(--text-muted)" id="localFileSize">—</div>
-                    </div>
-                    <span class="priority-badge badge-local">优先</span>
-                    <button class="delete-source-btn" id="btnDeleteLocal" aria-label="删除本地文件">✕</button>
-                </div>
-                <div class="music-source-item" id="onlineUrlItem" style="display:none;">
-                    <span>🌐</span>
-                    <div style="flex:1;min-width:0;">
-                        <div id="onlineUrlName" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
-                        <div style="font-size:10px;color:var(--text-muted)" id="onlineUrlDetail">—</div>
-                    </div>
-                    <span class="priority-badge badge-online">备用</span>
-                    <button class="delete-source-btn" id="btnDeleteOnline" aria-label="删除在线链接">✕</button>
-                </div>
-                <div class="music-source-item" id="noMusicItem" style="background:transparent;border:1px dashed rgba(255,255,255,0.15);">
-                    <span>🎵</span>
-                    <div style="flex:1"><div style="color:var(--text-muted);">未设置音乐 · 将使用节拍器</div></div>
-                </div>
-                <div class="music-actions">
-                    <button class="small-btn" id="btnLocalFile" style="border:1px solid var(--primary-green);background:rgba(0,212,170,0.15);">📁 本地文件</button>
-                    <button class="small-btn" id="btnOnlineLink">🔗 在线链接</button>
-                </div>
-                <div class="link-hint">💡 本地文件优先，不可用时自动使用在线链接</div>
-                <input type="file" id="localFileInput" accept="audio/*" style="display:none">
-            </div>
-            <div class="advanced-toggle" id="advancedToggle">▼ 高级选项 (动作/想象)</div>
-            <div class="advanced-fields" id="advancedFields" style="display:none;">
-                <div class="param-row"><label>动作</label><input type="text" id="cfg_action" placeholder="训练动作描述"></div>
-                <div class="param-row"><label>想象</label><input type="text" id="cfg_imagine" placeholder="想象引导描述"></div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-primary" id="btnSaveConfig" style="flex:1;">💾 保存</button>
-                <button class="btn" id="btnCancelConfig" style="flex:1;">取消</button>
-            </div>
-        </div>
-    </div>
+    <div class="mp"><div class="mpi"><div class="mpt" id="miniTitle">坐立战马</div><div class="mps" id="miniSub">准备开始</div></div><div class="mpc"><button class="mb" id="prevBtn">⏮</button><button class="mb mbp" id="miniPlay">▶</button><button class="mb" id="nextBtn">⏭</button></div></div>
+    <div class="modal" id="cfgModal"><div class="mc"><div class="mt" id="cfgTitle">⚙️ 配置阶段</div><div class="cs"><h4>📋 核心参数</h4><div class="pr"><label>名称</label><input type="text" id="cfg_name"></div><div class="pr"><label>BPM</label><input type="number" id="cfg_bpm" min="30" max="200"></div><div class="pr"><label>时长(秒)</label><input type="number" id="cfg_dur" min="0" max="7200" step="1"></div><div class="ht">💡 设为 0 则使用音频实际时长</div></div><div class="cs"><h4>🎧 音乐来源</h4><div class="msi" id="localItem" style="display:none;"><span>📁</span><div style="flex:1;min-width:0;"><div id="localName" style="font-size:13px;">—</div><div style="font-size:10px;color:var(--text3)" id="localSize">—</div></div><span class="badge b-l">优先</span><button class="del" id="delLocal">✕</button></div><div class="msi" id="onlineItem" style="display:none;"><span>🌐</span><div style="flex:1;min-width:0;"><div id="onlineName" style="font-size:13px;">—</div><div style="font-size:10px;color:var(--text3)" id="onlineDetail">—</div></div><span class="badge b-o">备用</span><button class="del" id="delOnline">✕</button></div><div class="msi" id="noItem" style="background:transparent;border:1px dashed rgba(255,255,255,0.15);"><span>🎵</span><div style="flex:1"><div style="color:var(--text3);">未设置音乐 · 将使用节拍器</div></div></div><div class="ma"><button class="smb" id="btnFile" style="border:1px solid var(--green);background:rgba(0,212,170,0.15);">📁 本地文件</button><button class="smb" id="btnLink">🔗 在线链接</button></div><div class="lh">💡 本地文件优先，不可用时自动使用在线链接</div><input type="file" id="fileInput" accept="audio/*" style="display:none"></div><div class="adv-t" id="advToggle">▼ 高级选项</div><div class="adv-f" id="advFields" style="display:none;"><div class="pr"><label>动作</label><input type="text" id="cfg_act"></div><div class="pr"><label>想象</label><input type="text" id="cfg_img"></div></div><div class="mod-a"><button class="btn btn-p" id="btnSave" style="flex:1;">💾 保存</button><button class="btn" id="btnCancel" style="flex:1;">取消</button></div></div></div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <script>
-    (function() {
+    (function(){
         'use strict';
+        const V='5.0.0-final';
+        const $=id=>document.getElementById(id);
+        const DEF=[{name:"坐立战马",bpm:72,duration:300,action:"坐位平衡，双手扶膝",imagine:"想象骑战马，脊柱逐节直立"},{name:"飞檐走壁",bpm:108,duration:420,action:"站立位，重心左右移",imagine:"想象飞檐走壁，足踝灵活调整"},{name:"行云流水",bpm:66,duration:360,action:"慢步行走，摆臂自然",imagine:"想象行云流水，关节无阻力滑动"},{name:"凌波微步",bpm:82,duration:360,action:"加快速度，小步跑",imagine:"想象凌波微步，轻触地面即起"},{name:"脑体合一",bpm:60,duration:360,action:"站立深呼吸，闭眼",imagine:"想象脑体合一，气沉丹田"}];
+        let stg=structuredClone(DEF),cs=0,ip=false,tt=0,ac=null,ca=null,asv=true,ch=null,cht='weekly',am=[null,null,null,null,null],stats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}},ei=0,tf=null,tu='',td2=0,stm=0,sr=null,mi=null,mpi=null,ml=null,mst=0,bo=null,bg2=null,wl=null,ec=0,ih=false,dp=null;
 
-        const APP_VERSION = '5.0.0';
-        const DEBUG = true;
-        const STAGES_KEY = 'nrc_v5';
-        const STATE_KEY = 'nrd_v5';
-        const AUTO_SAVE_KEY = 'nra_v5';
-        const STATS_KEY = 'nrs_v5';
-        const AUDIO_DB = 'NADB_v5';
-        const AUDIO_STORE = 'audioFiles';
-        const MEDIA_TAG = 'neuro-media-v5';
+        function log(...a){console.log('[NeuroApp v'+V+']',...a);}
+        function ft(s){if(!isFinite(s)||isNaN(s))s=0;const m=Math.floor(Math.abs(s)/60),sec=Math.floor(Math.abs(s)%60);return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');}
+        function ttd(){return stg.reduce((s,st)=>s+(st.duration||0),0);}
+        function gst(i){let t=0;for(let j=0;j<i;j++)t+=stg[j]?.duration||0;return t;}
+        function st2(id,m,d=3000){const e=$(id);if(!e)return;e.textContent=m;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),d);}
+        function se(m){ec++;console.error('[Error]',m);st2('errToast','⚠ '+m,4000);if(ec>5){ra();ec=0;}}
+        function gi(){const c=document.createElement('canvas');c.width=192;c.height=192;const x=c.getContext('2d');x.fillStyle='#00d4aa';x.beginPath();x.roundRect(0,0,192,192,32);x.fill();x.fillStyle='#1a1a2e';x.font='bold 90px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🧠',96,96);return c.toDataURL('image/png');}
 
-        const DEFAULT_STAGES = [
-            { name: "坐立战马", bpm: 72, duration: 300, action: "坐位平衡，双手扶膝", imagine: "想象骑战马，脊柱逐节直立" },
-            { name: "飞檐走壁", bpm: 108, duration: 420, action: "站立位，重心左右移", imagine: "想象飞檐走壁，足踝灵活调整" },
-            { name: "行云流水", bpm: 66, duration: 360, action: "慢步行走，摆臂自然", imagine: "想象行云流水，关节无阻力滑动" },
-            { name: "凌波微步", bpm: 82, duration: 360, action: "加快速度，小步跑", imagine: "想象凌波微步，轻触地面即起" },
-            { name: "脑体合一", bpm: 60, duration: 360, action: "站立深呼吸，闭眼", imagine: "想象脑体合一，气沉丹田" }
-        ];
+        // IndexedDB
+        function odb(){return new Promise((rv,rj)=>{const r=indexedDB.open('NADB_v20',1);r.onerror=()=>rj(r.error);r.onsuccess=()=>rv(r.result);r.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains('af'))e.target.result.createObjectStore('af',{keyPath:'id'});};});}
+        async function sadb(id,f,n){const db=await odb();return new Promise((rv,rj)=>{const rd=new FileReader();rd.onload=()=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').put({id,name:n||f.name,type:f.type,size:f.size,data:rd.result,ts:Date.now()});tx.oncomplete=()=>rv();tx.onerror=()=>rj(tx.error);};rd.onerror=()=>rj(rd.error);rd.readAsArrayBuffer(f);});}
+        async function ladb(id){try{const db=await odb();return new Promise((rv,rj)=>{const tx=db.transaction(['af'],'readonly');const r=tx.objectStore('af').get(id);r.onsuccess=()=>rv(r.result);r.onerror=()=>rj(r.error);});}catch(e){return null;}}
+        async function dadb(id){try{const db=await odb();return new Promise(r=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').delete(id);tx.oncomplete=()=>r();});}catch(e){}}
+        async function cadb(){try{const db=await odb();return new Promise(r=>{const tx=db.transaction(['af'],'readwrite');tx.objectStore('af').clear();tx.oncomplete=()=>r();});}catch(e){}}
 
-        let stages = structuredClone(DEFAULT_STAGES);
-        let currentStage = 0;
-        let isPlaying = false;
-        let totalTime = 0;
-        let audioContext = null;
-        let currentAudio = null;
-        let autoSave = true;
-        let chart = null;
-        let chartType = 'weekly';
-        let audioMeta = [null, null, null, null, null];
-        let stats = { sessions: [], totalSessions: 0, totalMinutes: 0, currentStreak: 0, lastTrainingDate: null, dailyRecords: {} };
-        let editIdx = 0;
-        let tempFile = null, tempUrl = '', tempDuration = 0;
-        let savedTime = 0;
-        let sortable = null;
-        let metroInterval = null, metroProgress = null, mainLoop = null, metroStart = 0;
-        let bgOsc = null, bgGain = null;
-        let wakeLock = null;
-        let errCount = 0;
-        let isHuawei = false;
-        let deferredPrompt = null;
+        // 音频
+        async function eac(){if(!ac||ac.state==='closed')ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')await ac.resume();return ac;}
+        function saa(){sbg();sm();if(ca){try{ca.pause();if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);ca.src='';}catch(e){}ca=null;}}
+        function sbg(){if(bo){try{bo.stop();}catch(e){}bo=null;}if(bg2){try{bg2.disconnect();}catch(e){}bg2=null;}}
+        function sm(){if(mi){clearInterval(mi);mi=null;}if(mpi){clearInterval(mpi);mpi=null;}}
+        function cai(){sm();if(ml){clearInterval(ml);ml=null;}}
+        async function ra(){saa();cai();if(ac&&ac.state!=='closed'){try{await ac.close();}catch(e){}ac=null;}ca=null;rwl();ec=0;}
+        function gadf(f){return new Promise(rv=>{const a=new Audio();a.preload='metadata';let d=false;const t=setTimeout(()=>{if(!d){d=true;rv(0);}},5000);a.onloadedmetadata=()=>{if(!d){d=true;clearTimeout(t);const dr=Math.round(a.duration);rv(dr>0?dr:0);}};a.onerror=()=>{if(!d){d=true;clearTimeout(t);rv(0);}};a.src=URL.createObjectURL(f);});}
 
-        const $ = id => document.getElementById(id);
-        function log(...a) { if (DEBUG) console.log('[NeuroApp v' + APP_VERSION + ']', ...a); }
-        function fmtTime(s) { if (!isFinite(s) || isNaN(s)) s = 0; const m = Math.floor(Math.abs(s) / 60), sec = Math.floor(Math.abs(s) % 60); return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0'); }
-        function totalDur() { return stages.reduce((s, st) => s + (st.duration || 0), 0); }
-        function stageStart(idx) { let t = 0; for (let i = 0; i < idx; i++) t += stages[i]?.duration || 0; return t; }
-        function showToast(id, msg, dur = 3000) { const el = $(id); if (!el) return; el.textContent = msg; el.classList.add('show'); clearTimeout(el._to); el._to = setTimeout(() => el.classList.remove('show'), dur); }
-        function showError(msg) { errCount++; console.error('[Error]', msg); showToast('errorToast', '⚠ ' + msg, 4000); if (errCount > 5) { resetAudio(); errCount = 0; } }
-        function genIcon() { const c = document.createElement('canvas'); c.width = 192; c.height = 192; const x = c.getContext('2d'); x.fillStyle = '#00d4aa'; x.beginPath(); x.roundRect(0, 0, 192, 192, 32); x.fill(); x.fillStyle = '#1a1a2e'; x.font = 'bold 90px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🧠', 96, 96); return c.toDataURL('image/png'); }
+        function sbm(bpm){sm();const s=stg[cs];const dur=s.duration||300;$('trackDur').textContent=ft(dur);$('trackCur').textContent='00:00';$('trackFill').style.width='0%';mst=performance.now();pc();mi=setInterval(()=>{if(ip)pc();},(60/bpm)*1000);mpi=setInterval(()=>{if(!ip)return;const e=(performance.now()-mst)/1000;const p=Math.min((e/dur)*100,100);$('trackFill').style.width=p+'%';$('trackCur').textContent=ft(e);ump(e,dur);if(e>=dur){sm();ns();}},50);}
+        function pc(){if(!ac||ac.state==='closed')return;try{const o=ac.createOscillator();const g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=1000;const n=ac.currentTime;g.gain.setValueAtTime(0.12,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.05);o.start(n);o.stop(n+0.05);}catch(e){}}
+        async function cbafls(s){sbg();try{const ctx=await eac();bo=ctx.createOscillator();bg2=ctx.createGain();bo.connect(bg2);bg2.connect(ctx.destination);bo.frequency.value=440;bg2.gain.value=0.0001;bo.start();}catch(e){}sbm(s.bpm);$('curMode').textContent=s.name+' · 节拍器';ums(s,null);ump();ush();}
 
-        // ===== IndexedDB =====
-        function openDB() { return new Promise((resolve, reject) => { const r = indexedDB.open(AUDIO_DB, 1); r.onerror = () => reject(r.error); r.onsuccess = () => resolve(r.result); r.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains(AUDIO_STORE)) e.target.result.createObjectStore(AUDIO_STORE, { keyPath: 'id' }); }; }); }
-        async function saveAudio(id, file, name) { const db = await openDB(); return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => { const tx = db.transaction([AUDIO_STORE], 'readwrite'); tx.objectStore(AUDIO_STORE).put({ id, name: name || file.name, type: file.type, size: file.size, data: reader.result, ts: Date.now() }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }; reader.onerror = () => reject(reader.error); reader.readAsArrayBuffer(file); }); }
-        async function loadAudio(id) { try { const db = await openDB(); return new Promise((resolve, reject) => { const tx = db.transaction([AUDIO_STORE], 'readonly'); const r = tx.objectStore(AUDIO_STORE).get(id); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }); } catch (e) { return null; } }
-        async function deleteAudio(id) { try { const db = await openDB(); return new Promise(r => { const tx = db.transaction([AUDIO_STORE], 'readwrite'); tx.objectStore(AUDIO_STORE).delete(id); tx.oncomplete = () => r(); }); } catch (e) {} }
-        async function clearAllAudio() { try { const db = await openDB(); return new Promise(r => { const tx = db.transaction([AUDIO_STORE], 'readwrite'); tx.objectStore(AUDIO_STORE).clear(); tx.oncomplete = () => r(); }); } catch (e) {} }
+        async function psm(idx,rt=0){saa();const m=am[idx],s=stg[idx];const ou=()=>{if(!ca)return;const c=ca.currentTime,d=ca.duration;if(!isFinite(d)||d<=0)return;$('trackFill').style.width=((c/d)*100)+'%';$('trackCur').textContent=ft(c);$('trackDur').textContent=ft(d);ump(c,d);};if(m?.localFile){try{const dbe=await ladb(idx);if(dbe?.data){if(ca){try{ca.pause();}catch(e){}if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);}ca=new Audio(URL.createObjectURL(new Blob([dbe.data],{type:dbe.type||'audio/mpeg'})));ca.loop=true;ca.addEventListener('timeupdate',ou);ca.addEventListener('loadedmetadata',ou);return await pa2(ca,rt,s.name+' · 📁 '+(m.name||dbe.name));}}catch(e){}}
+        if(m?.onlineUrl){try{if(ca){try{ca.pause();}catch(e){}if(ca.src.startsWith('blob:'))URL.revokeObjectURL(ca.src);}ca=new Audio(m.onlineUrl);ca.crossOrigin='anonymous';ca.loop=true;ca.addEventListener('timeupdate',ou);ca.addEventListener('loadedmetadata',ou);return await pa2(ca,rt,s.name+' · 🌐 '+(m.onlineName||'在线链接'));}catch(e){}}
+        await cbafls(s);return false;}
+        async function pa2(a,rt,dt){return new Promise(rv=>{let d=false;const dp2=async()=>{if(d)return;d=true;try{if(rt>0&&isFinite(rt))a.currentTime=rt;if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';await a.play();$('curMode').textContent=dt;ums(stg[cs],am[cs]);ump();ush();if(ih)acm();rv(true);}catch(e){await cbafls(stg[cs]);rv(false);}};dp2();setTimeout(()=>{if(!d){d=true;cbafls(stg[cs]);rv(false);}},5000);});}
 
-        // ===== 音频 =====
-        async function ensureAC() { if (!audioContext || audioContext.state === 'closed') audioContext = new (window.AudioContext || window.webkitAudioContext)(); if (audioContext.state === 'suspended') await audioContext.resume(); return audioContext; }
-        function stopAll() { stopBG(); stopMetro(); if (currentAudio) { try { currentAudio.pause(); if (currentAudio.src.startsWith('blob:')) URL.revokeObjectURL(currentAudio.src); currentAudio.src = ''; } catch (e) {} currentAudio = null; } }
-        function stopBG() { if (bgOsc) { try { bgOsc.stop(); } catch (e) {} bgOsc = null; } if (bgGain) { try { bgGain.disconnect(); } catch (e) {} bgGain = null; } }
-        function stopMetro() { if (metroInterval) { clearInterval(metroInterval); metroInterval = null; } if (metroProgress) { clearInterval(metroProgress); metroProgress = null; } }
-        function clearLoops() { stopMetro(); if (mainLoop) { clearInterval(mainLoop); mainLoop = null; } }
-        async function resetAudio() { stopAll(); clearLoops(); if (audioContext && audioContext.state !== 'closed') { try { await audioContext.close(); } catch (e) {} audioContext = null; } currentAudio = null; releaseWL(); errCount = 0; }
-        function getAudioDur(file) { return new Promise(resolve => { const a = new Audio(); a.preload = 'metadata'; let done = false; const t = setTimeout(() => { if (!done) { done = true; resolve(0); } }, 5000); a.onloadedmetadata = () => { if (!done) { done = true; clearTimeout(t); const d = Math.round(a.duration); resolve(d > 0 ? d : 0); } }; a.onerror = () => { if (!done) { done = true; clearTimeout(t); resolve(0); } }; a.src = URL.createObjectURL(file); }); }
-
-        function startMetro(bpm) { stopMetro(); const stage = stages[currentStage], dur = stage.duration || 300; $('trackDuration').textContent = fmtTime(dur); $('trackCurrentTime').textContent = '00:00'; $('trackProgressFill').style.width = '0%'; metroStart = performance.now(); clickMetro(); metroInterval = setInterval(() => { if (isPlaying) clickMetro(); }, (60 / bpm) * 1000); metroProgress = setInterval(() => { if (!isPlaying) return; const e = (performance.now() - metroStart) / 1000; const p = Math.min((e / dur) * 100, 100); $('trackProgressFill').style.width = p + '%'; $('trackCurrentTime').textContent = fmtTime(e); updateMSPos(e, dur); if (e >= dur) { stopMetro(); nextStage(); } }, 50); }
-        function clickMetro() { if (!audioContext || audioContext.state === 'closed') return; try { const o = audioContext.createOscillator(); const g = audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); o.frequency.value = 1000; const n = audioContext.currentTime; g.gain.setValueAtTime(0.12, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.05); o.start(n); o.stop(n + 0.05); } catch (e) {} }
-        async function createBG(stage) { stopBG(); try { const ctx = await ensureAC(); bgOsc = ctx.createOscillator(); bgGain = ctx.createGain(); bgOsc.connect(bgGain); bgGain.connect(ctx.destination); bgOsc.frequency.value = 440; bgGain.gain.value = 0.0001; bgOsc.start(); } catch (e) {} startMetro(stage.bpm); $('currentMode').textContent = stage.name + ' · 节拍器'; updateMS(stage, null); updateMini(); showHint(); }
-
-        async function playStageMusic(idx, resume = 0) { stopAll(); const meta = audioMeta[idx], stage = stages[idx]; const onUpd = () => { if (!currentAudio) return; const c = currentAudio.currentTime, d = currentAudio.duration; if (!isFinite(d) || d <= 0) return; $('trackProgressFill').style.width = ((c / d) * 100) + '%'; $('trackCurrentTime').textContent = fmtTime(c); $('trackDuration').textContent = fmtTime(d); updateMSPos(c, d); }; if (meta?.localFile) { try { const entry = await loadAudio(idx); if (entry?.data) { if (currentAudio) { try { currentAudio.pause(); } catch (e) {} if (currentAudio.src.startsWith('blob:')) URL.revokeObjectURL(currentAudio.src); } currentAudio = new Audio(URL.createObjectURL(new Blob([entry.data], { type: entry.type || 'audio/mpeg' }))); currentAudio.loop = true; currentAudio.addEventListener('timeupdate', onUpd); currentAudio.addEventListener('loadedmetadata', onUpd); return await playAudio(currentAudio, resume, stage.name + ' · 📁 ' + (meta.name || entry.name)); } } catch (e) {} } if (meta?.onlineUrl) { try { if (currentAudio) { try { currentAudio.pause(); } catch (e) {} if (currentAudio.src.startsWith('blob:')) URL.revokeObjectURL(currentAudio.src); } currentAudio = new Audio(meta.onlineUrl); currentAudio.crossOrigin = 'anonymous'; currentAudio.loop = true; currentAudio.addEventListener('timeupdate', onUpd); currentAudio.addEventListener('loadedmetadata', onUpd); return await playAudio(currentAudio, resume, stage.name + ' · 🌐 ' + (meta.onlineName || '在线链接')); } catch (e) {} } await createBG(stage); return false; }
-        async function playAudio(audio, resume, text) { return new Promise(resolve => { let done = false; const exec = async () => { if (done) return; done = true; try { if (resume > 0 && isFinite(resume)) audio.currentTime = resume; if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; await audio.play(); $('currentMode').textContent = text; updateMS(stages[currentStage], audioMeta[currentStage]); updateMini(); showHint(); sendMediaNotif(); resolve(true); } catch (e) { await createBG(stages[currentStage]); sendMediaNotif(); resolve(false); } }; exec(); setTimeout(() => { if (!done) { done = true; createBG(stages[currentStage]); sendMediaNotif(); resolve(false); } }, 5000); }); }
-
-        // ===== 🔑 媒体通知（通过SW发送带按钮的通知） =====
-        async function sendMediaNotif() {
-            if (!('serviceWorker' in navigator)) return;
-            try {
-                const reg = await navigator.serviceWorker.ready;
-                if (!reg) return;
-                
-                const s = stages[currentStage];
-                
-                // 先关闭旧通知
-                try {
-                    const oldNotifs = await reg.getNotifications({ tag: MEDIA_TAG });
-                    oldNotifs.forEach(n => n.close());
-                } catch (e) {}
-                
-                // 🔑 发送带操作按钮的通知
-                await reg.showNotification('🎵 ' + s.name, {
-                    body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
-                    icon: genIcon(),
-                    badge: genIcon(),
-                    tag: MEDIA_TAG,
-                    requireInteraction: false,
-                    silent: false,
-                    vibrate: isPlaying ? [200, 100, 200] : [],
-                    actions: [
-                        { action: 'prev', title: '⏮ 上一首' },
-                        { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
-                        { action: 'next', title: '⏭ 下一首' }
-                    ],
-                    timestamp: Date.now(),
-                    data: { stage: currentStage, playing: isPlaying, type: 'media-control' }
-                });
-                log('[通知] 媒体通知已发送，actions: 3');
-                updateDiag();
-            } catch (e) {
-                log('[通知] 发送失败:', e);
+        // 🔑 核心：激活媒体控制（通过SW发送带按钮的通知）
+        async function acm(){
+            log('[媒体] 激活...');
+            if('mediaSession' in navigator){
+                try{
+                    navigator.mediaSession.playbackState='none';
+                    await new Promise(r=>setTimeout(r,200));
+                    navigator.mediaSession.playbackState='playing';
+                    const s=stg[cs];
+                    navigator.mediaSession.metadata=new MediaMetadata({title:s.name,artist:'神经重塑训练',album:'阶段'+(cs+1)+'/'+stg.length+' · '+s.bpm+'BPM',artwork:[{src:gi(),sizes:'512x512',type:'image/png'}]});
+                }catch(e){}
+            }
+            // 通过SW发送媒体通知
+            if('serviceWorker' in navigator&&navigator.serviceWorker.controller){
+                try{
+                    const reg=await navigator.serviceWorker.ready;
+                    const s=stg[cs];
+                    // 清除旧通知
+                    const old=await reg.getNotifications({tag:'neuro-media'});
+                    old.forEach(n=>n.close());
+                    // 🔑 关键：silent:false + actions
+                    await reg.showNotification('🎵 '+s.name,{
+                        body:'阶段'+(cs+1)+'/'+stg.length+' · '+s.bpm+'BPM · '+(s.action||'神经重塑训练'),
+                        icon:gi(),badge:gi(),tag:'neuro-media',
+                        requireInteraction:false,silent:false,
+                        vibrate:ip?[200,100,200]:[],
+                        actions:[
+                            {action:'prev',title:'⏮ 上一首'},
+                            {action:'playpause',title:ip?'⏸ 暂停':'▶ 播放'},
+                            {action:'next',title:'⏭ 下一首'}
+                        ],
+                        timestamp:Date.now(),
+                        data:{stage:cs,playing:ip,type:'media'}
+                    });
+                    log('[媒体] 通知已发送(带按钮)');
+                }catch(e){log('[媒体] 通知失败:',e);}
             }
         }
-
-        async function closeMediaNotif() {
-            if (!('serviceWorker' in navigator)) return;
-            try {
-                const reg = await navigator.serviceWorker.ready;
-                const notifs = await reg.getNotifications({ tag: MEDIA_TAG });
-                notifs.forEach(n => n.close());
-            } catch (e) {}
+        async function cmn(){
+            if(!('serviceWorker' in navigator))return;
+            try{const reg=await navigator.serviceWorker.ready;const ns=await reg.getNotifications({tag:'neuro-media'});ns.forEach(n=>n.close());}catch(e){}
         }
 
-        // ===== Media Session =====
-        function updateMS(stage, meta) { if (!('mediaSession' in navigator)) return; try { navigator.mediaSession.metadata = new MediaMetadata({ title: stage?.name || '神经重塑', artist: meta?.name || '神经重塑训练', album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + (stage?.bpm || 60) + 'BPM', artwork: [{ src: genIcon(), sizes: '512x512', type: 'image/png' }] }); navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused'; const actions = { play: () => { if (!isPlaying) togglePlay(); }, pause: () => { if (isPlaying) togglePlay(); }, previoustrack: () => prevTrack(), nexttrack: () => nextTrack(), stop: () => { if (isPlaying) togglePlay(); } }; for (const [a, h] of Object.entries(actions)) { try { navigator.mediaSession.setActionHandler(a, h); } catch (e) {} } updateMSPos(); } catch (e) {} }
-        function updateMSPos(pos, dur) { if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return; try { const p = pos !== undefined ? pos : (currentAudio?.currentTime || 0); const d = dur !== undefined ? dur : (currentAudio?.duration || stages[currentStage]?.duration || 0); if (d > 0 && isFinite(d)) navigator.mediaSession.setPositionState({ duration: d, playbackRate: 1, position: Math.min(Math.max(p, 0), d) }); } catch (e) {} }
+        // Media Session
+        function ums(s,m){if(!('mediaSession' in navigator))return;try{navigator.mediaSession.metadata=new MediaMetadata({title:s?.name||'神经重塑',artist:m?.name||'神经重塑训练',album:'阶段'+(cs+1)+'/'+stg.length+' · '+(s?.bpm||60)+'BPM',artwork:[{src:gi(),sizes:'512x512',type:'image/png'}]});navigator.mediaSession.playbackState=ip?'playing':'paused';const acts={play:()=>{if(!ip)tp();},pause:()=>{if(ip)tp();},previoustrack:()=>pt(),nexttrack:()=>nt(),stop:()=>{if(ip)tp();}};for(const[a,h]of Object.entries(acts)){try{navigator.mediaSession.setActionHandler(a,h);}catch(e){}}ump();}catch(e){}}
+        function ump(pos,dur){if(!('mediaSession' in navigator)||!('setPositionState' in navigator.mediaSession))return;try{const p=pos!==undefined?pos:(ca?.currentTime||0);const d=dur!==undefined?dur:(ca?.duration||stg[cs]?.duration||0);if(d>0&&isFinite(d))navigator.mediaSession.setPositionState({duration:d,playbackRate:1,position:Math.min(Math.max(p,0),d)});}catch(e){}}
 
-        // ===== 播放控制 =====
-        async function togglePlay() { try { if (typeof webkitAudioSession !== 'undefined') { try { webkitAudioSession.setCategory('playback'); webkitAudioSession.setActive(true); } catch (e) {} } await ensureAC(); if (isPlaying) pause(); else await play(); } catch (e) { showError('播放控制失败'); } }
-        async function play() { isPlaying = true; errCount = 0; $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸'; const rt = savedTime || 0; savedTime = 0; await playStageMusic(currentStage, rt); sendMediaNotif(); mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); if (totalTime - stageStart(currentStage) >= (stages[currentStage]?.duration || 300)) nextStage(); }, 1000); updateMS(stages[currentStage], audioMeta[currentStage]); await requestWL(); showHint(); updateDiag(); }
-        function pause() { isPlaying = false; $('playBtn').textContent = '▶ 继续'; $('miniPlayBtn').textContent = '▶'; clearInterval(mainLoop); mainLoop = null; if (currentAudio) { savedTime = currentAudio.currentTime; currentAudio.pause(); } stopMetro(); stopBG(); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; releaseWL(); saveState(); updateDiag(); closeMediaNotif(); }
-        function nextStage() { if (currentStage < stages.length - 1) switchTrack(currentStage + 1); else complete(); }
-        function complete() { pause(); stopAll(); recordSession(); $('stageTitle').textContent = '🎉 训练完成！'; currentStage = 0; totalTime = 0; savedTime = 0; updateDisp(); updateStage(); updateMini(); $('trackProgressFill').style.width = '0%'; $('playBtn').textContent = '▶ 开始训练'; initPlaylist(); saveState(); releaseWL(); closeMediaNotif(); }
-        function reset() { pause(); stopAll(); currentStage = 0; totalTime = 0; savedTime = 0; updateDisp(); updateStage(); updateMini(); $('playBtn').textContent = '▶ 开始训练'; $('trackProgressFill').style.width = '0%'; $('trackCurrentTime').textContent = '00:00'; $('currentMode').textContent = '准备开始'; initPlaylist(); saveState(); releaseWL(); closeMediaNotif(); }
-        function switchTrack(idx) { if (idx === currentStage && !isPlaying) { togglePlay(); return; } const wp = isPlaying; if (isPlaying) pause(); currentStage = idx; savedTime = 0; updateStage(); updateMini(); if (wp) setTimeout(() => play(), 150); else playStageMusic(currentStage).then(() => { if (currentAudio) setTimeout(() => { if (!isPlaying) currentAudio.pause(); }, 200); }); saveState(); }
-        function prevTrack() { switchTrack(currentStage > 0 ? currentStage - 1 : stages.length - 1); }
-        function nextTrack() { switchTrack(currentStage < stages.length - 1 ? currentStage + 1 : 0); }
-        function seekPos(e) { if (!currentAudio) return; try { const bar = $('trackProgressBar'), rect = bar.getBoundingClientRect(); const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)); const d = currentAudio.duration; if (!isFinite(d) || d <= 0) return; currentAudio.currentTime = p * d; savedTime = p * d; updateMSPos(p * d, d); } catch (e) {} }
+        // 播放控制
+        async function tp(){try{if(typeof webkitAudioSession!=='undefined'){try{webkitAudioSession.setCategory('playback');webkitAudioSession.setActive(true);}catch(e){}}await eac();if(ip)_pause();else await _play();}catch(e){se('播放失败');}}
+        async function _play(){ip=true;ec=0;$('playBtn').textContent='⏸ 暂停';$('miniPlay').textContent='⏸';const rt=stm||0;stm=0;await psm(cs,rt);if(ih)acm();ml=setInterval(()=>{if(!ip)return;tt++;ud2();if(tt-gst(cs)>=(stg[cs]?.duration||300))ns();},1000);ums(stg[cs],am[cs]);await rwl2();ush();udi();}
+        function _pause(){ip=false;$('playBtn').textContent='▶ 继续';$('miniPlay').textContent='▶';clearInterval(ml);ml=null;if(ca){stm=ca.currentTime;ca.pause();}sm();sbg();if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';rwl();sav();udi();cmn();}
+        function ns(){if(cs<stg.length-1)swt(cs+1);else comp();}
+        function comp(){_pause();saa();rs();$('stageTitle').textContent='🎉 训练完成！';cs=0;tt=0;stm=0;ud2();usi();ump2();$('trackFill').style.width='0%';$('playBtn').textContent='▶ 开始训练';ipl();sav();rwl();cmn();}
+        function reset(){_pause();saa();cs=0;tt=0;stm=0;ud2();usi();ump2();$('playBtn').textContent='▶ 开始训练';$('trackFill').style.width='0%';$('trackCur').textContent='00:00';$('curMode').textContent='准备开始';ipl();sav();rwl();cmn();}
+        function swt(idx){if(idx===cs&&!ip){tp();return;}const wp=ip;if(ip)_pause();cs=idx;stm=0;usi();ump2();if(wp)setTimeout(()=>_play(),150);else psm(cs).then(()=>{if(ca)setTimeout(()=>{if(!ip)ca.pause();},200);});sav();}
+        function pt(){swt(cs>0?cs-1:stg.length-1);}
+        function nt(){swt(cs<stg.length-1?cs+1:0);}
+        function skp(e){if(!ca)return;try{const b=$('trackBar');const r=b.getBoundingClientRect();const p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));const d=ca.duration;if(!isFinite(d)||d<=0)return;ca.currentTime=p*d;stm=p*d;ump(p*d,d);}catch(e){}}
 
-        // ===== 诊断 =====
-        function updateDiag() { const sa = window.matchMedia('(display-mode: standalone)').matches; const np = Notification.permission; const hm = 'mediaSession' in navigator; const hsw = 'serviceWorker' in navigator && !!navigator.serviceWorker.controller; const setV = (id, v, cls) => { const el = $(id); if (el) { el.textContent = v; el.className = 'diag-value ' + cls; } }; setV('diagPWA', sa ? '✅ 已安装PWA' : '❌ 浏览器模式', sa ? 'ok' : 'error'); setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn'); setV('diagMediaNotif', np === 'granted' ? '✅ 可发送' : '❌ 无权限', np === 'granted' ? 'ok' : 'error'); setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error'); setV('diagAudio', audioContext && audioContext.state !== 'closed' ? '✅ 就绪' : '⚠ 未激活', audioContext ? 'ok' : 'warn'); setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error'); setV('diagPlaying', isPlaying ? '▶ 播放中' : '⏸ 暂停', isPlaying ? 'ok' : ''); }
-        function showDiagnostic() { const p = $('diagnosticPanel'); if (p) { p.classList.toggle('show'); if (p.classList.contains('show')) { updateDiag(); $('lockScreenHint').classList.remove('show'); } } }
-        function showHint() { const h = $('lockScreenHint'); if (h) { h.classList.add('show'); clearTimeout(h._ht); h._ht = setTimeout(() => h.classList.remove('show'), 8000); } }
-
-        async function sendTestNotification() {
-            if (!isPlaying) { await ensureAC(); if (!bgOsc && !currentAudio) await createBG(stages[currentStage]); isPlaying = true; }
-            await sendMediaNotif();
-            showToast('systemToast', '📢 测试通知已发送！请锁屏查看通知栏', 5000);
-            updateDiag();
-            log('=== 测试：请锁屏后查看通知栏 ===');
-            log('预期效果：通知应显示 3 个按钮');
-            log('  ⏮ 上一首 | ⏸ 暂停 | ⏭ 下一首');
-            log('如果只有文字没有按钮，说明系统不支持通知 Actions');
+        // 诊断
+        function udi(){
+            const sa=window.matchMedia('(display-mode: standalone)').matches;
+            const np=Notification.permission;
+            const hm='mediaSession' in navigator;
+            const hsw='serviceWorker' in navigator&&!!navigator.serviceWorker.controller;
+            const sv=(id,v,cl)=>{const e=$(id);if(e){e.textContent=v;e.className='dv '+cl;}};
+            sv('dPWA',sa?'✅ 已安装':'❌ 浏览器',sa?'g':'r');
+            sv('dNotif',np==='granted'?'✅ 已授权':np==='denied'?'❌ 已拒绝':'⚠ 未设置',np==='granted'?'g':np==='denied'?'r':'y');
+            sv('dMedia',hm?'✅ 支持':'❌ 不支持',hm?'g':'r');
+            sv('dSW',hsw?'✅ 已注册':'❌ 未注册',hsw?'g':'r');
+            sv('dAudio',ac&&ac.state!=='closed'?'✅ 就绪':'⚠ 未激活',ac?'g':'y');
+            sv('dPlay',ip?'▶ 播放中':'⏸ 暂停',ip?'g':'');
+            sv('dSilent',np==='granted'?'✅ 非静默(有按钮)':'❌ 无权限',np==='granted'?'g':'r');
+        }
+        function shd(){const p=$('diagPanel');if(p){p.classList.toggle('on');if(p.classList.contains('on')){udi();$('lockHint').classList.remove('on');}}}
+        function ush(){const h=$('lockHint');if(h){h.classList.add('on');clearTimeout(h._t);h._t=setTimeout(()=>h.classList.remove('on'),8000);}}
+        async function tstNotif(){
+            if(!ip){await eac();if(!bo&&!ca)await cbafls(stg[cs]);ip=true;}
+            await acm();
+            st2('sysToast','📢 带按钮通知已发送！请立即锁屏查看',5000);
+            udi();
+            log('=== 测试通知已发送 ===');
+            log('预期锁屏通知应有: ⏮ 上一首 | ⏸ 暂停 | ⏭ 下一首');
+        }
+        function showGuide(){
+            const ov=document.createElement('div');ov.className='guide-ov';
+            ov.innerHTML=`<div style="background:linear-gradient(135deg,#1e1e3a,#16213e);border:2px solid #ffd93d;border-radius:24px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);"><div style="font-size:48px;margin-bottom:16px;">🔔</div><h3 style="color:#ffd93d;margin-bottom:16px;">通知设置检查清单</h3><div style="text-align:left;color:#b0c4de;font-size:13px;line-height:2.2;"><p>📱<strong>设置→通知→Chrome</strong></p><p>✅ 1. 开启「允许通知」</p><p>✅ 2. <strong style="color:#ff6b6b;">关闭「静默通知」</strong></p><p>✅ 3. 锁屏通知→「显示」</p><p>✅ 4. 横幅通知→「开启」</p><p>⚠️ 5. 点击「其他」类别</p><p>⚠️ 6. <strong style="color:#ff6b6b;">关闭「其他」的静默通知</strong></p><p>⚠️ 7. 「其他」提醒方式→铃声</p></div><button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(90deg,#ffd93d,#ffa500);color:#000;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;">我知道了</button></div>`;
+            ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.appendChild(ov);
+            setTimeout(()=>{if(ov.parentElement)ov.remove();},20000);
         }
 
-        function showNotifSettingsGuide() {
-            const overlay = document.createElement('div');
-            overlay.className = 'settings-guide-overlay';
-            overlay.innerHTML = `<div style="background:linear-gradient(135deg,#1e1e3a,#16213e);border:2px solid #ffd93d;border-radius:24px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);"><div style="font-size:48px;margin-bottom:16px;">🔔</div><h3 style="color:#ffd93d;margin-bottom:16px;">通知设置检查清单</h3><div style="text-align:left;color:#b0c4de;font-size:13px;line-height:2.2;"><p>📱 <strong>设置 → 通知 → Chrome</strong></p><p>✅ 1. 开启「允许通知」</p><p>✅ 2. <strong style="color:#ff6b6b;">关闭「静默通知」</strong></p><p>✅ 3. 锁屏通知 → 「显示」</p><p>✅ 4. 横幅通知 → 「开启」</p><p>⚠️ 5. 点击「其他」类别</p><p>⚠️ 6. <strong style="color:#ff6b6b;">关闭「其他」的静默通知</strong></p><p>⚠️ 7. 「其他」提醒方式 → 铃声</p><p style="color:#ffd93d;margin-top:8px;">💡 完成设置后点「发送测试通知」验证</p></div><button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(90deg,#ffd93d,#ffa500);color:#000;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;">我知道了</button></div>`;
-            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-            document.body.appendChild(overlay);
-            setTimeout(() => { if (overlay.parentElement) overlay.remove(); }, 20000);
+        // UI
+        function ud2(){$('curTime').textContent=ft(tt);const td=ttd();if(td>0){const c=document.querySelector('.ring .p');if(c)c.style.strokeDashoffset=452.39*(1-Math.min(tt/td,1));}}
+        function utl(){$('totalLabel').textContent='/ '+ft(ttd());}
+        function usi(){const s=stg[cs];if(!s)return;$('stageNum').textContent='阶段 '+(cs+1)+'/'+stg.length;$('stageTitle').textContent=s.name;$('stageDetail').innerHTML='动作：'+(s.action||'未设置')+'<br>BPM：'+s.bpm+'<br>想象：'+(s.imagine||'未设置');}
+        function ump2(){const s=stg[cs],m=am[cs];$('miniTitle').textContent=s?.name||'—';let sb='节拍器模式';if(m?.localFile)sb='📁 '+(m.name||'本地文件');else if(m?.onlineUrl)sb='🌐 '+(m.onlineName||'在线链接');$('miniSub').textContent=sb;$('miniPlay').textContent=ip?'⏸':'▶';}
+
+        // PWA
+        function ipw(){window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;$('pih').classList.add('on');});$('pih').addEventListener('click',async()=>{if(!dp)return;dp.prompt();const{outcome}=await dp.userChoice;dp=null;$('pih').classList.remove('on');if(outcome==='accepted')st2('sysToast','✅ 安装成功！',3000);});window.addEventListener('appinstalled',()=>{$('pih').classList.remove('on');});}
+        function rsw(){if(!('serviceWorker' in navigator))return;window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(r=>{log('SW注册成功');r.addEventListener('updatefound',()=>{const w=r.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller&&confirm('新版本可用，更新？'))window.location.reload();});});}).catch(e=>log('SW注册失败:',e));});let rf=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rf){rf=true;window.location.reload();}});
+        // 🔑 监听来自SW的媒体操作
+        navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.type==='MEDIA_ACTION'){log('SW操作:',e.data.action);const h={playpause:tp,prev:pt,next:nt,play:()=>{if(!ip)tp();},pause:()=>{if(ip)tp();}};if(h[e.data.action])h[e.data.action]();}});}
+
+        // 播放列表
+        function ipl(){const c=$('trackList');if(!c)return;c.innerHTML=stg.map((s,i)=>{const m=am[i];return`<div class="tr ${i===cs?'act':''}" data-index="${i}"><span class="dh">⋮⋮</span><div class="tn">${i+1}</div><div class="ti"><div>${s.name}</div><small>${s.bpm}BPM · ${ft(s.duration)} · ${m?.localFile?'📁本地':m?.onlineUrl?'🌐链接':'节拍器'}</small></div></div>`;}).join('');c.querySelectorAll('.tr').forEach(t=>t.addEventListener('click',e=>{if(!e.target.classList.contains('dh'))swt(parseInt(t.dataset.index));}));if(sr)sr.destroy();try{sr=new Sortable(c,{handle:'.dh',animation:200,ghostClass:'s-g',onEnd:e=>{if(e.oldIndex!==e.newIndex){ro(e.oldIndex,e.newIndex);ipl();usi();ud2();utl();ump2();rr();}}});}catch(e){}}
+        function ro(oi,ni){stg.splice(ni,0,stg.splice(oi,1)[0]);am.splice(ni,0,am.splice(oi,1)[0]);if(cs===oi)cs=ni;else if(oi<cs&&ni>=cs)cs--;else if(oi>cs&&ni<=cs)cs++;sf();}
+        function rr(){const c=$('rows');if(!c)return;c.innerHTML=stg.map((s,i)=>{const m=am[i];let dn=(i+1)+'. '+s.name,mt='未设置音乐';if(m&&(m.localFile||m.onlineUrl)){dn=(i+1)+'. '+(m.name||s.name);mt=(m.localFile?'📁本地':'')+(m.localFile&&m.onlineUrl?' · ':'')+(m.onlineUrl?'🌐链接':'')+' · '+ft(s.duration);}return`<div class="fr" data-copy="${(m?.onlineUrl||m?.name||s.name||'').replace(/"/g,'&quot;')}"><div class="fi2"><div class="fn ${(m&&(m.localFile||m.onlineUrl))?'ld':''}">${dn}</div><div class="fm">${mt}</div></div><button class="cb" data-stage="${i}">⚙️ 配置</button></div>`;}).join('');c.querySelectorAll('.fr').forEach(r=>r.addEventListener('click',e=>{if(!e.target.classList.contains('cb'))cr2(r.dataset.copy);}));c.querySelectorAll('.cb').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();ocm(parseInt(b.dataset.stage));}));}
+        function cr2(content){if(navigator.clipboard?.writeText)navigator.clipboard.writeText(content).then(()=>st2('copyToast','📋 已复制',2000)).catch(()=>fc2(content));else fc2(content);}
+        function fc2(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');st2('copyToast','📋 已复制',2000);}catch(e){}document.body.removeChild(ta);}
+
+        // 配置
+        function ocm(idx){ei=idx;const s=stg[idx],m=am[idx];$('cfgTitle').textContent='⚙️ 配置 第'+(idx+1)+'阶段 · '+s.name;$('cfg_name').value=s.name||'';$('cfg_bpm').value=s.bpm||60;$('cfg_dur').value=s.duration||300;$('cfg_act').value=s.action||'';$('cfg_img').value=s.imagine||'';tf=null;tu='';td2=0;window._dl=false;window._do=false;usd(m);$('advFields').style.display='none';$('advToggle').textContent='▼ 高级选项';$('cfgModal').classList.add('on');}
+        function ccm(){$('cfgModal').classList.remove('on');}
+        function usd(m){const li=$('localItem'),oi=$('onlineItem'),nm=$('noItem');if(m?.localFile){li.style.display='flex';$('localName').textContent=m.localFile.name||'本地文件';$('localSize').textContent=((m.localFile.size||0)/1024/1024).toFixed(2)+' MB';}else li.style.display='none';if(m?.onlineUrl){oi.style.display='flex';$('onlineName').textContent=m.onlineName||'在线链接';$('onlineDetail').textContent=m.onlineUrl;}else oi.style.display='none';nm.style.display=(!m?.localFile&&!m?.onlineUrl&&!tf&&!tu)?'flex':'none';}
+        async function scf(){try{const idx=ei;let dur=parseInt($('cfg_dur').value)||0;if(dur===0&&tf&&td2>0)dur=td2;else if(dur===0)dur=300;stg[idx]={name:$('cfg_name').value.trim()||('阶段'+(idx+1)),bpm:parseInt($('cfg_bpm').value)||60,duration:dur,action:$('cfg_act').value.trim(),imagine:$('cfg_img').value.trim()};const om=am[idx];if(tf){await sadb(idx,tf,tf.name);am[idx]={name:stg[idx].name,localFile:{name:tf.name,type:tf.type,size:tf.size},onlineUrl:om?.onlineUrl||'',onlineName:om?.onlineName||''};}else if(window._dl){await dadb(idx);if(am[idx])am[idx].localFile=null;window._dl=false;}if(tu){am[idx]={...(am[idx]||{}),onlineUrl:tu,onlineName:$('onlineName').textContent!=='—'?$('onlineName').textContent:(tu.split('/').pop()?.split('?')[0]||'在线音乐')};}else if(window._do){if(am[idx]){am[idx].onlineUrl='';am[idx].onlineName='';}window._do=false;}if(!am[idx])am[idx]={name:stg[idx].name,localFile:null,onlineUrl:'',onlineName:''};sf();rr();ipl();usi();ud2();utl();ump2();if(cs===idx&&ip)await psm(cs);ccm();}catch(e){se('保存失败');}}
+        function tlf(){$('fileInput').click();}
+        function pfu(){const i=prompt('请输入音频链接:');if(!i)return;const us=i.match(/(https?:\/\/[^\s]+)/g);if(us?.length>0){tu=us[0];let n=i.replace(us[0],'').trim()||us[0].split('/').pop()?.split('?')[0]||'在线音乐';$('onlineName').textContent=n;$('onlineDetail').textContent=us[0];}else{try{new URL(i);tu=i;let n=i.split('/').pop()?.split('?')[0]||'在线音乐';$('onlineName').textContent=n;$('onlineDetail').textContent=i;}catch{alert('无效链接');return;}}$('onlineItem').style.display='flex';$('noItem').style.display='none';}
+        function dlf(){tf=null;window._dl=true;$('localItem').style.display='none';unm();}
+        function dou(){tu='';window._do=true;$('onlineItem').style.display='none';unm();}
+        function unm(){$('noItem').style.display=($('localItem').style.display==='none'&&$('onlineItem').style.display==='none')?'flex':'none';}
+        function ta(){$('advFields').style.display=$('advFields').style.display==='none'?'block':'none';$('advToggle').textContent=$('advFields').style.display==='none'?'▼ 高级选项':'▲ 高级选项';}
+
+        // 数据
+        function sf(){try{localStorage.setItem('nrc_final2',JSON.stringify(stg));sav();}catch(e){}}
+        function sav(){if(!asv)return;try{localStorage.setItem('nrd_final2',JSON.stringify({currentStage:cs,totalTime:tt,savedTime:stm,audioMeta:am.map(m=>m?{name:m.name,localFile:m.localFile?{name:m.localFile.name,size:m.localFile.size,type:m.localFile.type}:null,onlineUrl:m.onlineUrl||'',onlineName:m.onlineName||''}:null)}));st2('saveStatus','✓ 已保存',1500);ec=0;}catch(e){}}
+        async function lsd(){try{const d=JSON.parse(localStorage.getItem('nrd_final2'));if(d){cs=d.currentStage||0;tt=d.totalTime||0;stm=d.savedTime||0;d.audioMeta?.forEach((m,i)=>{if(m)am[i]=m;});}}catch(e){cs=0;tt=0;stm=0;}rr();ipl();usi();ud2();utl();ump2();}
+        function ls(){try{const s=JSON.parse(localStorage.getItem('nrc_final2'));if(Array.isArray(s)&&s.length===5)stg=s;}catch(e){}}
+        function lst(){try{const s=localStorage.getItem('nrs_final2');if(s)stats=JSON.parse(s);}catch(e){}}
+        function sst(){try{localStorage.setItem('nrs_final2',JSON.stringify(stats));}catch(e){}}
+        function rs(){const today=new Date().toISOString().split('T')[0];stats.sessions.push({date:today});stats.totalSessions=(stats.totalSessions||0)+1;stats.totalMinutes=(stats.totalMinutes||0)+Math.round(ttd()/60);stats.dailyRecords[today]=(stats.dailyRecords[today]||0)+1;let sk=0,d=new Date();while(stats.dailyRecords[d.toISOString().split('T')[0]]){sk++;d.setDate(d.getDate()-1);}stats.currentStreak=sk;stats.lastTrainingDate=today;sst();uss();uc();}
+        function uss(){$('totSess').textContent=stats.totalSessions||0;$('totMin').textContent=stats.totalMinutes||0;$('streak').textContent=stats.currentStreak||0;$('lastTr').textContent=stats.lastTrainingDate?new Date(stats.lastTrainingDate).toLocaleDateString('zh-CN',{month:'short',day:'numeric'}):'-';}
+        function ic(){const c=$('chart');if(!c||!window.Chart)return;try{ch=new Chart(c.getContext('2d'),{type:'bar',data:gcd('weekly'),options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});}catch(e){}}
+        function gcd(type){const l=[],d=[],t2=new Date();if(type==='weekly'){for(let i=6;i>=0;i--){const dt=new Date(t2);dt.setDate(dt.getDate()-i);l.push(dt.toLocaleDateString('zh-CN',{weekday:'short'}));d.push(stats.dailyRecords[dt.toISOString().split('T')[0]]||0);}}else if(type==='monthly'){for(let i=3;i>=0;i--){const e=new Date(t2);e.setDate(e.getDate()-i*7);const s=new Date(e);s.setDate(s.getDate()-6);let c=0;for(let dt=new Date(s);dt<=e;dt.setDate(dt.getDate()+1))c+=stats.dailyRecords[dt.toISOString().split('T')[0]]||0;l.push(s.getMonth()+1+'/'+s.getDate());d.push(c);}}else{for(let i=11;i>=0;i--){const dt=new Date(t2.getFullYear(),t2.getMonth()-i,1);let c=0;for(let day=1;day<=31;day++)c+=stats.dailyRecords[dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(day).padStart(2,'0')]||0;l.push(dt.toLocaleDateString('zh-CN',{month:'short'}));d.push(c);}}return{labels:l,datasets:[{data:d,backgroundColor:'#00d4aa',borderRadius:6}]};}
+        function swc(type){cht=type;document.querySelectorAll('.ctb').forEach(t=>t.classList.toggle('act',t.dataset.type===type));uc();}
+        function uc(){if(ch){ch.data=gcd(cht);ch.update();}}
+        function ed(){try{const b=new Blob([JSON.stringify({version:V,stages:stg,audioMeta:am,stats,exportDate:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='neuro_backup_'+new Date().toISOString().split('T')[0]+'.json';a.click();}catch(e){}}
+        function id2(){$('importFile').click();}
+        async function hi(i){const f=i.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.stages)stg=d.stages;if(d.stats){stats=d.stats;sst();}if(d.audioMeta)am=d.audioMeta;sf();rr();ipl();usi();ud2();utl();ump2();uss();uc();st2('sysToast','✅ 导入成功',3000);}catch(e){se('导入失败');}i.value='';}
+        async function ca2(){if(!confirm('⚠️ 确定清除所有数据？'))return;try{_pause();saa();for(let i=0;i<5;i++)await dadb(i);await cadb();localStorage.clear();stg=structuredClone(DEF);cs=0;tt=0;stm=0;am=[null,null,null,null,null];asv=true;stats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastTrainingDate:null,dailyRecords:{}};localStorage.setItem('nra_final2','true');localStorage.setItem('nrc_final2',JSON.stringify(stg));rr();ipl();usi();ud2();uss();uc();utl();ump2();$('curMode').textContent='准备开始';$('playBtn').textContent='▶ 开始训练';$('autoToggle').classList.add('act');alert('✅ 已清除');}catch(e){se('清除失败');}}
+        function tas(){asv=!asv;localStorage.setItem('nra_final2',String(asv));$('autoToggle').classList.toggle('act',asv);if(asv)sav();}
+        async function rwl2(){try{if('wakeLock' in navigator&&ip){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>log('唤醒锁释放'));}}catch(e){}}
+        async function rwl(){if(wl){try{await wl.release();wl=null;}catch(e){}}}
+
+        // 事件
+        function be(){
+            $('playBtn').addEventListener('click',tp);$('resetBtn').addEventListener('click',reset);$('exportBtn').addEventListener('click',ed);$('importBtn').addEventListener('click',id2);$('clearBtn').addEventListener('click',ca2);
+            $('miniPlay').addEventListener('click',tp);$('prevBtn').addEventListener('click',pt);$('nextBtn').addEventListener('click',nt);
+            $('trackBar').addEventListener('click',skp);
+            $('cfgModal').addEventListener('click',e=>{if(e.target===$('cfgModal'))ccm();});
+            $('btnSave').addEventListener('click',scf);$('btnCancel').addEventListener('click',ccm);
+            $('btnFile').addEventListener('click',tlf);$('btnLink').addEventListener('click',pfu);
+            $('delLocal').addEventListener('click',dlf);$('delOnline').addEventListener('click',dou);
+            $('advToggle').addEventListener('click',ta);
+            $('fileInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{tf=f;tu='';td2=await gadf(f);if(td2>0)$('cfg_dur').value=td2;$('localName').textContent=f.name;$('localSize').textContent=(f.size/1024/1024).toFixed(2)+' MB';$('localItem').style.display='flex';$('noItem').style.display='none';}catch(e){}e.target.value='';});
+            $('importFile').addEventListener('change',function(){hi(this);});
+            document.querySelectorAll('.ctb').forEach(t=>t.addEventListener('click',()=>swc(t.dataset.type)));
+            $('autoToggle').addEventListener('click',tas);
+            document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();tp();}else if(e.code==='ArrowLeft'){e.preventDefault();pt();}else if(e.code==='ArrowRight'){e.preventDefault();nt();}});
+            document.addEventListener('visibilitychange',()=>{if(document.hidden&&asv)sav();if(!document.hidden&&ip){ums(stg[cs],am[cs]);if(ih)acm();}});
         }
 
-        // ===== UI更新 =====
-        function updateDisp() { $('currentTime').textContent = fmtTime(totalTime); const td = totalDur(); if (td > 0) { const c = document.querySelector('.progress-ring .progress'); if (c) c.style.strokeDashoffset = 452.39 * (1 - Math.min(totalTime / td, 1)); } }
-        function updateTotalLabel() { $('totalTimeLabel').textContent = '/ ' + fmtTime(totalDur()); }
-        function updateStage() { const s = stages[currentStage]; if (!s) return; $('stageNumber').textContent = '阶段 ' + (currentStage + 1) + '/' + stages.length; $('stageTitle').textContent = s.name; $('stageDetail').innerHTML = '动作：' + (s.action || '未设置') + '<br>BPM：' + s.bpm + '<br>想象：' + (s.imagine || '未设置'); }
-        function updateMini() { const s = stages[currentStage], m = audioMeta[currentStage]; $('miniTitle').textContent = s?.name || '—'; let sub = '节拍器模式'; if (m?.localFile) sub = '📁 ' + (m.name || '本地文件'); else if (m?.onlineUrl) sub = '🌐 ' + (m.onlineName || '在线链接'); $('miniSubtitle').textContent = sub; $('miniPlayBtn').textContent = isPlaying ? '⏸' : '▶'; }
-
-        // ===== PWA =====
-        function initPWA() { window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('pwaInstallHint').classList.add('show'); }); $('pwaInstallHint').addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; deferredPrompt = null; $('pwaInstallHint').classList.remove('show'); if (outcome === 'accepted') showToast('systemToast', '✅ 安装成功！', 3000); }); window.addEventListener('appinstalled', () => { $('pwaInstallHint').classList.remove('show'); }); }
-        function registerSW() {
-            if (!('serviceWorker' in navigator)) return;
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js', { scope: './' })
-                    .then(r => { log('SW注册成功'); r.addEventListener('updatefound', () => { const w = r.installing; if (w) w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller && confirm('发现新版本，更新？')) window.location.reload(); }); }); })
-                    .catch(e => log('SW注册失败:', e));
-            });
-            let rf = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => { if (!rf) { rf = true; window.location.reload(); } });
-            // 🔑 监听来自SW的媒体操作消息
-            navigator.serviceWorker.addEventListener('message', e => {
-                if (e.data?.type === 'MEDIA_ACTION') {
-                    log('收到SW媒体操作:', e.data.action);
-                    const h = { playpause: togglePlay, prev: prevTrack, next: nextTrack, play: () => { if (!isPlaying) togglePlay(); }, pause: () => { if (isPlaying) togglePlay(); }, default: () => {} };
-                    if (h[e.data.action]) h[e.data.action]();
-                }
-            });
-        }
-
-        // ===== 播放列表 =====
-        function initPlaylist() { const c = $('trackList'); if (!c) return; c.innerHTML = stages.map((s, i) => { const m = audioMeta[i]; return '<div class="track ' + (i === currentStage ? 'active' : '') + '" data-index="' + i + '"><span class="drag-handle">⋮⋮</span><div class="track-number">' + (i + 1) + '</div><div class="track-info"><div>' + s.name + '</div><small>' + s.bpm + 'BPM · ' + fmtTime(s.duration) + ' · ' + (m?.localFile ? '📁本地' : m?.onlineUrl ? '🌐链接' : '节拍器') + '</small></div></div>'; }).join(''); c.querySelectorAll('.track').forEach(t => t.addEventListener('click', e => { if (!e.target.classList.contains('drag-handle')) switchTrack(parseInt(t.dataset.index)); })); if (sortable) sortable.destroy(); try { sortable = new Sortable(c, { handle: '.drag-handle', animation: 200, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', onEnd: e => { if (e.oldIndex !== e.newIndex) { reorder(e.oldIndex, e.newIndex); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini(); renderRows(); } } }); } catch (e) {} }
-        function reorder(oi, ni) { stages.splice(ni, 0, stages.splice(oi, 1)[0]); audioMeta.splice(ni, 0, audioMeta.splice(oi, 1)[0]); if (currentStage === oi) currentStage = ni; else if (oi < currentStage && ni >= currentStage) currentStage--; else if (oi > currentStage && ni <= currentStage) currentStage++; saveAll(); }
-        function renderRows() { const c = $('fileRowsContainer'); if (!c) return; c.innerHTML = stages.map((s, i) => { const m = audioMeta[i]; let dn = (i + 1) + '. ' + s.name, mt = '未设置音乐'; if (m && (m.localFile || m.onlineUrl)) { dn = (i + 1) + '. ' + (m.name || s.name); mt = (m.localFile ? '📁本地' : '') + (m.localFile && m.onlineUrl ? ' · ' : '') + (m.onlineUrl ? '🌐链接' : '') + ' · ' + fmtTime(s.duration); } return '<div class="file-row" data-copy="' + (m?.onlineUrl || m?.name || s.name || '').replace(/"/g, '&quot;') + '"><div class="file-info"><div class="file-name ' + ((m && (m.localFile || m.onlineUrl)) ? 'loaded' : '') + '">' + dn + '</div><div class="file-meta">' + mt + '</div></div><button class="config-btn" data-stage="' + i + '">⚙️ 配置</button></div>'; }).join(''); c.querySelectorAll('.file-row').forEach(r => r.addEventListener('click', e => { if (!e.target.classList.contains('config-btn')) copyRow(r.dataset.copy); })); c.querySelectorAll('.config-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openConfig(parseInt(b.dataset.stage)); })); }
-        function copyRow(content) { if (navigator.clipboard?.writeText) navigator.clipboard.writeText(content).then(() => showToast('copyToast', '📋 已复制', 2000)).catch(() => fallbackCopy(content)); else fallbackCopy(content); }
-        function fallbackCopy(text) { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); showToast('copyToast', '📋 已复制', 2000); } catch (e) {} document.body.removeChild(ta); }
-
-        // ===== 配置弹窗 =====
-        function openConfig(idx) { editIdx = idx; const s = stages[idx], m = audioMeta[idx]; $('configModalTitle').textContent = '⚙️ 配置 第' + (idx + 1) + '阶段 · ' + s.name; $('cfg_name').value = s.name || ''; $('cfg_bpm').value = s.bpm || 60; $('cfg_duration').value = s.duration || 300; $('cfg_action').value = s.action || ''; $('cfg_imagine').value = s.imagine || ''; tempFile = null; tempUrl = ''; tempDuration = 0; window._dl = false; window._do = false; updateSrcDisp(m); $('advancedFields').style.display = 'none'; $('advancedToggle').textContent = '▼ 高级选项 (动作/想象)'; $('configModal').classList.add('show'); }
-        function closeConfig() { $('configModal').classList.remove('show'); }
-        function updateSrcDisp(m) { const li = $('localFileItem'), oi = $('onlineUrlItem'), nm = $('noMusicItem'); if (m?.localFile) { li.style.display = 'flex'; $('localFileName').textContent = m.localFile.name || '本地文件'; $('localFileSize').textContent = ((m.localFile.size || 0) / 1024 / 1024).toFixed(2) + ' MB'; } else li.style.display = 'none'; if (m?.onlineUrl) { oi.style.display = 'flex'; $('onlineUrlName').textContent = m.onlineName || '在线链接'; $('onlineUrlDetail').textContent = m.onlineUrl; } else oi.style.display = 'none'; nm.style.display = (!m?.localFile && !m?.onlineUrl && !tempFile && !tempUrl) ? 'flex' : 'none'; }
-        async function saveConfig() { try { const idx = editIdx; let dur = parseInt($('cfg_duration').value) || 0; if (dur === 0 && tempFile && tempDuration > 0) dur = tempDuration; else if (dur === 0) dur = 300; stages[idx] = { name: $('cfg_name').value.trim() || ('阶段' + (idx + 1)), bpm: parseInt($('cfg_bpm').value) || 60, duration: dur, action: $('cfg_action').value.trim(), imagine: $('cfg_imagine').value.trim() }; const om = audioMeta[idx]; if (tempFile) { await saveAudio(idx, tempFile, tempFile.name); audioMeta[idx] = { name: stages[idx].name, localFile: { name: tempFile.name, type: tempFile.type, size: tempFile.size }, onlineUrl: om?.onlineUrl || '', onlineName: om?.onlineName || '' }; } else if (window._dl) { await deleteAudio(idx); if (audioMeta[idx]) audioMeta[idx].localFile = null; window._dl = false; } if (tempUrl) { audioMeta[idx] = { ...(audioMeta[idx] || {}), onlineUrl: tempUrl, onlineName: $('onlineUrlName').textContent !== '—' ? $('onlineUrlName').textContent : (tempUrl.split('/').pop()?.split('?')[0] || '在线音乐') }; } else if (window._do) { if (audioMeta[idx]) { audioMeta[idx].onlineUrl = ''; audioMeta[idx].onlineName = ''; } window._do = false; } if (!audioMeta[idx]) audioMeta[idx] = { name: stages[idx].name, localFile: null, onlineUrl: '', onlineName: '' }; saveAll(); renderRows(); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini(); if (currentStage === idx && isPlaying) playStageMusic(currentStage); closeConfig(); } catch (e) { showError('保存失败'); } }
-        function triggerFile() { $('localFileInput').click(); }
-        function promptUrl() { const i = prompt('请输入音频链接:'); if (!i) return; const urls = i.match(/(https?:\/\/[^\s]+)/g); if (urls?.length > 0) { tempUrl = urls[0]; let n = i.replace(urls[0], '').trim() || urls[0].split('/').pop()?.split('?')[0] || '在线音乐'; $('onlineUrlName').textContent = n; $('onlineUrlDetail').textContent = urls[0]; } else { try { new URL(i); tempUrl = i; let n = i.split('/').pop()?.split('?')[0] || '在线音乐'; $('onlineUrlName').textContent = n; $('onlineUrlDetail').textContent = i; } catch { alert('无效链接'); return; } } $('onlineUrlItem').style.display = 'flex'; $('noMusicItem').style.display = 'none'; }
-        function delFile() { tempFile = null; window._dl = true; $('localFileItem').style.display = 'none'; updateNoSrc(); }
-        function delUrl() { tempUrl = ''; window._do = true; $('onlineUrlItem').style.display = 'none'; updateNoSrc(); }
-        function updateNoSrc() { $('noMusicItem').style.display = ($('localFileItem').style.display === 'none' && $('onlineUrlItem').style.display === 'none') ? 'flex' : 'none'; }
-        function toggleAdv() { const f = $('advancedFields'); f.style.display = f.style.display === 'none' ? 'block' : 'none'; $('advancedToggle').textContent = f.style.display === 'none' ? '▼ 高级选项 (动作/想象)' : '▲ 高级选项 (动作/想象)'; }
-
-        // ===== 数据 =====
-        function saveAll() { try { localStorage.setItem(STAGES_KEY, JSON.stringify(stages)); saveState(); } catch (e) {} }
-        function saveState() { if (!autoSave) return; try { localStorage.setItem(STATE_KEY, JSON.stringify({ currentStage, totalTime, savedTime, audioMeta: audioMeta.map(m => m ? { name: m.name, localFile: m.localFile ? { name: m.localFile.name, size: m.localFile.size, type: m.localFile.type } : null, onlineUrl: m.onlineUrl || '', onlineName: m.onlineName || '' } : null) })); showToast('saveStatus', '✓ 已保存', 1500); errCount = 0; } catch (e) {} }
-        async function loadState() { try { const d = JSON.parse(localStorage.getItem(STATE_KEY)); if (d) { currentStage = d.currentStage || 0; totalTime = d.totalTime || 0; savedTime = d.savedTime || 0; d.audioMeta?.forEach((m, i) => { if (m) audioMeta[i] = m; }); } } catch (e) { currentStage = 0; totalTime = 0; savedTime = 0; } renderRows(); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini(); }
-        function loadStages() { try { const s = JSON.parse(localStorage.getItem(STAGES_KEY)); if (Array.isArray(s) && s.length === 5) stages = s; } catch (e) {} }
-        function loadStats() { try { const s = localStorage.getItem(STATS_KEY); if (s) stats = JSON.parse(s); } catch (e) {} }
-        function saveStats() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {} }
-        function recordSession() { const today = new Date().toISOString().split('T')[0]; stats.sessions.push({ date: today }); stats.totalSessions = (stats.totalSessions || 0) + 1; stats.totalMinutes = (stats.totalMinutes || 0) + Math.round(totalDur() / 60); stats.dailyRecords[today] = (stats.dailyRecords[today] || 0) + 1; let sk = 0, d = new Date(); while (stats.dailyRecords[d.toISOString().split('T')[0]]) { sk++; d.setDate(d.getDate() - 1); } stats.currentStreak = sk; stats.lastTrainingDate = today; saveStats(); updateStats(); updateChartData(); }
-        function updateStats() { $('totalSessions').textContent = stats.totalSessions || 0; $('totalMinutes').textContent = stats.totalMinutes || 0; $('currentStreak').textContent = stats.currentStreak || 0; $('lastTraining').textContent = stats.lastTrainingDate ? new Date(stats.lastTrainingDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) : '-'; }
-        function initChart() { const c = $('trainingChart'); if (!c || !window.Chart) return; try { chart = new Chart(c.getContext('2d'), { type: 'bar', data: getChartData('weekly'), options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } }); } catch (e) {} }
-        function getChartData(type) { const l = [], d = [], t = new Date(); if (type === 'weekly') { for (let i = 6; i >= 0; i--) { const dt = new Date(t); dt.setDate(dt.getDate() - i); l.push(dt.toLocaleDateString('zh-CN', { weekday: 'short' })); d.push(stats.dailyRecords[dt.toISOString().split('T')[0]] || 0); } } else if (type === 'monthly') { for (let i = 3; i >= 0; i--) { const e = new Date(t); e.setDate(e.getDate() - i * 7); const s = new Date(e); s.setDate(s.getDate() - 6); let c = 0; for (let dt = new Date(s); dt <= e; dt.setDate(dt.getDate() + 1)) c += stats.dailyRecords[dt.toISOString().split('T')[0]] || 0; l.push(s.getMonth() + 1 + '/' + s.getDate()); d.push(c); } } else { for (let i = 11; i >= 0; i--) { const dt = new Date(t.getFullYear(), t.getMonth() - i, 1); let c = 0; for (let day = 1; day <= 31; day++) c += stats.dailyRecords[dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0')] || 0; l.push(dt.toLocaleDateString('zh-CN', { month: 'short' })); d.push(c); } } return { labels: l, datasets: [{ data: d, backgroundColor: '#00d4aa', borderRadius: 6 }] }; }
-        function switchChart(type) { chartType = type; document.querySelectorAll('.chart-tab').forEach(t => t.classList.toggle('active', t.dataset.type === type)); updateChartData(); }
-        function updateChartData() { if (chart) { chart.data = getChartData(chartType); chart.update(); } }
-
-        function exportData() { try { const b = new Blob([JSON.stringify({ version: APP_VERSION, stages, audioMeta, stats, exportDate: new Date().toISOString() }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'neuro_backup_' + new Date().toISOString().split('T')[0] + '.json'; a.click(); } catch (e) {} }
-        function importData() { $('importFile').click(); }
-        async function handleImport(input) { const f = input.files[0]; if (!f) return; try { const d = JSON.parse(await f.text()); if (d.stages) stages = d.stages; if (d.stats) { stats = d.stats; saveStats(); } if (d.audioMeta) audioMeta = d.audioMeta; saveAll(); renderRows(); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini(); updateStats(); updateChartData(); showToast('systemToast', '✅ 导入成功', 3000); } catch (e) { showError('导入失败'); } input.value = ''; }
-        async function clearAll() { if (!confirm('⚠️ 确定清除所有数据？')) return; try { pause(); stopAll(); for (let i = 0; i < 5; i++) await deleteAudio(i); await clearAllAudio(); localStorage.clear(); stages = structuredClone(DEFAULT_STAGES); currentStage = 0; totalTime = 0; savedTime = 0; audioMeta = [null, null, null, null, null]; autoSave = true; stats = { sessions: [], totalSessions: 0, totalMinutes: 0, currentStreak: 0, lastTrainingDate: null, dailyRecords: {} }; localStorage.setItem(AUTO_SAVE_KEY, 'true'); localStorage.setItem(STAGES_KEY, JSON.stringify(stages)); renderRows(); initPlaylist(); updateStage(); updateDisp(); updateStats(); updateChartData(); updateTotalLabel(); updateMini(); $('currentMode').textContent = '准备开始'; $('playBtn').textContent = '▶ 开始训练'; $('autoSaveToggle').classList.add('active'); alert('✅ 已清除'); } catch (e) { showError('清除失败'); } }
-        function toggleAuto() { autoSave = !autoSave; localStorage.setItem(AUTO_SAVE_KEY, String(autoSave)); $('autoSaveToggle').classList.toggle('active', autoSave); if (autoSave) saveState(); }
-        async function requestWL() { try { if ('wakeLock' in navigator && isPlaying) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => log('唤醒锁释放')); } } catch (e) {} }
-        async function releaseWL() { if (wakeLock) { try { await wakeLock.release(); wakeLock = null; } catch (e) {} } }
-
-        // ===== 事件 =====
-        function bindEvents() {
-            $('playBtn').addEventListener('click', togglePlay); $('resetBtn').addEventListener('click', reset);
-            $('exportBtn').addEventListener('click', exportData); $('importBtn').addEventListener('click', importData);
-            $('clearBtn').addEventListener('click', clearAll); $('miniPlayBtn').addEventListener('click', togglePlay);
-            $('prevBtn').addEventListener('click', prevTrack); $('nextBtn').addEventListener('click', nextTrack);
-            $('trackProgressBar').addEventListener('click', seekPos);
-            $('configModal').addEventListener('click', e => { if (e.target === $('configModal')) closeConfig(); });
-            $('btnSaveConfig').addEventListener('click', saveConfig); $('btnCancelConfig').addEventListener('click', closeConfig);
-            $('btnLocalFile').addEventListener('click', triggerFile); $('btnOnlineLink').addEventListener('click', promptUrl);
-            $('btnDeleteLocal').addEventListener('click', delFile); $('btnDeleteOnline').addEventListener('click', delUrl);
-            $('advancedToggle').addEventListener('click', toggleAdv);
-            $('localFileInput').addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { tempFile = f; tempUrl = ''; tempDuration = await getAudioDur(f); if (tempDuration > 0) $('cfg_duration').value = tempDuration; $('localFileName').textContent = f.name; $('localFileSize').textContent = (f.size / 1024 / 1024).toFixed(2) + ' MB'; $('localFileItem').style.display = 'flex'; $('noMusicItem').style.display = 'none'; } catch (e) {} e.target.value = ''; });
-            $('importFile').addEventListener('change', function() { handleImport(this); });
-            document.querySelectorAll('.chart-tab').forEach(t => t.addEventListener('click', () => switchChart(t.dataset.type)));
-            $('autoSaveToggle').addEventListener('click', toggleAuto);
-            document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.code === 'Space') { e.preventDefault(); togglePlay(); } else if (e.code === 'ArrowLeft') { e.preventDefault(); prevTrack(); } else if (e.code === 'ArrowRight') { e.preventDefault(); nextTrack(); } });
-            document.addEventListener('visibilitychange', () => { if (document.hidden && autoSave) saveState(); if (!document.hidden && isPlaying) { updateMS(stages[currentStage], audioMeta[currentStage]); sendMediaNotif(); } });
-        }
-
-        // ===== 初始化 =====
-        async function init() {
-            try {
+        // 初始化
+        async function init(){
+            try{
                 log('初始化...');
-                const ua = navigator.userAgent || ''; isHuawei = /huawei|honor|harmonyos/i.test(ua);
-                initPWA(); registerSW(); loadStages(); loadStats();
-                autoSave = localStorage.getItem(AUTO_SAVE_KEY) !== 'false'; $('autoSaveToggle').classList.toggle('active', autoSave);
-                initChart(); await loadState(); updateStats(); updateChartData(); bindEvents(); updateDiag();
-                if (isHuawei && Notification.permission === 'default') { setTimeout(async () => { const p = await Notification.requestPermission(); if (p !== 'granted') showToast('systemToast', '📱 请允许通知', 5000); }, 3000); }
-                setInterval(() => { if (autoSave && isPlaying) saveState(); }, 15000);
-                window.addEventListener('beforeunload', () => { if (autoSave) saveState(); });
-                const aa = async () => { try { await ensureAC(); document.removeEventListener('touchstart', aa); document.removeEventListener('click', aa); } catch (e) {} };
-                document.addEventListener('touchstart', aa, { once: true }); document.addEventListener('click', aa, { once: true });
-                log('初始化完成'); console.log('🧠 神经重塑 v' + APP_VERSION + ' | 通知按钮版');
-            } catch (e) { showError('初始化失败'); }
+                const ua=navigator.userAgent||'';ih=/huawei|honor|harmonyos/i.test(ua);
+                log('设备:',ih?'华为/Honor':'其他');
+                ipw();rsw();ls();lst();
+                asv=localStorage.getItem('nra_final2')!=='false';$('autoToggle').classList.toggle('act',asv);
+                ic();await lsd();uss();uc();be();udi();
+                if(ih&&Notification.permission==='default'){setTimeout(async()=>{const p=await Notification.requestPermission();log('通知权限:',p);if(p!=='granted')st2('sysToast','📱 请允许通知获取锁屏控制',5000);},3000);}
+                setInterval(()=>{if(asv&&ip)sav();},15000);
+                window.addEventListener('beforeunload',()=>{if(asv)sav();});
+                const aa=async()=>{try{await eac();document.removeEventListener('touchstart',aa);document.removeEventListener('click',aa);}catch(e){}};
+                document.addEventListener('touchstart',aa,{once:true});document.addEventListener('click',aa,{once:true});
+                log('初始化完成');console.log('🧠 神经重塑 v'+V);
+            }catch(e){se('初始化失败');}
         }
 
-        window.app = { togglePlay, reset, exportData, importData, clearAll, toggleAutoSave: toggleAuto, prevTrack, nextTrack, switchTrack, seekPos, openConfig, handleImport, copyRow, showDiagnostic, sendTestNotification, showNotifSettingsGuide, updateDiagnostic: updateDiag, get version() { return APP_VERSION; }, get isPlaying() { return isPlaying; } };
-        window.togglePlay = togglePlay; window.reset = reset; window.exportData = exportData; window.importData = importData; window.clearAllData = clearAll; window.toggleAutoSave = toggleAuto; window.prevTrack = prevTrack; window.nextTrack = nextTrack; window.switchToTrack = switchTrack; window.seekToPosition = seekPos; window.openConfigModal = openConfig; window.handleImport = handleImport; window.copyRowContent = copyRow;
-
+        window.app={togglePlay:tp,reset,exportData:ed,importData:id2,clearAll:ca2,toggleAutoSave:tas,prevTrack:pt,nextTrack:nt,switchTrack:swt,seekPos:skp,openConfig:ocm,handleImport:hi,copyRow:cr2,showDiag:shd,testNotif:tstNotif,showGuide,updateDiag:udi,get version(){return V;},get isPlaying(){return ip;}};
+        window.togglePlay=tp;window.reset=reset;window.exportData=ed;window.importData=id2;window.clearAllData=ca2;window.toggleAutoSave=tas;window.prevTrack=pt;window.nextTrack=nt;window.switchToTrack=swt;window.seekToPosition=skp;window.openConfigModal=ocm;window.handleImport=hi;window.copyRowContent=cr2;
         init();
     })();
     </script>
