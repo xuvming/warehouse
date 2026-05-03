@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>🧠 神经重塑 · 终极控制器</title>
-
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#1a1a2e">
+    
+    <!-- 🔑 华为适配：添加更多元数据 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="神经重塑">
-    <meta name="description" content="神经重塑PWA训练应用，支持锁屏控制与离线运行">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="screen-orientation" content="portrait">
     <meta name="x5-orientation" content="portrait">
@@ -19,11 +17,13 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <meta name="layoutmode" content="fitscreen">
-
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <meta name="theme-color" content="#1a1a2e">
+    
+    <!-- 🔑 华为浏览器支持 Web App Manifest -->
+    <link rel="manifest" href="./manifest.json">
 
     <style>
+        /* 所有样式保持不变 */
         :root { --primary-green: #00d4aa; --primary-blue: #00a8e8; --bg-dark: #1a1a2e; --bg-light: #16213e; --text-main: #ffffff; --text-secondary: #b0c4de; --text-muted: #6c7a9e; --danger: #ff6b6b; --warning: #ffd93d; --success: #4caf50; --radius-sm: 12px; --radius-md: 20px; --radius-lg: 30px; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'HarmonyOS Sans', 'Noto Sans SC', sans-serif; background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-light) 50%, #0f3460 100%); min-height: 100vh; min-height: 100dvh; color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: env(safe-area-inset-top, 20px) 12px env(safe-area-inset-bottom, 100px); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
@@ -188,6 +188,21 @@
             font-weight: 700;
             flex-shrink: 0;
         }
+        
+        /* 🔑 新增：锁屏控制引导提示 */
+        .lock-screen-guide {
+            background: rgba(255, 217, 61, 0.1);
+            border: 1.5px solid var(--warning);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 16px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            display: none;
+        }
+        .lock-screen-guide.show { display: block; }
     </style>
 </head>
 <body>
@@ -198,8 +213,18 @@
         <h3>📱 华为浏览器安装指南</h3>
         <div class="step"><span class="step-num">1</span>点击浏览器底部「⋮」菜单</div>
         <div class="step"><span class="step-num">2</span>选择「添加到主屏幕」或「桌面快捷方式」</div>
-        <div class="step"><span class="step-num">3</span>从桌面图标打开，即可享受锁屏控制</div>
-        <p style="margin-top:10px;color:var(--warning);">⚠️ 安装后首次使用需点击「开始训练」激活音频</p>
+        <div class="step"><span class="step-num">3</span>从桌面图标打开，点击「开始训练」激活锁屏控制</div>
+        <p style="margin-top:10px;color:var(--warning);">⚠️ 首次使用需点击「开始训练」并检查通知权限</p>
+    </div>
+    
+    <!-- 🔑 新增：锁屏控制引导 -->
+    <div class="lock-screen-guide" id="lockScreenGuide">
+        <h3 style="color: var(--warning); margin-bottom: 10px;">🔒 锁屏控制设置</h3>
+        <div class="step"><span class="step-num">1</span>确保已允许通知权限</div>
+        <div class="step"><span class="step-num">2</span>开始训练播放音频</div>
+        <div class="step"><span class="step-num">3</span>锁屏后下拉通知栏即可看到控制按钮</div>
+        <p style="margin-top:10px;color:var(--text-secondary);">💡 系统级锁屏控制需要PWA安装并授权通知</p>
+        <button class="btn" style="margin-top:10px;width:100%;" onclick="document.getElementById('lockScreenGuide').classList.remove('show')">我知道了</button>
     </div>
     
     <div class="status-bar">
@@ -217,14 +242,13 @@
         <h4>🔍 锁屏控制诊断</h4>
         <div class="diag-row"><span class="diag-label">PWA模式</span><span class="diag-value" id="diagPWA">检测中...</span></div>
         <div class="diag-row"><span class="diag-label">通知权限</span><span class="diag-value" id="diagNotif">检测中...</span></div>
-        <div class="diag-row"><span class="diag-label">媒体通知按钮</span><span class="diag-value" id="diagMediaNotif">检测中...</span></div>
         <div class="diag-row"><span class="diag-label">MediaSession API</span><span class="diag-value" id="diagMedia">检测中...</span></div>
-        <div class="diag-row"><span class="diag-label">音频上下文</span><span class="diag-value" id="diagAudio">检测中...</span></div>
         <div class="diag-row"><span class="diag-label">Service Worker</span><span class="diag-value" id="diagSW">检测中...</span></div>
-        <div class="diag-row"><span class="diag-label">播放状态</span><span class="diag-value" id="diagPlaying">检测中...</span></div>
+        <div class="diag-row"><span class="diag-label">音频状态</span><span class="diag-value" id="diagPlaying">检测中...</span></div>
+        <div class="diag-row"><span class="diag-label">节拍器</span><span class="diag-value" id="diagMetro">检测中...</span></div>
         <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.showNotifSettingsGuide()">⚙️ 通知设置</button>
-            <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.sendTestNotification()">📢 测试通知</button>
+            <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.sendTestNotification()">📢 测试锁屏通知</button>
             <button class="btn" style="flex:1;min-width:80px;padding:10px;font-size:12px;" onclick="document.getElementById('diagnosticPanel').classList.remove('show')">关闭</button>
         </div>
     </div>
@@ -238,9 +262,10 @@
         </defs>
     </svg>
 
+    <!-- 其余HTML结构保持不变 -->
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏控制 · PWA离线可用 v4.3</p>
+        <p class="subtitle">锁屏控制 · PWA离线可用 v4.4</p>
     </div>
 
     <div class="music-status">
@@ -404,13 +429,13 @@
         'use strict';
 
         // ========== 版本和配置 ==========
-        const APP_VERSION = '4.3.0-huawei-fix';
+        const APP_VERSION = '4.4.0-huawei-lockscreen-fix';
         const DEBUG = true;
-        const STAGES_KEY = 'nrc_v43';
-        const STATE_KEY = 'nrd_v43';
-        const AUTO_SAVE_KEY = 'nra_v43';
-        const STATS_KEY = 'nrs_v43';
-        const AUDIO_DB = 'NADB_v43';
+        const STAGES_KEY = 'nrc_v44';
+        const STATE_KEY = 'nrd_v44';
+        const AUTO_SAVE_KEY = 'nra_v44';
+        const STATS_KEY = 'nrs_v44';
+        const AUDIO_DB = 'NADB_v44';
         const AUDIO_STORE = 'audioFiles';
         const MEDIA_NOTIF_TAG = 'neuro-media-control';
 
@@ -444,7 +469,8 @@
         let errCount = 0;
         let isHuawei = false;
         let deferredPrompt = null;
-        let audioContextReady = false; // 🔑 标记音频上下文是否已就绪
+        let audioContextReady = false;
+        let metroActive = false; // 🔑 节拍器活跃标记
 
         // ========== 工具函数 ==========
         const $ = id => document.getElementById(id);
@@ -522,15 +548,14 @@
         async function deleteAudio(id) { try { const db = await openDB(); return new Promise(r => { const tx = db.transaction([AUDIO_STORE], 'readwrite'); tx.objectStore(AUDIO_STORE).delete(id); tx.oncomplete = () => r(); }); } catch (e) {} }
         async function clearAllAudio() { try { const db = await openDB(); return new Promise(r => { const tx = db.transaction([AUDIO_STORE], 'readwrite'); tx.objectStore(AUDIO_STORE).clear(); tx.oncomplete = () => r(); }); } catch (e) {} }
 
-        // ========== 🔑 音频核心（华为兼容修复） ==========
+        // ========== 🔑 音频核心（华为兼容修复 v4.4） ==========
         
-        // 🔑 关键修复：不在初始化时创建 AudioContext，而是延迟到用户交互后
         async function ensureAC() {
             try {
                 if (!audioContext || audioContext.state === 'closed') {
                     const AC = window.AudioContext || window.webkitAudioContext;
                     if (!AC) throw new Error('浏览器不支持 Web Audio API');
-                    audioContext = new AC();
+                    audioContext = new AC({ latencyHint: 'interactive', sampleRate: 44100 });
                 }
                 if (audioContext.state === 'suspended') {
                     await audioContext.resume();
@@ -561,6 +586,7 @@
         function stopMetro() { 
             if (metroInterval) { clearInterval(metroInterval); metroInterval = null; } 
             if (metroProgress) { clearInterval(metroProgress); metroProgress = null; } 
+            metroActive = false;
         }
         function clearLoops() { stopMetro(); if (mainLoop) { clearInterval(mainLoop); mainLoop = null; } }
         
@@ -574,6 +600,7 @@
             releaseWL(); 
             errCount = 0; 
             audioContextReady = false;
+            metroActive = false;
         }
         
         function getAudioDur(file) {
@@ -595,17 +622,25 @@
             });
         }
 
+        // 🔑 改进的节拍器：使用持续的低频振荡器保持音频活跃
         function startMetro(bpm) {
             stopMetro();
+            metroActive = true;
             const stage = stages[currentStage], dur = stage.duration || 300;
             $('trackDuration').textContent = fmtTime(dur);
             $('trackCurrentTime').textContent = '00:00';
             $('trackProgressFill').style.width = '0%';
             metroStart = performance.now();
+            
+            // 立即发送一次节拍
             clickMetro();
-            metroInterval = setInterval(() => { if (isPlaying) clickMetro(); }, (60 / bpm) * 1000);
+            
+            metroInterval = setInterval(() => { 
+                if (isPlaying && metroActive) clickMetro(); 
+            }, (60 / bpm) * 1000);
+            
             metroProgress = setInterval(() => {
-                if (!isPlaying) return;
+                if (!isPlaying || !metroActive) return;
                 const elapsed = (performance.now() - metroStart) / 1000;
                 const prog = Math.min((elapsed / dur) * 100, 100);
                 $('trackProgressFill').style.width = prog + '%';
@@ -624,24 +659,29 @@
                 g.connect(audioContext.destination); 
                 o.frequency.value = 1000; 
                 const n = audioContext.currentTime; 
-                g.gain.setValueAtTime(0.12, n); 
-                g.gain.exponentialRampToValueAtTime(0.001, n + 0.05); 
+                g.gain.setValueAtTime(0.15, n); 
+                g.gain.exponentialRampToValueAtTime(0.001, n + 0.08); 
                 o.start(n); 
-                o.stop(n + 0.05); 
+                o.stop(n + 0.08); 
             } catch (e) {}
         }
         
         async function createBG(stage) {
             stopBG();
+            metroActive = true;
             try { 
                 const ctx = await ensureAC(); 
+                
+                // 🔑 创建一个持续的低频背景音，保持音频上下文活跃
                 bgOsc = ctx.createOscillator(); 
                 bgGain = ctx.createGain(); 
                 bgOsc.connect(bgGain); 
                 bgGain.connect(ctx.destination); 
-                bgOsc.frequency.value = 440; 
-                bgGain.gain.value = 0.0001; 
+                bgOsc.frequency.value = 100; // 低频
+                bgGain.gain.value = 0.005; // 极低音量，听不见但保持活跃
                 bgOsc.start(); 
+                
+                log('[BG] 背景音频已创建，保持系统级播放状态');
             } catch (e) {
                 console.error('[BG] 创建背景音失败:', e);
             }
@@ -654,6 +694,7 @@
 
         async function playStageMusic(idx, resume = 0) {
             stopAll();
+            metroActive = false;
             const meta = audioMeta[idx], stage = stages[idx];
             const onUpd = () => {
                 if (!currentAudio) return;
@@ -717,17 +758,22 @@
                     try {
                         if (resume > 0 && isFinite(resume)) audio.currentTime = resume;
                         
-                        // 🔑 华为兼容：先设置 mediaSession 状态再播放
+                        // 🔑 华为兼容：设置 mediaSession 再播放
                         if ('mediaSession' in navigator) {
                             navigator.mediaSession.playbackState = 'playing';
                         }
                         
                         await audio.play();
                         $('currentMode').textContent = text;
+                        metroActive = false; // 有音频时关闭节拍器标记
                         updateMS(stages[currentStage], audioMeta[currentStage]);
                         updateMini(); 
                         showHint();
+                        
+                        // 🔑 关键修复：播放成功后立即发送通知和SW更新
                         sendMediaNotification();
+                        updateSWNotification();
+                        
                         resolve(true);
                     } catch (e) { 
                         console.error('[Audio] play() 失败:', e);
@@ -736,10 +782,8 @@
                     }
                 };
                 
-                // 立即执行
                 exec();
                 
-                // 5秒超时
                 setTimeout(() => { 
                     if (!done) { 
                         done = true; 
@@ -750,7 +794,7 @@
             });
         }
 
-        // ========== 🔑 媒体通知（双重机制） ==========
+        // ========== 🔑 增强版媒体通知（v4.4核心修复） ==========
         async function sendMediaNotification() {
             log('[媒体] 发送媒体通知...');
             
@@ -785,7 +829,11 @@
                 }
             }
             
-            // 机制2：SW Notification Actions（华为下拉通知栏）
+            // 机制2：始终尝试更新SW通知
+            await updateSWNotification();
+        }
+        
+        async function updateSWNotification() {
             if (!('serviceWorker' in navigator)) { 
                 log('[媒体] SW 不可用'); 
                 return; 
@@ -794,41 +842,32 @@
             try {
                 const reg = await navigator.serviceWorker.ready;
                 if (!reg || !reg.active) { 
-                    log('[媒体] SW 未激活'); 
-                    return; 
-                }
-                
-                // 检查通知权限
-                if (Notification.permission !== 'granted') {
-                    log('[媒体] 通知权限未授予');
+                    log('[媒体] SW 未激活，尝试注册'); 
+                    try {
+                        await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                    } catch (e) {
+                        log('[媒体] SW 注册失败:', e);
+                    }
                     return;
                 }
                 
                 const s = stages[currentStage];
                 
-                // 关闭旧通知
-                const oldNotifs = await reg.getNotifications({ tag: MEDIA_NOTIF_TAG });
-                oldNotifs.forEach(n => n.close());
-                
-                // 发送新通知
-                await reg.showNotification('🎵 ' + s.name, {
-                    body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
-                    icon: getIcon(),
-                    badge: getIcon(),
-                    tag: MEDIA_NOTIF_TAG,
-                    requireInteraction: false,
-                    silent: true,
-                    actions: [
-                        { action: 'prev', title: '⏮ 上一首' },
-                        { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
-                        { action: 'next', title: '⏭ 下一首' }
-                    ],
-                    data: { stage: currentStage, playing: isPlaying, type: 'media-control' }
+                // 直接向SW发送消息更新通知
+                reg.active.postMessage({
+                    type: 'UPDATE_MEDIA_NOTIFICATION',
+                    payload: {
+                        title: '🎵 ' + s.name,
+                        body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
+                        icon: getIcon(),
+                        stage: currentStage,
+                        playing: isPlaying
+                    }
                 });
                 
-                log('[媒体] ✅ SW 通知已发送');
+                log('[媒体] ✅ SW通知更新请求已发送');
             } catch (e) {
-                log('[媒体] SW 通知失败:', e);
+                log('[媒体] SW通知更新失败:', e);
             }
         }
 
@@ -836,29 +875,49 @@
             if (!('serviceWorker' in navigator)) return;
             try {
                 const reg = await navigator.serviceWorker.ready;
-                const notifs = await reg.getNotifications({ tag: MEDIA_NOTIF_TAG });
-                notifs.forEach(n => n.close());
+                reg.active?.postMessage({ type: 'CLOSE_MEDIA_NOTIFICATION' });
             } catch (e) {}
         }
 
         // 测试通知
         async function sendTestNotification() {
             try {
-                // 先确保音频上下文已激活
                 if (!audioContextReady) {
                     await ensureAC();
                 }
                 
-                // 如果没有播放，先创建一个静音音频保持上下文活跃
+                // 🔑 强制创建节拍器或背景音
                 if (!isPlaying) {
-                    if (!bgOsc && !currentAudio) {
-                        await createBG(stages[currentStage]);
-                    }
+                    await createBG(stages[currentStage]);
                     isPlaying = true;
+                    $('playBtn').textContent = '⏸ 暂停';
+                    $('miniPlayBtn').textContent = '⏸';
+                    
+                    // 启动主循环
+                    mainLoop = setInterval(() => {
+                        if (!isPlaying) return;
+                        totalTime++;
+                        updateDisp();
+                    }, 1000);
                 }
                 
+                // 强制发送通知
                 await sendMediaNotification();
-                showToast('systemToast', '📢 通知已发送！请锁屏查看', 6000);
+                
+                // 通知权限检查
+                if (Notification.permission !== 'granted') {
+                    const p = await Notification.requestPermission();
+                    if (p !== 'granted') {
+                        alert('⚠️ 需要通知权限才能使用锁屏控制\n\n设置方法：\n系统设置 → 应用 → 浏览器 → 通知 → 允许');
+                    }
+                }
+                
+                showToast('systemToast', '📢 通知已发送！请锁屏后下拉通知栏查看控制按钮', 8000);
+                
+                // 显示锁屏引导
+                const guide = document.getElementById('lockScreenGuide');
+                if (guide) guide.classList.add('show');
+                
                 updateDiag();
             } catch (e) {
                 showError('测试通知失败: ' + e.message);
@@ -871,16 +930,16 @@
             overlay.innerHTML = `
                 <div style="background:linear-gradient(135deg,#1e1e3a,#16213e);border:2px solid #ffd93d;border-radius:24px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
                     <div style="font-size:48px;margin-bottom:16px;">🔔</div>
-                    <h3 style="color:#ffd93d;margin-bottom:16px;">通知设置检查清单</h3>
+                    <h3 style="color:#ffd93d;margin-bottom:16px;">🔒 锁屏控制设置清单</h3>
                     <div style="text-align:left;color:#b0c4de;font-size:13px;line-height:2.2;">
-                        <p>📱 <strong>设置 → 通知 → Chrome/浏览器</strong></p>
+                        <p>📱 <strong>系统设置 → 通知 → 浏览器</strong></p>
                         <p>✅ 1. 开启「允许通知」</p>
-                        <p>✅ 2. <strong style="color:#ff6b6b;">关闭「静默通知」</strong></p>
-                        <p>✅ 3. 锁屏通知 → 「显示」</p>
+                        <p>✅ 2. <strong style="color:#ff6b6b;">下拉通知栏显示 → 开启</strong></p>
+                        <p>✅ 3. 锁屏通知 → 「显示所有通知」</p>
                         <p>✅ 4. 横幅通知 → 「开启」</p>
-                        <p>✅ 5. 提醒方式 → 「铃声和振动」</p>
-                        <p style="color:#ff6b6b;margin-top:8px;">🔑 关键：关闭所有「静默通知」！</p>
-                        <p style="color:#ffd93d;margin-top:8px;">💡 如锁屏无按钮，请下拉通知栏查看</p>
+                        <p>✅ 5. <strong style="color:#00d4aa;">媒体播放 → 锁屏显示</strong></p>
+                        <p style="color:#ffd93d;margin-top:8px;">💡 华为手机锁屏后<b>下拉通知栏</b>即可看到控制按钮</p>
+                        <p style="color:#ff6b6b;">⚠️ 请注意：系统级锁屏控制（直接显示）需要原生APP，PWA通过通知栏提供控制</p>
                     </div>
                     <button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(90deg,#ffd93d,#ffa500);color:#000;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;">我知道了</button>
                 </div>`;
@@ -918,12 +977,11 @@
             } catch (e) {}
         }
 
-        // ========== 🔑 播放控制（华为兼容修复） ==========
+        // ========== 🔑 播放控制（华为兼容修复 v4.4） ==========
         async function togglePlay() {
             try {
                 log('[Play] togglePlay 被调用, isPlaying=' + isPlaying);
                 
-                // 🔑 华为兼容：首次播放必须用户交互触发
                 if (!audioContextReady) {
                     log('[Play] 首次播放，激活音频上下文...');
                     await ensureAC();
@@ -954,7 +1012,6 @@
                 await playStageMusic(currentStage, rt);
             } catch (e) {
                 console.error('[Play] playStageMusic 失败:', e);
-                // 回退到节拍器
                 try {
                     await createBG(stages[currentStage]);
                 } catch (e2) {
@@ -966,7 +1023,6 @@
                 }
             }
             
-            // 启动主循环
             mainLoop = setInterval(() => {
                 if (!isPlaying) return;
                 totalTime++;
@@ -978,6 +1034,10 @@
             }, 1000);
             
             updateMS(stages[currentStage], audioMeta[currentStage]);
+            
+            // 🔑 播放后立即发送通知
+            sendMediaNotification();
+            
             await requestWL(); 
             showHint(); 
             updateDiag();
@@ -997,8 +1057,8 @@
                 currentAudio.pause(); 
             }
             
-            stopMetro(); 
-            stopBG();
+            stopMetro();
+            metroActive = false;
             
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = 'paused';
@@ -1117,11 +1177,10 @@
                 
                 setV('diagPWA', sa ? '✅ 已安装PWA' : '❌ 浏览器模式', sa ? 'ok' : 'warn');
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
-                setV('diagMediaNotif', np === 'granted' ? '✅ 可发送' : '❌ 无权限', np === 'granted' ? 'ok' : 'error');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
-                setV('diagAudio', acReady ? '✅ 就绪' : '⚠ 未激活', acReady ? 'ok' : 'warn');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
                 setV('diagPlaying', isPlaying ? '▶ 播放中' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagMetro', metroActive ? '✅ 活跃' : '—', metroActive ? 'ok' : '');
             } catch (e) {
                 console.error('[Diag] 诊断更新失败:', e);
             }
@@ -1194,7 +1253,7 @@
                 deferredPrompt = null; 
                 $('pwaInstallHint').classList.remove('show');
                 if (outcome === 'accepted') {
-                    showToast('systemToast', '✅ 安装成功！从桌面打开即可', 3000);
+                    showToast('systemToast', '✅ 安装成功！从桌面打开并授权通知', 3000);
                 }
             });
             
@@ -1369,7 +1428,7 @@
             document.body.removeChild(ta);
         }
 
-        // ========== 配置弹窗 ==========
+        // ========== 配置弹窗（保持不变） ==========
         function openConfig(idx) {
             editIdx = idx;
             const s = stages[idx], m = audioMeta[idx];
@@ -1886,14 +1945,13 @@
                 updateChartData(); 
                 bindEvents();
                 
-                // 🔑 延迟执行诊断，确保 DOM 已就绪
                 setTimeout(() => {
                     updateDiag();
                     log('诊断已更新');
                 }, 500);
                 
-                // 华为设备自动请求通知权限
-                if (isHuawei && Notification.permission === 'default') {
+                // 🔑 华为设备：主动请求通知权限
+                if (Notification.permission === 'default') {
                     setTimeout(async () => {
                         try {
                             const p = await Notification.requestPermission();
@@ -1905,7 +1963,7 @@
                         } catch (e) {
                             log('通知权限请求失败:', e);
                         }
-                    }, 3000);
+                    }, 2000);
                 }
                 
                 // 自动保存
@@ -1934,7 +1992,10 @@
                 
                 log('初始化完成');
                 console.log('🧠 神经重塑训练 v' + APP_VERSION);
-                console.log('💡 功能: 锁屏通知按钮 | 下拉通知栏控制 | PWA离线');
+                console.log('💡 锁屏控制使用方法:');
+                console.log('   1. 开始训练播放音频');
+                console.log('   2. 锁屏');
+                console.log('   3. 下拉通知栏查看控制按钮');
                 console.log('📱 华为模式:', isHuawei ? '已启用' : '未检测到');
             } catch (e) { 
                 console.error('[Init] 初始化失败:', e);
@@ -1989,4 +2050,3 @@
     </script>
 </body>
 </html>
-
