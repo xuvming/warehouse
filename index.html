@@ -233,7 +233,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏控制 · PWA离线可用 v5.0</p>
+        <p class="subtitle">锁屏控制 · PWA离线可用 v5.1</p>
     </div>
 
     <div class="music-status">
@@ -395,7 +395,7 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '5.0.0-button-fix';
+        const APP_VERSION = '5.1.0-lockscreen';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v50';
         const STATE_KEY = 'nrd_v50';
@@ -435,6 +435,7 @@
         let isHuawei = false;
         let deferredPrompt = null;
         let audioContextReady = false;
+        let positionUpdateInterval = null;
 
         const $ = id => document.getElementById(id);
         function log(...a) { if (DEBUG) console.log('[NeuroApp v' + APP_VERSION + ']', ...a); }
@@ -539,6 +540,7 @@
                 } catch (e) {} 
                 currentAudio = null; 
             }
+            stopPositionUpdater();
         }
         function stopBG() { 
             if (bgOsc) { try { bgOsc.stop(); } catch (e) {} bgOsc = null; } 
@@ -548,7 +550,10 @@
             if (metroInterval) { clearInterval(metroInterval); metroInterval = null; } 
             if (metroProgress) { clearInterval(metroProgress); metroProgress = null; } 
         }
-        function clearLoops() { stopMetro(); if (mainLoop) { clearInterval(mainLoop); mainLoop = null; } }
+        function clearLoops() { stopMetro(); if (mainLoop) { clearInterval(mainLoop); mainLoop = null; } stopPositionUpdater(); }
+        function stopPositionUpdater() {
+            if (positionUpdateInterval) { clearInterval(positionUpdateInterval); positionUpdateInterval = null; }
+        }
         
         async function resetAudio() { 
             stopAll(); clearLoops(); 
@@ -711,6 +716,7 @@
                         updateMS(stages[currentStage], audioMeta[currentStage]);
                         updateMini(); 
                         showHint();
+                        startPositionUpdater();
                         
                         // 🔑 播放后发送通知
                         sendMediaNotification();
@@ -735,11 +741,31 @@
             });
         }
 
-        // 🔑🔑🔑 核心修复：通知按钮显示
+        function startPositionUpdater() {
+            stopPositionUpdater();
+            positionUpdateInterval = setInterval(() => {
+                if (!isPlaying || !currentAudio) return;
+                if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+                    try {
+                        const pos = currentAudio.currentTime || 0;
+                        const dur = currentAudio.duration || stages[currentStage]?.duration || 300;
+                        if (dur > 0 && isFinite(dur) && isFinite(pos)) {
+                            navigator.mediaSession.setPositionState({
+                                duration: dur,
+                                playbackRate: isPlaying ? 1 : 0,
+                                position: Math.min(Math.max(pos, 0), dur)
+                            });
+                        }
+                    } catch (e) {}
+                }
+            }, 1000);
+        }
+
+        // 🔑 增强的媒体通知发送函数
         async function sendMediaNotification() {
-            log('[媒体] 发送媒体通知...');
+            log('[媒体] 发送增强锁屏控制通知...');
             
-            // 设置 MediaSession
+            // 更新 MediaSession（用于蓝牙控制等）
             if ('mediaSession' in navigator) {
                 try {
                     const s = stages[currentStage];
@@ -752,87 +778,105 @@
                     });
                     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
                     
+                    // 🔑 确保所有操作处理器都绑定
                     const actions = {
                         play: () => { if (!isPlaying) togglePlay(); },
                         pause: () => { if (isPlaying) togglePlay(); },
                         previoustrack: () => prevTrack(),
                         nexttrack: () => nextTrack(),
-                        stop: () => { if (isPlaying) togglePlay(); }
+                        stop: () => { if (isPlaying) pause(); },
+                        seekforward: () => { if (currentAudio && isFinite(currentAudio.duration)) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + 10); },
+                        seekbackward: () => { if (currentAudio && isFinite(currentAudio.currentTime)) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 10); },
+                        seekto: (details) => { if (details.seekTime && currentAudio) currentAudio.currentTime = details.seekTime; }
                     };
-                    for (const [a, h] of Object.entries(actions)) { 
-                        try { navigator.mediaSession.setActionHandler(a, h); } catch (e) {} 
-                    }
-                } catch (e) {}
-            }
-            
-            // 🔑 使用 Notification API 直接发送（确保按钮可见）
-            if (Notification.permission === 'granted') {
-                try {
-                    // 关闭旧通知
-                    if ('serviceWorker' in navigator) {
-                        const reg = await navigator.serviceWorker.ready;
-                        const oldNotifs = await reg.getNotifications({ tag: MEDIA_NOTIF_TAG });
-                        oldNotifs.forEach(n => n.close());
-                    }
                     
-                    const s = stages[currentStage];
-                    
-                    // 🔑 关键：使用 serviceWorker.showNotification，且 silent: false
-                    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                        const reg = await navigator.serviceWorker.ready;
-                        await reg.showNotification('🎵 ' + s.name, {
-                            body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
-                            icon: getIcon(),
-                            badge: getIcon(),
-                            tag: MEDIA_NOTIF_TAG,
-                            requireInteraction: false,
-                            silent: false,
-                            vibrate: [100, 50, 100],
-                            actions: [
-                                { action: 'prev', title: '⏮ 上一首' },
-                                { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
-                                { action: 'next', title: '⏭ 下一首' }
-                            ],
-                            data: { stage: currentStage, playing: isPlaying, type: 'media-control' }
-                        });
-                        log('[媒体] ✅ SW通知已发送（带按钮，silent=false）');
-                    } else {
-                        // 降级：使用普通 Notification
-                        const notification = new Notification('🎵 ' + s.name, {
-                            body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
-                            icon: getIcon(),
-                            tag: MEDIA_NOTIF_TAG,
-                            requireInteraction: false,
-                            silent: false,
-                            vibrate: [100, 50, 100],
-                            actions: [
-                                { action: 'prev', title: '⏮ 上一首' },
-                                { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
-                                { action: 'next', title: '⏭ 下一首' }
-                            ],
-                            data: { stage: currentStage, playing: isPlaying, type: 'media-control' }
-                        });
-                        notification.addEventListener('click', () => {
-                            window.focus();
-                            notification.close();
-                        });
-                        log('[媒体] ✅ 普通Notification已发送（带按钮）');
+                    for (const [action, handler] of Object.entries(actions)) { 
+                        try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {} 
                     }
                 } catch (e) {
-                    log('[媒体] 通知发送失败:', e);
+                    log('[媒体] MediaSession更新失败:', e);
+                }
+            }
+            
+            // 🔑 通过Service Worker发送通知（带控制按钮）
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                try {
+                    const s = stages[currentStage];
+                    const m = audioMeta[currentStage];
+                    
+                    // 发送消息给Service Worker更新通知
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'UPDATE_MEDIA_NOTIFICATION',
+                        payload: {
+                            title: '🎵 ' + s.name,
+                            body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM' + (m?.name ? ' · ' + m.name : ''),
+                            icon: getIcon(),
+                            artwork: getIcon(),
+                            stage: currentStage,
+                            playing: isPlaying,
+                            timestamp: Date.now()
+                        }
+                    });
+                    
+                    log('[媒体] ✅ 锁屏控制通知已通过SW发送');
+                } catch (e) {
+                    log('[媒体] SW通知发送失败:', e);
+                    fallbackNotification();
                 }
             } else {
-                log('[媒体] 通知权限未授予');
+                fallbackNotification();
+            }
+        }
+
+        // 降级通知处理
+        function fallbackNotification() {
+            if (Notification.permission !== 'granted') return;
+            
+            try {
+                const s = stages[currentStage];
+                
+                if (window._mediaNotification) {
+                    window._mediaNotification.close();
+                }
+                
+                const notification = new Notification('🎵 ' + s.name, {
+                    body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
+                    icon: getIcon(),
+                    badge: getIcon(),
+                    tag: MEDIA_NOTIF_TAG,
+                    requireInteraction: true,
+                    silent: false,
+                    vibrate: [100, 50, 100],
+                    actions: [
+                        { action: 'prev', title: '⏮ 上一首' },
+                        { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
+                        { action: 'next', title: '⏭ 下一首' }
+                    ],
+                    data: { stage: currentStage, playing: isPlaying, type: 'media-control' }
+                });
+                
+                notification.addEventListener('click', () => {
+                    window.focus();
+                    notification.close();
+                });
+                
+                window._mediaNotification = notification;
+                log('[媒体] ✅ 普通Notification已发送（降级方案）');
+            } catch (e) {
+                log('[媒体] 降级通知发送失败:', e);
             }
         }
 
         async function closeMediaNotification() {
-            if (!('serviceWorker' in navigator)) return;
-            try {
-                const reg = await navigator.serviceWorker.ready;
-                const notifs = await reg.getNotifications({ tag: MEDIA_NOTIF_TAG });
-                notifs.forEach(n => n.close());
-            } catch (e) {}
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'CLOSE_MEDIA_NOTIFICATION'
+                });
+            }
+            if (window._mediaNotification) {
+                window._mediaNotification.close();
+                window._mediaNotification = null;
+            }
         }
 
         async function sendTestNotification() {
@@ -917,10 +961,10 @@
             try {
                 const p = pos !== undefined ? pos : (currentAudio?.currentTime || 0);
                 const d = dur !== undefined ? dur : (currentAudio?.duration || stages[currentStage]?.duration || 0);
-                if (d > 0 && isFinite(d)) {
+                if (d > 0 && isFinite(d) && isFinite(p)) {
                     navigator.mediaSession.setPositionState({ 
                         duration: d, 
-                        playbackRate: 1, 
+                        playbackRate: isPlaying ? 1 : 0, 
                         position: Math.min(Math.max(p, 0), d) 
                     });
                 }
@@ -985,6 +1029,7 @@
             $('miniPlayBtn').textContent = '▶';
             clearInterval(mainLoop); 
             mainLoop = null;
+            stopPositionUpdater();
             
             if (currentAudio) { 
                 savedTime = currentAudio.currentTime; 
@@ -1201,24 +1246,71 @@
                 navigator.serviceWorker.register('./sw.js', { scope: './' })
                     .then(r => {
                         log('SW 注册成功, scope:', r.scope);
+                        
+                        // 🔑 监听Service Worker更新
+                        r.addEventListener('updatefound', () => {
+                            const newWorker = r.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    log('[SW] 新版本可用，将在下次访问时激活');
+                                }
+                            });
+                        });
                     })
                     .catch(e => {
                         log('SW 注册失败:', e);
                     });
             });
             
+            // 🔑 增强的Service Worker消息处理
             navigator.serviceWorker.addEventListener('message', e => {
+                log('[SW消息] 收到消息:', e.data);
+                
                 if (e.data?.type === 'MEDIA_ACTION') {
                     const action = e.data.action;
+                    const timestamp = e.data.timestamp;
+                    
+                    // 确认收到消息
+                    if (e.source && e.source.postMessage) {
+                        e.source.postMessage({ type: 'ACTION_RECEIVED', timestamp });
+                    }
+                    
+                    log('[SW消息] 执行媒体操作:', action);
+                    
                     const handlers = {
                         'playpause': togglePlay,
                         'prev': prevTrack,
                         'next': nextTrack,
                         'play': () => { if (!isPlaying) togglePlay(); },
                         'pause': () => { if (isPlaying) togglePlay(); },
+                        'previoustrack': prevTrack,
+                        'nexttrack': nextTrack,
+                        'stop': () => { if (isPlaying) pause(); },
                         'default': () => {}
                     };
-                    if (handlers[action]) handlers[action]();
+                    
+                    if (handlers[action]) {
+                        try {
+                            handlers[action]();
+                            // 🔑 操作后立即更新通知状态
+                            setTimeout(() => {
+                                if (isPlaying) {
+                                    sendMediaNotification();
+                                }
+                            }, 100);
+                        } catch (e) {
+                            log('[SW错误] 操作执行失败:', e);
+                        }
+                    }
+                }
+            });
+            
+            // 🔑 监听controller变化
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                log('[SW] Controller已变更');
+                // 重新发送通知以保持锁屏控制可用
+                if (isPlaying) {
+                    setTimeout(sendMediaNotification, 500);
                 }
             });
         }
@@ -1894,7 +1986,7 @@
                 document.addEventListener('click', activateAudio, { once: true });
                 
                 log('初始化完成');
-                console.log('🧠 神经重塑训练 v' + APP_VERSION);
+                console.log('🧠 神经重塑训练 v' + APP_VERSION + ' - 锁屏控制增强版');
             } catch (e) { 
                 console.error('[Init] 初始化失败:', e);
                 showError('初始化失败: ' + (e.message || '未知错误')); 
