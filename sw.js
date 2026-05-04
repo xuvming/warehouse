@@ -1,4 +1,4 @@
-﻿// 神经重塑训练 - Service Worker v5.2 方案二完整版
+﻿// 神经重塑训练 - Service Worker v5.2 锁屏增强版
 const CACHE_NAME = 'neuro-v52';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 const MEDIA_NOTIF_TAG = 'neuro-media-control';
@@ -56,11 +56,11 @@ self.addEventListener('notificationclick', event => {
         return new Promise(resolve => {
           // 设置消息接收超时
           const timeout = setTimeout(() => {
-            console.log('[SW] 客户端响应超时，直接执行后备操作');
+            console.log('[SW] 客户端响应超时');
             resolve();
           }, 3000);
           
-          // 创建一次性消息监听器
+          // 消息接收确认
           const messageHandler = (event) => {
             if (event.data.type === 'ACTION_RECEIVED') {
               clearTimeout(timeout);
@@ -82,7 +82,7 @@ self.addEventListener('notificationclick', event => {
         const client = clients[0];
         return client.focus().then(() => sendAction(client));
       } else {
-        // 没有打开窗口时，打开新窗口并延迟发送操作
+        // 打开新窗口并发送操作
         return self.clients.openWindow('./index.html').then(newClient => {
           if (newClient) {
             return new Promise(resolve => {
@@ -102,7 +102,7 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// 🔑 接收主应用消息更新通知
+// 🔑 接收主应用消息
 self.addEventListener('message', event => {
   if (event.data?.type === 'UPDATE_MEDIA_NOTIFICATION') {
     updateMediaNotification(event.data.payload);
@@ -112,7 +112,7 @@ self.addEventListener('message', event => {
   }
 });
 
-// 🔑🔑🔑 方案二核心：修改通知属性增强锁屏可见性
+// 🔑🔑🔑 方案二核心：requireInteraction=false, priority=high, category=transport
 async function updateMediaNotification(payload) {
   try {
     // 关闭旧通知
@@ -126,7 +126,7 @@ async function updateMediaNotification(payload) {
       badge: payload.icon || '',
       tag: MEDIA_NOTIF_TAG,
       
-      // 🔑 改为 false，允许锁屏时就显示全部内容
+      // 🔑 改为 false，允许锁屏时显示完整通知
       requireInteraction: false,
       
       // 🔑 不静音
@@ -138,7 +138,7 @@ async function updateMediaNotification(payload) {
       // 🔑 高优先级（Android 8.0+ 有效）
       priority: 'high',
       
-      // 🔑 媒体传输类别（让系统知道这是媒体控制）
+      // 🔑 媒体传输类别（让系统识别这是媒体控制）
       category: 'transport',
       
       // 🔑 每次更新重新提醒
@@ -177,11 +177,11 @@ async function updateMediaNotification(payload) {
       notificationOptions
     );
     
-    console.log('[SW] ✅ 方案二：高优先级媒体通知已发送', {
+    console.log('[SW] ✅ 方案二通知已发送', {
       requireInteraction: false,
       priority: 'high',
       category: 'transport',
-      actions: notificationOptions.actions.length
+      actions: 3
     });
     
   } catch (e) {

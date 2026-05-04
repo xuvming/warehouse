@@ -395,7 +395,7 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '5.2.0-planb';
+        const APP_VERSION = '5.2.0-plan-b';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v50';
         const STATE_KEY = 'nrd_v50';
@@ -718,7 +718,7 @@
                         showHint();
                         startPositionUpdater();
                         
-                        // 🔑 播放后发送方案二通知
+                        // 🔑 方案二：发送通知
                         sendMediaNotification();
                         
                         resolve(true);
@@ -762,6 +762,7 @@
         }
 
         // 🔑🔑🔑 方案二：增强的媒体通知发送函数
+        // requireInteraction: false, priority: 'high', category: 'transport'
         async function sendMediaNotification() {
             log('[媒体] 方案二：发送锁屏控制通知...');
             
@@ -970,9 +971,10 @@
                         <p>✅ 2. <strong style="color:#ff6b6b;">锁屏通知 → 显示</strong></p>
                         <p>✅ 3. <strong style="color:#00d4aa;">横幅通知 → 开启</strong></p>
                         <p>✅ 4. 设为「重要」或「优先」</p>
-                        <p style="color:#ffd93d;margin-top:8px;">💡 华为手机额外步骤：</p>
-                        <p>设置 → 通知和状态栏 → 锁屏通知 → 显示所有通知</p>
-                        <p style="color:#ff6b6b;">⚠️ 通知按钮需要Android 7.0+系统支持</p>
+                        <p style="color:#ffd93d;margin-top:8px;">💡 方案二特性：</p>
+                        <p>requireInteraction: false</p>
+                        <p>priority: high</p>
+                        <p>category: transport</p>
                     </div>
                     <button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(90deg,#ffd93d,#ffa500);color:#000;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;">我知道了</button>
                 </div>`;
@@ -1195,7 +1197,7 @@
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
-                setV('diagPlaying', isPlaying ? '▶ 播放中' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagPlaying', isPlaying ? '▶ 播放中 (方案二)' : '⏸ 暂停', isPlaying ? 'ok' : '');
             } catch (e) {}
         }
         
@@ -1286,7 +1288,6 @@
                     .then(r => {
                         log('SW 注册成功, scope:', r.scope);
                         
-                        // 🔑 监听Service Worker更新
                         r.addEventListener('updatefound', () => {
                             const newWorker = r.installing;
                             newWorker.addEventListener('statechange', () => {
@@ -1301,7 +1302,6 @@
                     });
             });
             
-            // 🔑 增强的Service Worker消息处理
             navigator.serviceWorker.addEventListener('message', e => {
                 log('[SW消息] 收到消息:', e.data);
                 
@@ -1309,7 +1309,6 @@
                     const action = e.data.action;
                     const timestamp = e.data.timestamp;
                     
-                    // 确认收到消息
                     if (e.source && e.source.postMessage) {
                         e.source.postMessage({ type: 'ACTION_RECEIVED', timestamp });
                     }
@@ -1331,7 +1330,6 @@
                     if (handlers[action]) {
                         try {
                             handlers[action]();
-                            // 🔑 操作后立即更新通知状态
                             setTimeout(() => {
                                 if (isPlaying) {
                                     sendMediaNotification();
@@ -1344,10 +1342,8 @@
                 }
             });
             
-            // 🔑 监听controller变化
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 log('[SW] Controller已变更');
-                // 重新发送通知以保持锁屏控制可用
                 if (isPlaying) {
                     setTimeout(sendMediaNotification, 500);
                 }
@@ -1962,7 +1958,7 @@
         // 初始化
         async function init() {
             try {
-                log('初始化开始 v' + APP_VERSION);
+                log('初始化开始 v' + APP_VERSION + ' - 方案二');
                 const ua = navigator.userAgent || ''; 
                 isHuawei = /huawei|honor|harmonyos/i.test(ua);
                 log('设备:', isHuawei ? '华为/Honor' : '其他');
@@ -1989,6 +1985,7 @@
                     log('诊断已更新');
                 }, 500);
                 
+                // 请求通知权限
                 if (Notification.permission === 'default') {
                     setTimeout(async () => {
                         try {
@@ -2023,8 +2020,8 @@
                 document.addEventListener('touchstart', activateAudio, { once: true });
                 document.addEventListener('click', activateAudio, { once: true });
                 
-                log('初始化完成');
-                console.log('🧠 神经重塑训练 v' + APP_VERSION + ' 方案二');
+                log('初始化完成 - 方案二');
+                console.log('🧠 神经重塑训练 v' + APP_VERSION + ' - 方案二：requireInteraction=false, priority=high, category=transport');
             } catch (e) { 
                 console.error('[Init] 初始化失败:', e);
                 showError('初始化失败: ' + (e.message || '未知错误')); 
