@@ -1,11 +1,10 @@
-﻿// 神经重塑训练 - Service Worker v5.3 MediaSession增强版
-const CACHE_NAME = 'neuro-v53';
+﻿// 神经重塑训练 - Service Worker v5.4 最终版
+const CACHE_NAME = 'neuro-v54';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 const MEDIA_NOTIF_TAG = 'neuro-media-control';
 
-// 安装和缓存
 self.addEventListener('install', event => {
-  console.log('[SW] Installing v5.3...');
+  console.log('[SW] Installing v5.4...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -16,7 +15,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating v5.3...');
+  console.log('[SW] Activating v5.4...');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)));
@@ -24,7 +23,6 @@ self.addEventListener('activate', event => {
   );
 });
 
-// 网络请求处理
 self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith(self.location.origin)) return;
   event.respondWith(
@@ -40,7 +38,7 @@ self.addEventListener('fetch', event => {
 
 // 通知按钮点击处理
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] 🔔 通知按钮点击:', event.action);
+  console.log('[SW] 🔔 按钮点击:', event.action);
   event.notification.close();
   
   const action = event.action || 'default';
@@ -63,7 +61,6 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// 接收主应用消息
 self.addEventListener('message', event => {
   if (event.data?.type === 'UPDATE_MEDIA_NOTIFICATION') {
     updateMediaNotification(event.data.payload);
@@ -73,14 +70,12 @@ self.addEventListener('message', event => {
   }
 });
 
-// 更新媒体通知（简洁版，依靠MediaSession实现锁屏控制）
 async function updateMediaNotification(payload) {
   try {
-    // 关闭旧通知
     const oldNotifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
     oldNotifs.forEach(n => n.close());
     
-    // 发送简洁通知
+    // 🔑 v5.4：简洁通知，按钮用简短文字
     await self.registration.showNotification(
       payload.title || '🎵 神经重塑训练',
       {
@@ -90,13 +85,13 @@ async function updateMediaNotification(payload) {
         tag: MEDIA_NOTIF_TAG,
         silent: true,
         requireInteraction: false,
-        priority: 'high',
-        category: 'transport',
-        // 保留actions用于下拉通知栏时显示
+        renotify: true,
+        timestamp: Date.now(),
+        // 🔑 简短按钮文字（兼容性更好）
         actions: [
-          { action: 'prev', title: '⏮ 上一首' },
-          { action: 'playpause', title: payload.playing ? '⏸ 暂停' : '▶ 播放' },
-          { action: 'next', title: '⏭ 下一首' }
+          { action: 'prev', title: '⏮' },
+          { action: 'playpause', title: payload.playing ? '⏸' : '▶' },
+          { action: 'next', title: '⏭' }
         ],
         data: { 
           stage: payload.stage || 0, 
@@ -106,22 +101,18 @@ async function updateMediaNotification(payload) {
       }
     );
     
-    console.log('[SW] ✅ MediaSession优先方案通知已发送');
+    console.log('[SW] ✅ v5.4 通知已发送');
     
   } catch (e) {
-    console.error('[SW] 通知发送失败:', e);
+    console.error('[SW] 通知失败:', e);
   }
 }
 
-// 关闭媒体通知
 async function closeMediaNotification() {
   try {
     const notifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
     notifs.forEach(n => n.close());
-    console.log('[SW] 媒体通知已关闭');
-  } catch (e) {
-    console.error('[SW] 关闭通知失败:', e);
-  }
+  } catch (e) {}
 }
 
-console.log('[SW] Service Worker v5.3 MediaSession优先方案已启动');
+console.log('[SW] v5.4 已启动');
