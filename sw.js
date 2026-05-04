@@ -1,19 +1,21 @@
-﻿// 神经重塑训练 - Service Worker v5.5
-const CACHE_NAME = 'neuro-v55';
+﻿// 神经重塑训练 - Service Worker v5.6 点击控制+按钮提示版
+const CACHE_NAME = 'neuro-v56';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 const MEDIA_NOTIF_TAG = 'neuro-media-control';
 
 self.addEventListener('install', event => {
-  console.log('[SW] Installing v5.5...');
+  console.log('[SW] Installing v5.6...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(STATIC_ASSETS).catch(err => console.error('[SW] 缓存失败:', err));
+      return cache.addAll(STATIC_ASSETS).catch(err => {
+        console.error('[SW] 缓存失败:', err);
+      });
     }).then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating v5.5...');
+  console.log('[SW] Activating v5.6...');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)));
@@ -34,12 +36,12 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 🔑 点击通知 → 播放/暂停
+// 通知点击处理：直接点击通知 → 播放/暂停；按钮点击 → 对应操作
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] 通知被点击:', event.action || '默认→播放/暂停');
+  console.log('[SW] 🔔 通知被点击:', event.action || '播放/暂停');
   event.notification.close();
   
-  // 默认点击 = 播放/暂停，按钮点击 = 各自操作
+  // 没有按具体按钮 → 执行播放/暂停
   const action = event.action || 'playpause';
   
   event.waitUntil(
@@ -50,7 +52,9 @@ self.addEventListener('notificationclick', event => {
       } else {
         return self.clients.openWindow('./index.html').then(client => {
           if (client) {
-            setTimeout(() => client.postMessage({ type: 'MEDIA_ACTION', action: action }), 1500);
+            setTimeout(() => {
+              client.postMessage({ type: 'MEDIA_ACTION', action: action });
+            }, 1500);
           }
         });
       }
@@ -72,26 +76,40 @@ async function updateMediaNotification(payload) {
     const oldNotifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
     oldNotifs.forEach(n => n.close());
     
+    // 动态提示文字
+    const actionHint = payload.playing 
+      ? '👆点我暂停 ⏸  |  下拉查看 ⏮ ⏭' 
+      : '👆点我播放 ▶  |  下拉查看 ⏮ ⏭';
+    
+    const fullBody = (payload.body || '') + '\n' + actionHint;
+    
     await self.registration.showNotification(
       payload.title || '🎵 神经重塑训练',
       {
-        body: (payload.body || '训练中...') + '\n👆点击暂停 | 下拉查看全部',
+        body: fullBody,
         icon: payload.icon || '',
         badge: payload.icon || '',
         tag: MEDIA_NOTIF_TAG,
         silent: true,
         requireInteraction: false,
         renotify: true,
+        timestamp: Date.now(),
+        // 按钮仍保留，下拉通知栏后可看到
         actions: [
           { action: 'prev', title: '⏮' },
           { action: 'playpause', title: payload.playing ? '⏸' : '▶' },
           { action: 'next', title: '⏭' }
         ],
-        data: { stage: payload.stage || 0, playing: payload.playing || false }
+        data: { 
+          stage: payload.stage || 0, 
+          playing: payload.playing || false, 
+          type: 'media-control' 
+        }
       }
     );
     
-    console.log('[SW] ✅ 通知已发送');
+    console.log('[SW] ✅ v5.6 通知已发送，含操作提示');
+    
   } catch (e) {
     console.error('[SW] 通知失败:', e);
   }
@@ -104,4 +122,4 @@ async function closeMediaNotification() {
   } catch (e) {}
 }
 
-console.log('[SW] v5.5 已启动 - 单击=播放/暂停，下拉=更多');
+console.log('[SW] v5.6 点击控制+按钮提示版已启动');
