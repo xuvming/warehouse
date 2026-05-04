@@ -233,7 +233,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏控制 · PWA离线可用 v5.1</p>
+        <p class="subtitle">锁屏控制 · PWA离线可用 v5.2</p>
     </div>
 
     <div class="music-status">
@@ -395,7 +395,7 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '5.1.0-lockscreen';
+        const APP_VERSION = '5.2.0-planb';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v50';
         const STATE_KEY = 'nrd_v50';
@@ -718,7 +718,7 @@
                         showHint();
                         startPositionUpdater();
                         
-                        // 🔑 播放后发送通知
+                        // 🔑 播放后发送方案二通知
                         sendMediaNotification();
                         
                         resolve(true);
@@ -761,9 +761,9 @@
             }, 1000);
         }
 
-        // 🔑 增强的媒体通知发送函数
+        // 🔑🔑🔑 方案二：增强的媒体通知发送函数
         async function sendMediaNotification() {
-            log('[媒体] 发送增强锁屏控制通知...');
+            log('[媒体] 方案二：发送锁屏控制通知...');
             
             // 更新 MediaSession（用于蓝牙控制等）
             if ('mediaSession' in navigator) {
@@ -778,47 +778,69 @@
                     });
                     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
                     
-                    // 🔑 确保所有操作处理器都绑定
+                    // 🔑 确保所有MediaSession操作处理器都绑定
                     const actions = {
                         play: () => { if (!isPlaying) togglePlay(); },
                         pause: () => { if (isPlaying) togglePlay(); },
                         previoustrack: () => prevTrack(),
                         nexttrack: () => nextTrack(),
                         stop: () => { if (isPlaying) pause(); },
-                        seekforward: () => { if (currentAudio && isFinite(currentAudio.duration)) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + 10); },
-                        seekbackward: () => { if (currentAudio && isFinite(currentAudio.currentTime)) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 10); },
-                        seekto: (details) => { if (details.seekTime && currentAudio) currentAudio.currentTime = details.seekTime; }
+                        seekforward: () => { 
+                            if (currentAudio && isFinite(currentAudio.duration)) 
+                                currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + 10); 
+                        },
+                        seekbackward: () => { 
+                            if (currentAudio && isFinite(currentAudio.currentTime)) 
+                                currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 10); 
+                        },
+                        seekto: (details) => { 
+                            if (details.seekTime && currentAudio) 
+                                currentAudio.currentTime = details.seekTime; 
+                        }
                     };
                     
                     for (const [action, handler] of Object.entries(actions)) { 
                         try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {} 
+                    }
+                    
+                    // 🔑 设置播放位置
+                    if ('setPositionState' in navigator.mediaSession && currentAudio) {
+                        try {
+                            const pos = currentAudio.currentTime || 0;
+                            const dur = currentAudio.duration || stages[currentStage]?.duration || 0;
+                            if (dur > 0 && isFinite(dur)) {
+                                navigator.mediaSession.setPositionState({
+                                    duration: dur,
+                                    playbackRate: isPlaying ? 1 : 0,
+                                    position: Math.min(Math.max(pos, 0), dur)
+                                });
+                            }
+                        } catch (e) {}
                     }
                 } catch (e) {
                     log('[媒体] MediaSession更新失败:', e);
                 }
             }
             
-            // 🔑 通过Service Worker发送通知（带控制按钮）
+            // 🔑 通过Service Worker发送方案二通知
             if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                 try {
                     const s = stages[currentStage];
                     const m = audioMeta[currentStage];
                     
-                    // 发送消息给Service Worker更新通知
                     navigator.serviceWorker.controller.postMessage({
                         type: 'UPDATE_MEDIA_NOTIFICATION',
                         payload: {
                             title: '🎵 ' + s.name,
                             body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM' + (m?.name ? ' · ' + m.name : ''),
                             icon: getIcon(),
-                            artwork: getIcon(),
                             stage: currentStage,
                             playing: isPlaying,
                             timestamp: Date.now()
                         }
                     });
                     
-                    log('[媒体] ✅ 锁屏控制通知已通过SW发送');
+                    log('[媒体] ✅ 方案二通知已通过SW发送 (requireInteraction=false, priority=high, category=transport)');
                 } catch (e) {
                     log('[媒体] SW通知发送失败:', e);
                     fallbackNotification();
@@ -828,7 +850,7 @@
             }
         }
 
-        // 降级通知处理
+        // 🔑 方案二：降级通知（当SW不可用时）
         function fallbackNotification() {
             if (Notification.permission !== 'granted') return;
             
@@ -844,9 +866,10 @@
                     icon: getIcon(),
                     badge: getIcon(),
                     tag: MEDIA_NOTIF_TAG,
-                    requireInteraction: true,
+                    requireInteraction: false,  // 🔑 方案二：false
                     silent: false,
                     vibrate: [100, 50, 100],
+                    renotify: true,
                     actions: [
                         { action: 'prev', title: '⏮ 上一首' },
                         { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
@@ -861,9 +884,9 @@
                 });
                 
                 window._mediaNotification = notification;
-                log('[媒体] ✅ 普通Notification已发送（降级方案）');
+                log('[媒体] ✅ 降级Notification已发送');
             } catch (e) {
-                log('[媒体] 降级通知发送失败:', e);
+                log('[媒体] 降级通知失败:', e);
             }
         }
 
@@ -885,7 +908,7 @@
                     await ensureAC();
                 }
                 
-                // 强制创建背景音保持活跃
+                // 如果没在播放，先开始播放
                 if (!isPlaying) {
                     await createBG(stages[currentStage]);
                     isPlaying = true;
@@ -908,11 +931,27 @@
                     }
                 }
                 
+                // 🔑 发送方案二通知
                 await sendMediaNotification();
                 
-                showToast('systemToast', '📢 通知已发送！锁屏后下拉通知栏查看按钮', 8000);
+                showToast('systemToast', '📢 方案二通知已发送！锁屏后下拉通知栏查看按钮', 8000);
                 updateDiag();
-                alert('✅ 测试通知已发送\n\n🔒 现在请锁屏\n📱 按电源键点亮屏幕\n👇 下拉通知栏\n🎵 查看是否有控制按钮\n\n如果没有按钮，请检查：\n系统设置 → 通知 → Chrome → 锁屏通知 → 显示');
+                
+                // 🔑 详细引导
+                alert('✅ 方案二通知已发送\n\n' +
+                      '📱 锁屏后操作步骤：\n\n' +
+                      '1️⃣ 按电源键锁屏\n' +
+                      '2️⃣ 再按电源键点亮屏幕\n' +
+                      '3️⃣ 从屏幕顶部向下滑动\n' +
+                      '4️⃣ 展开通知查看完整内容\n' +
+                      '5️⃣ 点击 ⏮ ⏸ ⏭ 按钮控制播放\n\n' +
+                      '🔑 方案二设置：\n' +
+                      '  requireInteraction: false（允许锁屏显示）\n' +
+                      '  priority: high（高优先级）\n' +
+                      '  category: transport（媒体传输类别）\n\n' +
+                      '⚠️ 如果仍看不到按钮：\n' +
+                      '  设置→通知→Chrome→锁屏通知→显示');
+                
             } catch (e) {
                 showError('测试通知失败: ' + e.message);
             }
@@ -1950,7 +1989,6 @@
                     log('诊断已更新');
                 }, 500);
                 
-                // 请求通知权限
                 if (Notification.permission === 'default') {
                     setTimeout(async () => {
                         try {
@@ -1986,7 +2024,7 @@
                 document.addEventListener('click', activateAudio, { once: true });
                 
                 log('初始化完成');
-                console.log('🧠 神经重塑训练 v' + APP_VERSION + ' - 锁屏控制增强版');
+                console.log('🧠 神经重塑训练 v' + APP_VERSION + ' 方案二');
             } catch (e) { 
                 console.error('[Init] 初始化失败:', e);
                 showError('初始化失败: ' + (e.message || '未知错误')); 

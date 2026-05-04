@@ -1,11 +1,11 @@
-﻿// 神经重塑训练 - Service Worker v5.1 锁屏控制增强版
-const CACHE_NAME = 'neuro-v51';
+﻿// 神经重塑训练 - Service Worker v5.2 方案二完整版
+const CACHE_NAME = 'neuro-v52';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 const MEDIA_NOTIF_TAG = 'neuro-media-control';
 
 // 安装和缓存
 self.addEventListener('install', event => {
-  console.log('[SW] Installing v5.1...');
+  console.log('[SW] Installing v5.2...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
@@ -16,7 +16,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating v5.1...');
+  console.log('[SW] Activating v5.2...');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)));
@@ -112,28 +112,42 @@ self.addEventListener('message', event => {
   }
 });
 
-// 🔑 增强的通知更新函数
+// 🔑🔑🔑 方案二核心：修改通知属性增强锁屏可见性
 async function updateMediaNotification(payload) {
   try {
     // 关闭旧通知
     const oldNotifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
     oldNotifs.forEach(n => n.close());
     
-    // 创建通知选项
+    // 🔑 方案二关键设置
     const notificationOptions = {
       body: payload.body || '训练中...',
       icon: payload.icon || '',
       badge: payload.icon || '',
       tag: MEDIA_NOTIF_TAG,
-      requireInteraction: true, // 🔑 保持通知显示
+      
+      // 🔑 改为 false，允许锁屏时就显示全部内容
+      requireInteraction: false,
+      
+      // 🔑 不静音
       silent: false,
+      
+      // 🔑 震动提示
       vibrate: [100, 50, 100],
-      // 🔑 使用更大的图片增强通知显示
-      image: payload.artwork || payload.icon,
-      // 🔑 关键：设置常驻通知
-      ongoing: true,
-      // 🔑 时间戳确保通知更新
+      
+      // 🔑 高优先级（Android 8.0+ 有效）
+      priority: 'high',
+      
+      // 🔑 媒体传输类别（让系统知道这是媒体控制）
+      category: 'transport',
+      
+      // 🔑 每次更新重新提醒
+      renotify: true,
+      
+      // 🔑 时间戳
       timestamp: Date.now(),
+      
+      // 🔑 操作按钮
       actions: [
         { 
           action: 'prev', 
@@ -148,6 +162,8 @@ async function updateMediaNotification(payload) {
           title: '⏭ 下一首'
         }
       ],
+      
+      // 🔑 通知数据
       data: { 
         stage: payload.stage || 0, 
         playing: payload.playing || false, 
@@ -161,7 +177,13 @@ async function updateMediaNotification(payload) {
       notificationOptions
     );
     
-    console.log('[SW] ✅ 媒体控制通知已更新（带操作按钮）');
+    console.log('[SW] ✅ 方案二：高优先级媒体通知已发送', {
+      requireInteraction: false,
+      priority: 'high',
+      category: 'transport',
+      actions: notificationOptions.actions.length
+    });
+    
   } catch (e) {
     console.error('[SW] 通知更新失败:', e);
   }
@@ -178,4 +200,4 @@ async function closeMediaNotification() {
   }
 }
 
-console.log('[SW] Service Worker v5.1 已加载 - 支持锁屏控制');
+console.log('[SW] Service Worker v5.2 方案二 已加载');
