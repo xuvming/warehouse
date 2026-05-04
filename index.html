@@ -256,7 +256,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏控制 · PWA离线可用 v5.6</p>
+        <p class="subtitle">锁屏点击通知控制 · PWA离线可用 v5.7</p>
     </div>
 
     <div class="music-status">
@@ -418,7 +418,7 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '5.6.0-tap';
+        const APP_VERSION = '5.7.0-tap';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v50';
         const STATE_KEY = 'nrd_v50';
@@ -671,9 +671,8 @@
             }, 1000);
         }
 
-        // 🔑 v5.6：MediaSession + SW通知
         async function sendMediaNotification() {
-            log('[媒体] v5.6 发送通知...');
+            log('[媒体] v5.7 发送通知...');
             
             if ('mediaSession' in navigator) {
                 try {
@@ -719,6 +718,8 @@
                     });
                 } catch (e) {}
             }
+            // 降级通知（SW不可用时）
+            else { fallbackNotification(); }
         }
 
         function fallbackNotification() {
@@ -742,9 +743,9 @@
                 if (!isPlaying) { await createBG(stages[currentStage]); isPlaying = true; $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸'; mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); }, 1000); }
                 if (Notification.permission !== 'granted') { const p = await Notification.requestPermission(); if (p !== 'granted') { alert('⚠️ 需要通知权限'); return; } }
                 await sendMediaNotification();
-                showToast('systemToast', '📢 通知已发送！锁屏上直接点击通知控制播放', 8000);
+                showToast('systemToast', '📢 通知已发送！锁屏点击通知控制播放', 8000);
                 updateDiag();
-                alert('✅ 锁屏控制已就绪\n\n📱 操作方法：\n1️⃣ 锁屏 → 点亮屏幕\n2️⃣ 直接点击「坐立战马」通知\n    → 切换 播放/暂停\n\n3️⃣ 下拉通知栏 → 可看到\n    ⏮ 上一首 | ⏸▶ 暂停/播放 | ⏭ 下一首\n\n💡 华为手机锁屏无法直接显示按钮，\n   但点击通知本身就能控制播放！');
+                alert('✅ 锁屏控制已激活\n\n🔒 操作方法（无需解锁）：\n1️⃣ 点亮屏幕（按电源键或双击屏幕）\n2️⃣ 直接点击通知上的「坐立战马」\n   → 立即切换 播放/暂停\n\n3️⃣ 下拉通知栏可看到 ⏮ ⏭ 按钮\n   用于切换上一首/下一首\n\n💡 华为系统限制无法直接显示按钮，\n   但点击通知主体即可控制播放！');
             } catch (e) { showError('测试失败: ' + e.message); }
         }
 
@@ -839,7 +840,7 @@
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
-                setV('diagPlaying', isPlaying ? '▶ 播放中 (v5.6)' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagPlaying', isPlaying ? '▶ 播放中 (v5.7)' : '⏸ 暂停', isPlaying ? 'ok' : '');
             } catch (e) {}
         }
         function showDiagnostic() { const p = $('diagnosticPanel'); if (p) { p.classList.toggle('show'); if (p.classList.contains('show')) { updateDiag(); $('lockScreenHint').classList.remove('show'); } } }
