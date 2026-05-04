@@ -184,6 +184,24 @@
             font-weight: 700;
             flex-shrink: 0;
         }
+        
+        /* 🔑 新增：MediaSession提示样式 */
+        .mediasession-hint {
+            background: rgba(0, 212, 170, 0.12);
+            border: 1.5px solid var(--primary-green);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 16px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            color: var(--primary-green);
+            display: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .mediasession-hint.show { display: block; }
     </style>
 </head>
 <body>
@@ -195,6 +213,12 @@
         <div class="step"><span class="step-num">2</span>选择「添加到主屏幕」或「桌面快捷方式」</div>
         <div class="step"><span class="step-num">3</span>从桌面图标打开，点击「开始训练」激活锁屏控制</div>
         <p style="margin-top:10px;color:var(--warning);">⚠️ 首次使用需点击「开始训练」并检查通知权限</p>
+    </div>
+    
+    <div class="mediasession-hint" id="mediasessionHint">
+        🎵 锁屏控制已激活<br>
+        <small>锁屏后点亮屏幕，查看系统媒体播放器</small><br>
+        <small style="color:var(--warning);">如看不到，请下拉通知栏</small>
     </div>
     
     <div class="status-bar">
@@ -233,7 +257,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏控制 · PWA离线可用 v5.2</p>
+        <p class="subtitle">锁屏控制 · PWA离线可用 v5.3</p>
     </div>
 
     <div class="music-status">
@@ -395,7 +419,7 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '5.2.0-plan-b';
+        const APP_VERSION = '5.3.0-mediasession';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v50';
         const STATE_KEY = 'nrd_v50';
@@ -641,6 +665,7 @@
             updateMS(stage, null); 
             updateMini(); 
             showHint();
+            showMediaSessionHint();
         }
 
         async function playStageMusic(idx, resume = 0) {
@@ -716,9 +741,10 @@
                         updateMS(stages[currentStage], audioMeta[currentStage]);
                         updateMini(); 
                         showHint();
+                        showMediaSessionHint();
                         startPositionUpdater();
                         
-                        // 🔑 方案二：发送通知
+                        // 🔑 v5.3：MediaSession优先方案
                         sendMediaNotification();
                         
                         resolve(true);
@@ -761,200 +787,141 @@
             }, 1000);
         }
 
-        // 🔑🔑🔑 方案二：增强的媒体通知发送函数
-        // requireInteraction: false, priority: 'high', category: 'transport'
+        // 🔑🔑🔑 v5.3：MediaSession优先方案 - 核心函数
         async function sendMediaNotification() {
-            log('[媒体] 方案二：发送锁屏控制通知...');
+            log('[媒体] v5.3：MediaSession优先方案...');
             
-            // 更新 MediaSession（用于蓝牙控制等）
+            // 🔑🔑🔑 强化MediaSession设置（锁屏系统媒体播放器的关键）
             if ('mediaSession' in navigator) {
                 try {
                     const s = stages[currentStage];
                     const m = audioMeta[currentStage];
+                    
+                    // 设置丰富的元数据
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: s.name,
-                        artist: m?.name || '神经重塑训练',
-                        album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
-                        artwork: [{ src: getIcon(), sizes: '512x512', type: 'image/png' }]
+                        artist: '神经重塑训练 · 阶段' + (currentStage + 1) + '/' + stages.length,
+                        album: s.bpm + 'BPM',
+                        artwork: [
+                            { src: getIcon(), sizes: '96x96', type: 'image/png' },
+                            { src: getIcon(), sizes: '128x128', type: 'image/png' },
+                            { src: getIcon(), sizes: '192x192', type: 'image/png' },
+                            { src: getIcon(), sizes: '256x256', type: 'image/png' },
+                            { src: getIcon(), sizes: '384x384', type: 'image/png' },
+                            { src: getIcon(), sizes: '512x512', type: 'image/png' }
+                        ]
                     });
+                    
+                    // 设置播放状态
                     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
                     
-                    // 🔑 确保所有MediaSession操作处理器都绑定
-                    const actions = {
-                        play: () => { if (!isPlaying) togglePlay(); },
-                        pause: () => { if (isPlaying) togglePlay(); },
-                        previoustrack: () => prevTrack(),
-                        nexttrack: () => nextTrack(),
-                        stop: () => { if (isPlaying) pause(); },
-                        seekforward: () => { 
-                            if (currentAudio && isFinite(currentAudio.duration)) 
-                                currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + 10); 
-                        },
-                        seekbackward: () => { 
-                            if (currentAudio && isFinite(currentAudio.currentTime)) 
-                                currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 10); 
-                        },
-                        seekto: (details) => { 
-                            if (details.seekTime && currentAudio) 
-                                currentAudio.currentTime = details.seekTime; 
+                    // 🔑🔑🔑 设置位置状态（显示进度条）
+                    if ('setPositionState' in navigator.mediaSession) {
+                        const pos = currentAudio?.currentTime || 0;
+                        const dur = currentAudio?.duration || stages[currentStage]?.duration || 300;
+                        if (dur > 0 && isFinite(dur)) {
+                            navigator.mediaSession.setPositionState({
+                                duration: dur,
+                                playbackRate: isPlaying ? 1.0 : 0.0,
+                                position: Math.min(Math.max(pos, 0), dur)
+                            });
                         }
-                    };
-                    
-                    for (const [action, handler] of Object.entries(actions)) { 
-                        try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {} 
                     }
                     
-                    // 🔑 设置播放位置
-                    if ('setPositionState' in navigator.mediaSession && currentAudio) {
-                        try {
-                            const pos = currentAudio.currentTime || 0;
-                            const dur = currentAudio.duration || stages[currentStage]?.duration || 0;
-                            if (dur > 0 && isFinite(dur)) {
-                                navigator.mediaSession.setPositionState({
-                                    duration: dur,
-                                    playbackRate: isPlaying ? 1 : 0,
-                                    position: Math.min(Math.max(pos, 0), dur)
-                                });
-                            }
-                        } catch (e) {}
-                    }
+                    // 🔑🔑🔑 绑定所有操作处理器（系统媒体控制按钮）
+                    try { navigator.mediaSession.setActionHandler('play', () => { log('[MS] play'); if (!isPlaying) togglePlay(); }); } catch (e) {}
+                    try { navigator.mediaSession.setActionHandler('pause', () => { log('[MS] pause'); if (isPlaying) togglePlay(); }); } catch (e) {}
+                    try { navigator.mediaSession.setActionHandler('previoustrack', () => { log('[MS] prev'); prevTrack(); }); } catch (e) {}
+                    try { navigator.mediaSession.setActionHandler('nexttrack', () => { log('[MS] next'); nextTrack(); }); } catch (e) {}
+                    try { navigator.mediaSession.setActionHandler('stop', () => { log('[MS] stop'); if (isPlaying) pause(); }); } catch (e) {}
+                    try { navigator.mediaSession.setActionHandler('seekto', (d) => { if (d.seekTime != null && currentAudio && isFinite(d.seekTime)) currentAudio.currentTime = d.seekTime; }); } catch (e) {}
+                    try { navigator.mediaSession.setActionHandler('seekforward', (d) => { if (currentAudio && isFinite(currentAudio.duration)) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + (d.seekOffset || 10)); }); } catch (e) {}
+                    try { navigator.mediaSession.setActionHandler('seekbackward', (d) => { if (currentAudio && isFinite(currentAudio.currentTime)) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - (d.seekOffset || 10)); }); } catch (e) {}
+                    
+                    log('[媒体] ✅ MediaSession全部操作已绑定（系统媒体控制可用）');
                 } catch (e) {
-                    log('[媒体] MediaSession更新失败:', e);
+                    log('[媒体] MediaSession设置失败:', e);
                 }
             }
             
-            // 🔑 通过Service Worker发送方案二通知
+            // 同时通过SW发送通知（作为补充，下拉通知栏时可看到按钮）
             if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                 try {
                     const s = stages[currentStage];
-                    const m = audioMeta[currentStage];
-                    
                     navigator.serviceWorker.controller.postMessage({
                         type: 'UPDATE_MEDIA_NOTIFICATION',
                         payload: {
                             title: '🎵 ' + s.name,
-                            body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM' + (m?.name ? ' · ' + m.name : ''),
+                            body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
                             icon: getIcon(),
                             stage: currentStage,
-                            playing: isPlaying,
-                            timestamp: Date.now()
+                            playing: isPlaying
                         }
                     });
-                    
-                    log('[媒体] ✅ 方案二通知已通过SW发送 (requireInteraction=false, priority=high, category=transport)');
-                } catch (e) {
-                    log('[媒体] SW通知发送失败:', e);
-                    fallbackNotification();
-                }
-            } else {
-                fallbackNotification();
+                } catch (e) {}
             }
         }
 
-        // 🔑 方案二：降级通知（当SW不可用时）
+        // 降级通知
         function fallbackNotification() {
             if (Notification.permission !== 'granted') return;
-            
             try {
                 const s = stages[currentStage];
-                
-                if (window._mediaNotification) {
-                    window._mediaNotification.close();
-                }
-                
-                const notification = new Notification('🎵 ' + s.name, {
+                if (window._mediaNotification) window._mediaNotification.close();
+                window._mediaNotification = new Notification('🎵 ' + s.name, {
                     body: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
                     icon: getIcon(),
-                    badge: getIcon(),
                     tag: MEDIA_NOTIF_TAG,
-                    requireInteraction: false,  // 🔑 方案二：false
-                    silent: false,
-                    vibrate: [100, 50, 100],
-                    renotify: true,
+                    silent: true,
+                    requireInteraction: false,
                     actions: [
                         { action: 'prev', title: '⏮ 上一首' },
                         { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
                         { action: 'next', title: '⏭ 下一首' }
-                    ],
-                    data: { stage: currentStage, playing: isPlaying, type: 'media-control' }
+                    ]
                 });
-                
-                notification.addEventListener('click', () => {
-                    window.focus();
-                    notification.close();
-                });
-                
-                window._mediaNotification = notification;
-                log('[媒体] ✅ 降级Notification已发送');
-            } catch (e) {
-                log('[媒体] 降级通知失败:', e);
-            }
+                window._mediaNotification.addEventListener('click', () => { window.focus(); window._mediaNotification.close(); });
+            } catch (e) {}
         }
 
         async function closeMediaNotification() {
             if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                    type: 'CLOSE_MEDIA_NOTIFICATION'
-                });
+                navigator.serviceWorker.controller.postMessage({ type: 'CLOSE_MEDIA_NOTIFICATION' });
             }
-            if (window._mediaNotification) {
-                window._mediaNotification.close();
-                window._mediaNotification = null;
-            }
+            if (window._mediaNotification) { window._mediaNotification.close(); window._mediaNotification = null; }
         }
 
         async function sendTestNotification() {
             try {
-                if (!audioContextReady) {
-                    await ensureAC();
-                }
-                
-                // 如果没在播放，先开始播放
+                if (!audioContextReady) await ensureAC();
                 if (!isPlaying) {
                     await createBG(stages[currentStage]);
                     isPlaying = true;
                     $('playBtn').textContent = '⏸ 暂停';
                     $('miniPlayBtn').textContent = '⏸';
-                    
-                    mainLoop = setInterval(() => {
-                        if (!isPlaying) return;
-                        totalTime++;
-                        updateDisp();
-                    }, 1000);
+                    mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); }, 1000);
                 }
-                
-                // 请求通知权限
                 if (Notification.permission !== 'granted') {
                     const p = await Notification.requestPermission();
-                    if (p !== 'granted') {
-                        alert('⚠️ 需要通知权限才能使用锁屏控制\n\n请到系统设置中允许通知');
-                        return;
-                    }
+                    if (p !== 'granted') { alert('⚠️ 需要通知权限'); return; }
                 }
-                
-                // 🔑 发送方案二通知
                 await sendMediaNotification();
-                
-                showToast('systemToast', '📢 方案二通知已发送！锁屏后下拉通知栏查看按钮', 8000);
+                showToast('systemToast', '📢 MediaSession已激活！锁屏查看系统媒体播放器', 8000);
                 updateDiag();
-                
-                // 🔑 详细引导
-                alert('✅ 方案二通知已发送\n\n' +
-                      '📱 锁屏后操作步骤：\n\n' +
-                      '1️⃣ 按电源键锁屏\n' +
-                      '2️⃣ 再按电源键点亮屏幕\n' +
-                      '3️⃣ 从屏幕顶部向下滑动\n' +
-                      '4️⃣ 展开通知查看完整内容\n' +
-                      '5️⃣ 点击 ⏮ ⏸ ⏭ 按钮控制播放\n\n' +
-                      '🔑 方案二设置：\n' +
-                      '  requireInteraction: false（允许锁屏显示）\n' +
-                      '  priority: high（高优先级）\n' +
-                      '  category: transport（媒体传输类别）\n\n' +
-                      '⚠️ 如果仍看不到按钮：\n' +
-                      '  设置→通知→Chrome→锁屏通知→显示');
-                
+                alert('✅ v5.3 MediaSession优先方案\n\n' +
+                      '📱 锁屏后操作：\n\n' +
+                      '方式1️⃣：系统媒体播放器（推荐）\n' +
+                      '  锁屏→点亮屏幕\n' +
+                      '  查看锁屏上的媒体控制区域\n' +
+                      '  点击 ▶⏸ ⏮ ⏭ 按钮控制播放\n\n' +
+                      '方式2️⃣：下拉通知栏\n' +
+                      '  锁屏后下拉通知栏\n' +
+                      '  展开通知查看控制按钮\n\n' +
+                      '⚠️ 如锁屏看不到媒体控制：\n' +
+                      '  华为：设置→通知→锁屏通知→显示\n' +
+                      '  小米：设置→通知→锁屏→显示内容');
             } catch (e) {
-                showError('测试通知失败: ' + e.message);
+                showError('测试失败: ' + e.message);
             }
         }
 
@@ -963,24 +930,32 @@
             overlay.className = 'settings-guide-overlay';
             overlay.innerHTML = `
                 <div style="background:linear-gradient(135deg,#1e1e3a,#16213e);border:2px solid #ffd93d;border-radius:24px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-                    <div style="font-size:48px;margin-bottom:16px;">🔔</div>
-                    <h3 style="color:#ffd93d;margin-bottom:16px;">🔒 通知按钮显示设置</h3>
+                    <div style="font-size:48px;margin-bottom:16px;">🎵</div>
+                    <h3 style="color:#ffd93d;margin-bottom:16px;">🔒 系统媒体控制设置</h3>
                     <div style="text-align:left;color:#b0c4de;font-size:13px;line-height:2.2;">
                         <p>📱 <strong>系统设置 → 通知 → Chrome</strong></p>
                         <p>✅ 1. 允许通知</p>
-                        <p>✅ 2. <strong style="color:#ff6b6b;">锁屏通知 → 显示</strong></p>
-                        <p>✅ 3. <strong style="color:#00d4aa;">横幅通知 → 开启</strong></p>
-                        <p>✅ 4. 设为「重要」或「优先」</p>
-                        <p style="color:#ffd93d;margin-top:8px;">💡 方案二特性：</p>
-                        <p>requireInteraction: false</p>
-                        <p>priority: high</p>
-                        <p>category: transport</p>
+                        <p>✅ 2. 锁屏通知 → 显示</p>
+                        <p>✅ 3. 媒体控制 → 允许</p>
+                        <p style="color:#ffd93d;margin-top:8px;">💡 v5.3特性：</p>
+                        <p>MediaSession优先方案</p>
+                        <p>系统锁屏媒体播放器</p>
+                        <p>支持蓝牙/耳机线控</p>
                     </div>
                     <button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(90deg,#ffd93d,#ffa500);color:#000;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;">我知道了</button>
                 </div>`;
             overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
             document.body.appendChild(overlay);
             setTimeout(() => { if (overlay.parentElement) overlay.remove(); }, 25000);
+        }
+
+        function showMediaSessionHint() {
+            const h = $('mediasessionHint');
+            if (h) {
+                h.classList.add('show');
+                clearTimeout(h._mht);
+                h._mht = setTimeout(() => h.classList.remove('show'), 6000);
+            }
         }
 
         // Media Session
@@ -1015,14 +990,8 @@
         // 播放控制
         async function togglePlay() {
             try {
-                if (!audioContextReady) {
-                    await ensureAC();
-                }
-                if (isPlaying) {
-                    pause(); 
-                } else {
-                    await play();
-                }
+                if (!audioContextReady) await ensureAC();
+                if (isPlaying) { pause(); } else { await play(); }
             } catch (e) { 
                 console.error('[Play] 播放控制失败:', e);
                 showError('播放控制失败: ' + (e.message || '未知错误'));
@@ -1035,135 +1004,70 @@
             errCount = 0;
             $('playBtn').textContent = '⏸ 暂停'; 
             $('miniPlayBtn').textContent = '⏸';
-            
             const rt = savedTime || 0; 
             savedTime = 0;
-            
-            try {
-                await playStageMusic(currentStage, rt);
-            } catch (e) {
-                console.error('[Play] playStageMusic 失败:', e);
-                await createBG(stages[currentStage]);
-            }
-            
+            try { await playStageMusic(currentStage, rt); } catch (e) { console.error('[Play] 失败:', e); await createBG(stages[currentStage]); }
             mainLoop = setInterval(() => {
                 if (!isPlaying) return;
                 totalTime++;
                 updateDisp();
                 const stageDur = stages[currentStage]?.duration || 300;
-                if (totalTime - stageStart(currentStage) >= stageDur) {
-                    nextStage();
-                }
+                if (totalTime - stageStart(currentStage) >= stageDur) nextStage();
             }, 1000);
-            
             updateMS(stages[currentStage], audioMeta[currentStage]);
             sendMediaNotification();
             await requestWL(); 
             showHint(); 
+            showMediaSessionHint();
             updateDiag();
-            log('[Play] 播放成功');
         }
         
         function pause() {
             isPlaying = false;
             $('playBtn').textContent = '▶ 继续'; 
             $('miniPlayBtn').textContent = '▶';
-            clearInterval(mainLoop); 
-            mainLoop = null;
+            clearInterval(mainLoop); mainLoop = null;
             stopPositionUpdater();
-            
-            if (currentAudio) { 
-                savedTime = currentAudio.currentTime; 
-                currentAudio.pause(); 
-            }
-            
+            if (currentAudio) { savedTime = currentAudio.currentTime; currentAudio.pause(); }
             stopMetro();
-            
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = 'paused';
-            }
-            
-            releaseWL(); 
-            saveState(); 
-            updateDiag();
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+            releaseWL(); saveState(); updateDiag();
             closeMediaNotification();
         }
         
-        function nextStage() { 
-            if (currentStage < stages.length - 1) {
-                switchTrack(currentStage + 1); 
-            } else {
-                complete(); 
-            }
-        }
+        function nextStage() { if (currentStage < stages.length - 1) { switchTrack(currentStage + 1); } else { complete(); } }
         
         function complete() {
-            pause(); 
-            stopAll(); 
-            recordSession();
+            pause(); stopAll(); recordSession();
             $('stageTitle').textContent = '🎉 训练完成！';
-            currentStage = 0; 
-            totalTime = 0; 
-            savedTime = 0;
-            updateDisp(); 
-            updateStage(); 
-            updateMini();
-            $('trackProgressFill').style.width = '0%'; 
-            $('playBtn').textContent = '▶ 开始训练';
-            initPlaylist(); 
-            saveState(); 
-            releaseWL();
-            closeMediaNotification();
+            currentStage = 0; totalTime = 0; savedTime = 0;
+            updateDisp(); updateStage(); updateMini();
+            $('trackProgressFill').style.width = '0%'; $('playBtn').textContent = '▶ 开始训练';
+            initPlaylist(); saveState(); releaseWL(); closeMediaNotification();
         }
         
         function reset() {
-            pause(); 
-            stopAll();
-            currentStage = 0; 
-            totalTime = 0; 
-            savedTime = 0;
-            updateDisp(); 
-            updateStage(); 
-            updateMini();
+            pause(); stopAll();
+            currentStage = 0; totalTime = 0; savedTime = 0;
+            updateDisp(); updateStage(); updateMini();
             $('playBtn').textContent = '▶ 开始训练';
-            $('trackProgressFill').style.width = '0%'; 
-            $('trackCurrentTime').textContent = '00:00';
+            $('trackProgressFill').style.width = '0%'; $('trackCurrentTime').textContent = '00:00';
             $('currentMode').textContent = '准备开始';
-            initPlaylist(); 
-            saveState(); 
-            releaseWL();
-            closeMediaNotification();
+            initPlaylist(); saveState(); releaseWL(); closeMediaNotification();
         }
         
         function switchTrack(idx) {
-            if (idx === currentStage && !isPlaying) { 
-                togglePlay(); 
-                return; 
-            }
-            const wp = isPlaying; 
-            if (isPlaying) pause();
-            currentStage = idx; 
-            savedTime = 0;
-            updateStage(); 
-            updateMini();
+            if (idx === currentStage && !isPlaying) { togglePlay(); return; }
+            const wp = isPlaying; if (isPlaying) pause();
+            currentStage = idx; savedTime = 0;
+            updateStage(); updateMini();
             if (wp) setTimeout(() => play(), 150);
-            else {
-                playStageMusic(currentStage).then(() => { 
-                    if (currentAudio) setTimeout(() => { 
-                        if (!isPlaying) currentAudio.pause(); 
-                    }, 200); 
-                });
-            }
+            else { playStageMusic(currentStage).then(() => { if (currentAudio) setTimeout(() => { if (!isPlaying) currentAudio.pause(); }, 200); }); }
             saveState();
         }
         
-        function prevTrack() { 
-            switchTrack(currentStage > 0 ? currentStage - 1 : stages.length - 1); 
-        }
-        
-        function nextTrack() { 
-            switchTrack(currentStage < stages.length - 1 ? currentStage + 1 : 0); 
-        }
+        function prevTrack() { switchTrack(currentStage > 0 ? currentStage - 1 : stages.length - 1); }
+        function nextTrack() { switchTrack(currentStage < stages.length - 1 ? currentStage + 1 : 0); }
         
         function seekPos(e) {
             if (!currentAudio) return;
@@ -1172,8 +1076,7 @@
                 const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                 const d = currentAudio.duration;
                 if (!isFinite(d) || d <= 0) return;
-                currentAudio.currentTime = p * d; 
-                savedTime = p * d;
+                currentAudio.currentTime = p * d; savedTime = p * d;
                 updateMSPos(p * d, d);
             } catch (e) {}
         }
@@ -1185,64 +1088,35 @@
                 const np = Notification.permission;
                 const hm = 'mediaSession' in navigator;
                 const hsw = 'serviceWorker' in navigator && !!navigator.serviceWorker.controller;
-                const setV = (id, v, cls) => { 
-                    const el = $(id); 
-                    if (el) { 
-                        el.textContent = v; 
-                        el.className = 'diag-value ' + (cls || ''); 
-                    } 
-                };
-                
+                const setV = (id, v, cls) => { const el = $(id); if (el) { el.textContent = v; el.className = 'diag-value ' + (cls || ''); } };
                 setV('diagPWA', sa ? '✅ 已安装PWA' : '❌ 浏览器模式', sa ? 'ok' : 'warn');
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
-                setV('diagPlaying', isPlaying ? '▶ 播放中 (方案二)' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagPlaying', isPlaying ? '▶ 播放中 (v5.3 MS)' : '⏸ 暂停', isPlaying ? 'ok' : '');
             } catch (e) {}
         }
         
         function showDiagnostic() {
             const p = $('diagnosticPanel');
-            if (p) { 
-                p.classList.toggle('show'); 
-                if (p.classList.contains('show')) { 
-                    updateDiag(); 
-                    $('lockScreenHint').classList.remove('show'); 
-                } 
-            }
+            if (p) { p.classList.toggle('show'); if (p.classList.contains('show')) { updateDiag(); $('lockScreenHint').classList.remove('show'); } }
         }
         
-        function showHint() {
-            const h = $('lockScreenHint');
-            if (h) { 
-                h.classList.add('show'); 
-                clearTimeout(h._ht); 
-                h._ht = setTimeout(() => h.classList.remove('show'), 8000); 
-            }
-        }
+        function showHint() { const h = $('lockScreenHint'); if (h) { h.classList.add('show'); clearTimeout(h._ht); h._ht = setTimeout(() => h.classList.remove('show'), 8000); } }
 
         // UI更新
         function updateDisp() {
             $('currentTime').textContent = fmtTime(totalTime);
             const td = totalDur();
-            if (td > 0) { 
-                const c = document.querySelector('.progress-ring .progress'); 
-                if (c) c.style.strokeDashoffset = 452.39 * (1 - Math.min(totalTime / td, 1)); 
-            }
+            if (td > 0) { const c = document.querySelector('.progress-ring .progress'); if (c) c.style.strokeDashoffset = 452.39 * (1 - Math.min(totalTime / td, 1)); }
         }
-        
-        function updateTotalLabel() { 
-            $('totalTimeLabel').textContent = '/ ' + fmtTime(totalDur()); 
-        }
-        
+        function updateTotalLabel() { $('totalTimeLabel').textContent = '/ ' + fmtTime(totalDur()); }
         function updateStage() {
-            const s = stages[currentStage]; 
-            if (!s) return;
+            const s = stages[currentStage]; if (!s) return;
             $('stageNumber').textContent = '阶段 ' + (currentStage + 1) + '/' + stages.length;
             $('stageTitle').textContent = s.name;
             $('stageDetail').innerHTML = '动作：' + (s.action || '未设置') + '<br>BPM：' + s.bpm + '<br>想象：' + (s.imagine || '未设置');
         }
-        
         function updateMini() {
             const s = stages[currentStage], m = audioMeta[currentStage];
             $('miniTitle').textContent = s?.name || '—';
@@ -1255,146 +1129,57 @@
 
         // PWA
         function initPWA() {
-            window.addEventListener('beforeinstallprompt', e => { 
-                e.preventDefault(); 
-                deferredPrompt = e; 
-                $('pwaInstallHint').classList.add('show'); 
-            });
-            
+            window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('pwaInstallHint').classList.add('show'); });
             $('pwaInstallHint').addEventListener('click', async () => {
                 if (!deferredPrompt) return;
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null; 
-                $('pwaInstallHint').classList.remove('show');
-                if (outcome === 'accepted') {
-                    showToast('systemToast', '✅ 安装成功！请允许通知权限', 3000);
-                }
+                deferredPrompt = null; $('pwaInstallHint').classList.remove('show');
+                if (outcome === 'accepted') showToast('systemToast', '✅ 安装成功！请允许通知权限', 3000);
             });
-            
-            window.addEventListener('appinstalled', () => { 
-                $('pwaInstallHint').classList.remove('show'); 
-            });
+            window.addEventListener('appinstalled', () => { $('pwaInstallHint').classList.remove('show'); });
         }
         
         function registerSW() {
-            if (!('serviceWorker' in navigator)) {
-                log('[SW] 浏览器不支持 Service Worker');
-                return;
-            }
-            
+            if (!('serviceWorker' in navigator)) { log('[SW] 不支持'); return; }
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js', { scope: './' })
-                    .then(r => {
-                        log('SW 注册成功, scope:', r.scope);
-                        
-                        r.addEventListener('updatefound', () => {
-                            const newWorker = r.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    log('[SW] 新版本可用，将在下次访问时激活');
-                                }
-                            });
-                        });
-                    })
-                    .catch(e => {
-                        log('SW 注册失败:', e);
-                    });
+                    .then(r => log('SW 注册成功, scope:', r.scope))
+                    .catch(e => log('SW 注册失败:', e));
             });
-            
             navigator.serviceWorker.addEventListener('message', e => {
-                log('[SW消息] 收到消息:', e.data);
-                
                 if (e.data?.type === 'MEDIA_ACTION') {
                     const action = e.data.action;
-                    const timestamp = e.data.timestamp;
-                    
-                    if (e.source && e.source.postMessage) {
-                        e.source.postMessage({ type: 'ACTION_RECEIVED', timestamp });
-                    }
-                    
-                    log('[SW消息] 执行媒体操作:', action);
-                    
                     const handlers = {
-                        'playpause': togglePlay,
-                        'prev': prevTrack,
-                        'next': nextTrack,
+                        'playpause': togglePlay, 'prev': prevTrack, 'next': nextTrack,
                         'play': () => { if (!isPlaying) togglePlay(); },
                         'pause': () => { if (isPlaying) togglePlay(); },
-                        'previoustrack': prevTrack,
-                        'nexttrack': nextTrack,
-                        'stop': () => { if (isPlaying) pause(); },
-                        'default': () => {}
+                        'previoustrack': prevTrack, 'nexttrack': nextTrack,
+                        'stop': () => { if (isPlaying) pause(); }
                     };
-                    
                     if (handlers[action]) {
-                        try {
-                            handlers[action]();
-                            setTimeout(() => {
-                                if (isPlaying) {
-                                    sendMediaNotification();
-                                }
-                            }, 100);
-                        } catch (e) {
-                            log('[SW错误] 操作执行失败:', e);
-                        }
+                        handlers[action]();
+                        setTimeout(() => { if (isPlaying) sendMediaNotification(); }, 100);
                     }
                 }
             });
-            
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                log('[SW] Controller已变更');
-                if (isPlaying) {
-                    setTimeout(sendMediaNotification, 500);
-                }
+                if (isPlaying) setTimeout(sendMediaNotification, 500);
             });
         }
 
         // 播放列表
         function initPlaylist() {
-            const c = $('trackList'); 
-            if (!c) return;
-            
+            const c = $('trackList'); if (!c) return;
             c.innerHTML = stages.map((s, i) => {
                 const m = audioMeta[i];
                 return '<div class="track ' + (i === currentStage ? 'active' : '') + '" data-index="' + i + '">' +
-                    '<span class="drag-handle">⋮⋮</span>' +
-                    '<div class="track-number">' + (i + 1) + '</div>' +
-                    '<div class="track-info">' +
-                        '<div>' + s.name + '</div>' +
-                        '<small>' + s.bpm + 'BPM · ' + fmtTime(s.duration) + ' · ' + (m?.localFile ? '📁本地' : m?.onlineUrl ? '🌐链接' : '节拍器') + '</small>' +
-                    '</div>' +
-                '</div>';
+                    '<span class="drag-handle">⋮⋮</span><div class="track-number">' + (i + 1) + '</div>' +
+                    '<div class="track-info"><div>' + s.name + '</div><small>' + s.bpm + 'BPM · ' + fmtTime(s.duration) + ' · ' + (m?.localFile ? '📁本地' : m?.onlineUrl ? '🌐链接' : '节拍器') + '</small></div></div>';
             }).join('');
-            
-            c.querySelectorAll('.track').forEach(t => {
-                t.addEventListener('click', e => { 
-                    if (!e.target.classList.contains('drag-handle')) {
-                        switchTrack(parseInt(t.dataset.index)); 
-                    } 
-                });
-            });
-            
+            c.querySelectorAll('.track').forEach(t => { t.addEventListener('click', e => { if (!e.target.classList.contains('drag-handle')) switchTrack(parseInt(t.dataset.index)); }); });
             if (sortable) sortable.destroy();
-            try {
-                sortable = new Sortable(c, { 
-                    handle: '.drag-handle', 
-                    animation: 200, 
-                    ghostClass: 'sortable-ghost', 
-                    chosenClass: 'sortable-chosen',
-                    onEnd: e => { 
-                        if (e.oldIndex !== e.newIndex) { 
-                            reorder(e.oldIndex, e.newIndex); 
-                            initPlaylist(); 
-                            updateStage(); 
-                            updateDisp(); 
-                            updateTotalLabel(); 
-                            updateMini(); 
-                            renderRows(); 
-                        } 
-                    }
-                });
-            } catch (e) {}
+            try { sortable = new Sortable(c, { handle: '.drag-handle', animation: 200, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', onEnd: e => { if (e.oldIndex !== e.newIndex) { reorder(e.oldIndex, e.newIndex); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini(); renderRows(); } } }); } catch (e) {}
         }
         
         function reorder(oi, ni) {
@@ -1407,488 +1192,126 @@
         }
         
         function renderRows() {
-            const c = $('fileRowsContainer'); 
-            if (!c) return;
-            
+            const c = $('fileRowsContainer'); if (!c) return;
             c.innerHTML = stages.map((s, i) => {
                 const m = audioMeta[i];
                 let dn = (i + 1) + '. ' + s.name, mt = '未设置音乐';
-                if (m && (m.localFile || m.onlineUrl)) { 
-                    dn = (i + 1) + '. ' + (m.name || s.name); 
-                    mt = (m.localFile ? '📁本地' : '') + (m.localFile && m.onlineUrl ? ' · ' : '') + (m.onlineUrl ? '🌐链接' : '') + ' · ' + fmtTime(s.duration); 
-                }
-                return '<div class="file-row" data-copy="' + (m?.onlineUrl || m?.name || s.name || '').replace(/"/g, '&quot;') + '">' +
-                    '<div class="file-info">' +
-                        '<div class="file-name ' + ((m && (m.localFile || m.onlineUrl)) ? 'loaded' : '') + '">' + dn + '</div>' +
-                        '<div class="file-meta">' + mt + '</div>' +
-                    '</div>' +
-                    '<button class="config-btn" data-stage="' + i + '">⚙️ 配置</button>' +
-                '</div>';
+                if (m && (m.localFile || m.onlineUrl)) { dn = (i + 1) + '. ' + (m.name || s.name); mt = (m.localFile ? '📁本地' : '') + (m.localFile && m.onlineUrl ? ' · ' : '') + (m.onlineUrl ? '🌐链接' : '') + ' · ' + fmtTime(s.duration); }
+                return '<div class="file-row" data-copy="' + (m?.onlineUrl || m?.name || s.name || '').replace(/"/g, '&quot;') + '"><div class="file-info"><div class="file-name ' + ((m && (m.localFile || m.onlineUrl)) ? 'loaded' : '') + '">' + dn + '</div><div class="file-meta">' + mt + '</div></div><button class="config-btn" data-stage="' + i + '">⚙️ 配置</button></div>';
             }).join('');
-            
-            c.querySelectorAll('.file-row').forEach(r => {
-                r.addEventListener('click', e => { 
-                    if (!e.target.classList.contains('config-btn')) {
-                        copyRow(r.dataset.copy); 
-                    } 
-                });
-            });
-            
-            c.querySelectorAll('.config-btn').forEach(b => {
-                b.addEventListener('click', e => { 
-                    e.stopPropagation(); 
-                    openConfig(parseInt(b.dataset.stage)); 
-                });
-            });
+            c.querySelectorAll('.file-row').forEach(r => { r.addEventListener('click', e => { if (!e.target.classList.contains('config-btn')) copyRow(r.dataset.copy); }); });
+            c.querySelectorAll('.config-btn').forEach(b => { b.addEventListener('click', e => { e.stopPropagation(); openConfig(parseInt(b.dataset.stage)); }); });
         }
         
         function copyRow(content) {
-            if (navigator.clipboard?.writeText) {
-                navigator.clipboard.writeText(content)
-                    .then(() => showToast('copyToast', '📋 已复制', 2000))
-                    .catch(() => fallbackCopy(content));
-            } else {
-                fallbackCopy(content);
-            }
+            if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(content).then(() => showToast('copyToast', '📋 已复制', 2000)).catch(() => fallbackCopy(content)); }
+            else { fallbackCopy(content); }
         }
-        
-        function fallbackCopy(text) {
-            const ta = document.createElement('textarea'); 
-            ta.value = text; 
-            ta.style.cssText = 'position:fixed;opacity:0;';
-            document.body.appendChild(ta); 
-            ta.select();
-            try { 
-                document.execCommand('copy'); 
-                showToast('copyToast', '📋 已复制', 2000); 
-            } catch (e) {}
-            document.body.removeChild(ta);
-        }
+        function fallbackCopy(text) { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); showToast('copyToast', '📋 已复制', 2000); } catch (e) {} document.body.removeChild(ta); }
 
         // 配置弹窗
         function openConfig(idx) {
-            editIdx = idx;
-            const s = stages[idx], m = audioMeta[idx];
+            editIdx = idx; const s = stages[idx], m = audioMeta[idx];
             $('configModalTitle').textContent = '⚙️ 配置 第' + (idx + 1) + '阶段 · ' + s.name;
-            $('cfg_name').value = s.name || ''; 
-            $('cfg_bpm').value = s.bpm || 60; 
-            $('cfg_duration').value = s.duration || 300;
-            $('cfg_action').value = s.action || ''; 
-            $('cfg_imagine').value = s.imagine || '';
-            tempFile = null; 
-            tempUrl = ''; 
-            tempDuration = 0; 
-            window._dl = false; 
-            window._do = false;
+            $('cfg_name').value = s.name || ''; $('cfg_bpm').value = s.bpm || 60; $('cfg_duration').value = s.duration || 300;
+            $('cfg_action').value = s.action || ''; $('cfg_imagine').value = s.imagine || '';
+            tempFile = null; tempUrl = ''; tempDuration = 0; window._dl = false; window._do = false;
             updateSrcDisp(m);
-            $('advancedFields').style.display = 'none'; 
-            $('advancedToggle').textContent = '▼ 高级选项 (动作/想象)';
+            $('advancedFields').style.display = 'none'; $('advancedToggle').textContent = '▼ 高级选项 (动作/想象)';
             $('configModal').classList.add('show');
         }
-        
-        function closeConfig() { 
-            $('configModal').classList.remove('show'); 
-        }
-        
+        function closeConfig() { $('configModal').classList.remove('show'); }
         function updateSrcDisp(m) {
             const li = $('localFileItem'), oi = $('onlineUrlItem'), nm = $('noMusicItem');
-            if (m?.localFile) { 
-                li.style.display = 'flex'; 
-                $('localFileName').textContent = m.localFile.name || '本地文件'; 
-                $('localFileSize').textContent = ((m.localFile.size || 0) / 1024 / 1024).toFixed(2) + ' MB'; 
-            } else {
-                li.style.display = 'none';
-            }
-            if (m?.onlineUrl) { 
-                oi.style.display = 'flex'; 
-                $('onlineUrlName').textContent = m.onlineName || '在线链接'; 
-                $('onlineUrlDetail').textContent = m.onlineUrl; 
-            } else {
-                oi.style.display = 'none';
-            }
+            if (m?.localFile) { li.style.display = 'flex'; $('localFileName').textContent = m.localFile.name || '本地文件'; $('localFileSize').textContent = ((m.localFile.size || 0) / 1024 / 1024).toFixed(2) + ' MB'; } else { li.style.display = 'none'; }
+            if (m?.onlineUrl) { oi.style.display = 'flex'; $('onlineUrlName').textContent = m.onlineName || '在线链接'; $('onlineUrlDetail').textContent = m.onlineUrl; } else { oi.style.display = 'none'; }
             nm.style.display = (!m?.localFile && !m?.onlineUrl && !tempFile && !tempUrl) ? 'flex' : 'none';
         }
-        
         async function saveConfig() {
             try {
                 const idx = editIdx;
                 let dur = parseInt($('cfg_duration').value) || 0;
-                if (dur === 0 && tempFile && tempDuration > 0) dur = tempDuration; 
-                else if (dur === 0) dur = 300;
-                
-                stages[idx] = { 
-                    name: $('cfg_name').value.trim() || ('阶段' + (idx + 1)), 
-                    bpm: parseInt($('cfg_bpm').value) || 60, 
-                    duration: dur, 
-                    action: $('cfg_action').value.trim(), 
-                    imagine: $('cfg_imagine').value.trim() 
-                };
-                
+                if (dur === 0 && tempFile && tempDuration > 0) dur = tempDuration; else if (dur === 0) dur = 300;
+                stages[idx] = { name: $('cfg_name').value.trim() || ('阶段' + (idx + 1)), bpm: parseInt($('cfg_bpm').value) || 60, duration: dur, action: $('cfg_action').value.trim(), imagine: $('cfg_imagine').value.trim() };
                 const om = audioMeta[idx];
-                if (tempFile) { 
-                    await saveAudio(idx, tempFile, tempFile.name); 
-                    audioMeta[idx] = { 
-                        name: stages[idx].name, 
-                        localFile: { name: tempFile.name, type: tempFile.type, size: tempFile.size }, 
-                        onlineUrl: om?.onlineUrl || '', 
-                        onlineName: om?.onlineName || '' 
-                    }; 
-                } else if (window._dl) { 
-                    await deleteAudio(idx); 
-                    if (audioMeta[idx]) audioMeta[idx].localFile = null; 
-                    window._dl = false; 
-                }
-                
-                if (tempUrl) { 
-                    audioMeta[idx] = { 
-                        ...(audioMeta[idx] || {}), 
-                        onlineUrl: tempUrl, 
-                        onlineName: $('onlineUrlName').textContent !== '—' ? $('onlineUrlName').textContent : (tempUrl.split('/').pop()?.split('?')[0] || '在线音乐') 
-                    }; 
-                } else if (window._do) { 
-                    if (audioMeta[idx]) { 
-                        audioMeta[idx].onlineUrl = ''; 
-                        audioMeta[idx].onlineName = ''; 
-                    } 
-                    window._do = false; 
-                }
-                
-                if (!audioMeta[idx]) {
-                    audioMeta[idx] = { name: stages[idx].name, localFile: null, onlineUrl: '', onlineName: '' };
-                }
-                
-                saveAll(); 
-                renderRows(); 
-                initPlaylist(); 
-                updateStage(); 
-                updateDisp(); 
-                updateTotalLabel(); 
-                updateMini();
+                if (tempFile) { await saveAudio(idx, tempFile, tempFile.name); audioMeta[idx] = { name: stages[idx].name, localFile: { name: tempFile.name, type: tempFile.type, size: tempFile.size }, onlineUrl: om?.onlineUrl || '', onlineName: om?.onlineName || '' }; }
+                else if (window._dl) { await deleteAudio(idx); if (audioMeta[idx]) audioMeta[idx].localFile = null; window._dl = false; }
+                if (tempUrl) { audioMeta[idx] = { ...(audioMeta[idx] || {}), onlineUrl: tempUrl, onlineName: $('onlineUrlName').textContent !== '—' ? $('onlineUrlName').textContent : (tempUrl.split('/').pop()?.split('?')[0] || '在线音乐') }; }
+                else if (window._do) { if (audioMeta[idx]) { audioMeta[idx].onlineUrl = ''; audioMeta[idx].onlineName = ''; } window._do = false; }
+                if (!audioMeta[idx]) audioMeta[idx] = { name: stages[idx].name, localFile: null, onlineUrl: '', onlineName: '' };
+                saveAll(); renderRows(); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini();
                 if (currentStage === idx && isPlaying) await playStageMusic(currentStage);
                 closeConfig();
-            } catch (e) { 
-                showError('保存失败'); 
-            }
+            } catch (e) { showError('保存失败'); }
         }
-        
-        function triggerFile() { 
-            $('localFileInput').click(); 
-        }
-        
+        function triggerFile() { $('localFileInput').click(); }
         function promptUrl() {
-            const i = prompt('请输入音频链接:');
-            if (!i) return;
+            const i = prompt('请输入音频链接:'); if (!i) return;
             const urls = i.match(/(https?:\/\/[^\s]+)/g);
-            if (urls?.length > 0) { 
-                tempUrl = urls[0]; 
-                let n = i.replace(urls[0], '').trim() || urls[0].split('/').pop()?.split('?')[0] || '在线音乐'; 
-                $('onlineUrlName').textContent = n; 
-                $('onlineUrlDetail').textContent = urls[0]; 
-            } else { 
-                try { 
-                    new URL(i); 
-                    tempUrl = i; 
-                    let n = i.split('/').pop()?.split('?')[0] || '在线音乐'; 
-                    $('onlineUrlName').textContent = n; 
-                    $('onlineUrlDetail').textContent = i; 
-                } catch { 
-                    alert('无效链接'); 
-                    return; 
-                } 
-            }
-            $('onlineUrlItem').style.display = 'flex'; 
-            $('noMusicItem').style.display = 'none';
+            if (urls?.length > 0) { tempUrl = urls[0]; $('onlineUrlName').textContent = i.replace(urls[0], '').trim() || urls[0].split('/').pop()?.split('?')[0] || '在线音乐'; $('onlineUrlDetail').textContent = urls[0]; }
+            else { try { new URL(i); tempUrl = i; $('onlineUrlName').textContent = i.split('/').pop()?.split('?')[0] || '在线音乐'; $('onlineUrlDetail').textContent = i; } catch { alert('无效链接'); return; } }
+            $('onlineUrlItem').style.display = 'flex'; $('noMusicItem').style.display = 'none';
         }
-        
-        function delFile() { 
-            tempFile = null; 
-            window._dl = true; 
-            $('localFileItem').style.display = 'none'; 
-            updateNoSrc(); 
-        }
-        
-        function delUrl() { 
-            tempUrl = ''; 
-            window._do = true; 
-            $('onlineUrlItem').style.display = 'none'; 
-            updateNoSrc(); 
-        }
-        
-        function updateNoSrc() { 
-            $('noMusicItem').style.display = ($('localFileItem').style.display === 'none' && $('onlineUrlItem').style.display === 'none') ? 'flex' : 'none'; 
-        }
-        
-        function toggleAdv() {
-            const f = $('advancedFields'); 
-            f.style.display = f.style.display === 'none' ? 'block' : 'none';
-            $('advancedToggle').textContent = f.style.display === 'none' ? '▼ 高级选项 (动作/想象)' : '▲ 高级选项 (动作/想象)';
-        }
+        function delFile() { tempFile = null; window._dl = true; $('localFileItem').style.display = 'none'; updateNoSrc(); }
+        function delUrl() { tempUrl = ''; window._do = true; $('onlineUrlItem').style.display = 'none'; updateNoSrc(); }
+        function updateNoSrc() { $('noMusicItem').style.display = ($('localFileItem').style.display === 'none' && $('onlineUrlItem').style.display === 'none') ? 'flex' : 'none'; }
+        function toggleAdv() { const f = $('advancedFields'); f.style.display = f.style.display === 'none' ? 'block' : 'none'; $('advancedToggle').textContent = f.style.display === 'none' ? '▼ 高级选项 (动作/想象)' : '▲ 高级选项 (动作/想象)'; }
 
         // 数据持久化
-        function saveAll() { 
-            try { 
-                localStorage.setItem(STAGES_KEY, JSON.stringify(stages)); 
-                saveState(); 
-            } catch (e) {} 
-        }
-        
+        function saveAll() { try { localStorage.setItem(STAGES_KEY, JSON.stringify(stages)); saveState(); } catch (e) {} }
         function saveState() {
             if (!autoSave) return;
-            try {
-                localStorage.setItem(STATE_KEY, JSON.stringify({
-                    currentStage, 
-                    totalTime, 
-                    savedTime,
-                    audioMeta: audioMeta.map(m => m ? { 
-                        name: m.name, 
-                        localFile: m.localFile ? { name: m.localFile.name, size: m.localFile.size, type: m.localFile.type } : null, 
-                        onlineUrl: m.onlineUrl || '', 
-                        onlineName: m.onlineName || '' 
-                    } : null)
-                }));
-                showToast('saveStatus', '✓ 已保存', 1500); 
-                errCount = 0;
-            } catch (e) {}
+            try { localStorage.setItem(STATE_KEY, JSON.stringify({ currentStage, totalTime, savedTime, audioMeta: audioMeta.map(m => m ? { name: m.name, localFile: m.localFile ? { name: m.localFile.name, size: m.localFile.size, type: m.localFile.type } : null, onlineUrl: m.onlineUrl || '', onlineName: m.onlineName || '' } : null) })); showToast('saveStatus', '✓ 已保存', 1500); errCount = 0; } catch (e) {}
         }
-        
         async function loadState() {
-            try {
-                const d = JSON.parse(localStorage.getItem(STATE_KEY));
-                if (d) { 
-                    currentStage = d.currentStage || 0; 
-                    totalTime = d.totalTime || 0; 
-                    savedTime = d.savedTime || 0; 
-                    d.audioMeta?.forEach((m, i) => { if (m) audioMeta[i] = m; }); 
-                }
-            } catch (e) { 
-                currentStage = 0; 
-                totalTime = 0; 
-                savedTime = 0; 
-            }
-            renderRows(); 
-            initPlaylist(); 
-            updateStage(); 
-            updateDisp(); 
-            updateTotalLabel(); 
-            updateMini();
+            try { const d = JSON.parse(localStorage.getItem(STATE_KEY)); if (d) { currentStage = d.currentStage || 0; totalTime = d.totalTime || 0; savedTime = d.savedTime || 0; d.audioMeta?.forEach((m, i) => { if (m) audioMeta[i] = m; }); } } catch (e) { currentStage = 0; totalTime = 0; savedTime = 0; }
+            renderRows(); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini();
         }
-        
-        function loadStages() { 
-            try { 
-                const s = JSON.parse(localStorage.getItem(STAGES_KEY)); 
-                if (Array.isArray(s) && s.length === 5) stages = s; 
-            } catch (e) {} 
-        }
-        
-        function loadStats() { 
-            try { 
-                const s = localStorage.getItem(STATS_KEY); 
-                if (s) stats = JSON.parse(s); 
-            } catch (e) {} 
-        }
-        
-        function saveStats() { 
-            try { 
-                localStorage.setItem(STATS_KEY, JSON.stringify(stats)); 
-            } catch (e) {} 
-        }
+        function loadStages() { try { const s = JSON.parse(localStorage.getItem(STAGES_KEY)); if (Array.isArray(s) && s.length === 5) stages = s; } catch (e) {} }
+        function loadStats() { try { const s = localStorage.getItem(STATS_KEY); if (s) stats = JSON.parse(s); } catch (e) {} }
+        function saveStats() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {} }
 
         function recordSession() {
             const today = new Date().toISOString().split('T')[0];
-            stats.sessions.push({ date: today }); 
-            stats.totalSessions = (stats.totalSessions || 0) + 1;
+            stats.sessions.push({ date: today }); stats.totalSessions = (stats.totalSessions || 0) + 1;
             stats.totalMinutes = (stats.totalMinutes || 0) + Math.round(totalDur() / 60);
             stats.dailyRecords[today] = (stats.dailyRecords[today] || 0) + 1;
-            
             let sk = 0, d = new Date();
-            while (stats.dailyRecords[d.toISOString().split('T')[0]]) { 
-                sk++; 
-                d.setDate(d.getDate() - 1); 
-            }
-            stats.currentStreak = sk; 
-            stats.lastTrainingDate = today;
-            saveStats(); 
-            updateStats(); 
-            updateChartData();
+            while (stats.dailyRecords[d.toISOString().split('T')[0]]) { sk++; d.setDate(d.getDate() - 1); }
+            stats.currentStreak = sk; stats.lastTrainingDate = today;
+            saveStats(); updateStats(); updateChartData();
         }
-        
         function updateStats() {
             $('totalSessions').textContent = stats.totalSessions || 0;
             $('totalMinutes').textContent = stats.totalMinutes || 0;
             $('currentStreak').textContent = stats.currentStreak || 0;
             $('lastTraining').textContent = stats.lastTrainingDate ? new Date(stats.lastTrainingDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) : '-';
         }
-        
-        function initChart() {
-            const c = $('trainingChart'); 
-            if (!c || !window.Chart) return;
-            try { 
-                chart = new Chart(c.getContext('2d'), { 
-                    type: 'bar', 
-                    data: getChartData('weekly'), 
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { legend: { display: false } }, 
-                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
-                    } 
-                }); 
-            } catch (e) {}
-        }
-        
+        function initChart() { const c = $('trainingChart'); if (!c || !window.Chart) return; try { chart = new Chart(c.getContext('2d'), { type: 'bar', data: getChartData('weekly'), options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } }); } catch (e) {} }
         function getChartData(type) {
             const l = [], d = [], t = new Date();
-            if (type === 'weekly') { 
-                for (let i = 6; i >= 0; i--) { 
-                    const dt = new Date(t); 
-                    dt.setDate(dt.getDate() - i); 
-                    l.push(dt.toLocaleDateString('zh-CN', { weekday: 'short' })); 
-                    d.push(stats.dailyRecords[dt.toISOString().split('T')[0]] || 0); 
-                } 
-            } else if (type === 'monthly') { 
-                for (let i = 3; i >= 0; i--) { 
-                    const e = new Date(t); 
-                    e.setDate(e.getDate() - i * 7); 
-                    const s = new Date(e); 
-                    s.setDate(s.getDate() - 6); 
-                    let c = 0; 
-                    for (let dt = new Date(s); dt <= e; dt.setDate(dt.getDate() + 1)) {
-                        c += stats.dailyRecords[dt.toISOString().split('T')[0]] || 0; 
-                    } 
-                    l.push(s.getMonth() + 1 + '/' + s.getDate()); 
-                    d.push(c); 
-                } 
-            } else { 
-                for (let i = 11; i >= 0; i--) { 
-                    const dt = new Date(t.getFullYear(), t.getMonth() - i, 1); 
-                    let c = 0; 
-                    for (let day = 1; day <= 31; day++) {
-                        c += stats.dailyRecords[dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0')] || 0; 
-                    } 
-                    l.push(dt.toLocaleDateString('zh-CN', { month: 'short' })); 
-                    d.push(c); 
-                } 
-            }
+            if (type === 'weekly') { for (let i = 6; i >= 0; i--) { const dt = new Date(t); dt.setDate(dt.getDate() - i); l.push(dt.toLocaleDateString('zh-CN', { weekday: 'short' })); d.push(stats.dailyRecords[dt.toISOString().split('T')[0]] || 0); } }
+            else if (type === 'monthly') { for (let i = 3; i >= 0; i--) { const e = new Date(t); e.setDate(e.getDate() - i * 7); const s = new Date(e); s.setDate(s.getDate() - 6); let c = 0; for (let dt = new Date(s); dt <= e; dt.setDate(dt.getDate() + 1)) { c += stats.dailyRecords[dt.toISOString().split('T')[0]] || 0; } l.push(s.getMonth() + 1 + '/' + s.getDate()); d.push(c); } }
+            else { for (let i = 11; i >= 0; i--) { const dt = new Date(t.getFullYear(), t.getMonth() - i, 1); let c = 0; for (let day = 1; day <= 31; day++) { c += stats.dailyRecords[dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0')] || 0; } l.push(dt.toLocaleDateString('zh-CN', { month: 'short' })); d.push(c); } }
             return { labels: l, datasets: [{ data: d, backgroundColor: '#00d4aa', borderRadius: 6 }] };
         }
-        
-        function switchChart(type) { 
-            chartType = type; 
-            document.querySelectorAll('.chart-tab').forEach(t => t.classList.toggle('active', t.dataset.type === type)); 
-            updateChartData(); 
-        }
-        
-        function updateChartData() { 
-            if (chart) { 
-                chart.data = getChartData(chartType); 
-                chart.update(); 
-            } 
-        }
+        function switchChart(type) { chartType = type; document.querySelectorAll('.chart-tab').forEach(t => t.classList.toggle('active', t.dataset.type === type)); updateChartData(); }
+        function updateChartData() { if (chart) { chart.data = getChartData(chartType); chart.update(); } }
 
-        function exportData() {
-            try { 
-                const b = new Blob([JSON.stringify({ 
-                    version: APP_VERSION, 
-                    stages, 
-                    audioMeta, 
-                    stats, 
-                    exportDate: new Date().toISOString() 
-                }, null, 2)], { type: 'application/json' }); 
-                const a = document.createElement('a'); 
-                a.href = URL.createObjectURL(b); 
-                a.download = 'neuro_backup_' + new Date().toISOString().split('T')[0] + '.json'; 
-                a.click(); 
-            } catch (e) {}
-        }
-        
-        function importData() { 
-            $('importFile').click(); 
-        }
-        
+        function exportData() { try { const b = new Blob([JSON.stringify({ version: APP_VERSION, stages, audioMeta, stats, exportDate: new Date().toISOString() }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'neuro_backup_' + new Date().toISOString().split('T')[0] + '.json'; a.click(); } catch (e) {} }
+        function importData() { $('importFile').click(); }
         async function handleImport(input) {
-            const f = input.files[0]; 
-            if (!f) return;
-            try { 
-                const d = JSON.parse(await f.text()); 
-                if (d.stages) stages = d.stages; 
-                if (d.stats) { 
-                    stats = d.stats; 
-                    saveStats(); 
-                } 
-                if (d.audioMeta) audioMeta = d.audioMeta; 
-                saveAll(); 
-                renderRows(); 
-                initPlaylist(); 
-                updateStage(); 
-                updateDisp(); 
-                updateTotalLabel(); 
-                updateMini(); 
-                updateStats(); 
-                updateChartData(); 
-                showToast('systemToast', '✅ 导入成功', 3000); 
-            } catch (e) { 
-                showError('导入失败'); 
-            }
+            const f = input.files[0]; if (!f) return;
+            try { const d = JSON.parse(await f.text()); if (d.stages) stages = d.stages; if (d.stats) { stats = d.stats; saveStats(); } if (d.audioMeta) audioMeta = d.audioMeta; saveAll(); renderRows(); initPlaylist(); updateStage(); updateDisp(); updateTotalLabel(); updateMini(); updateStats(); updateChartData(); showToast('systemToast', '✅ 导入成功', 3000); } catch (e) { showError('导入失败'); }
             input.value = '';
         }
-        
         async function clearAll() {
             if (!confirm('⚠️ 确定清除所有数据？此操作不可恢复！')) return;
-            try { 
-                pause(); 
-                stopAll(); 
-                for (let i = 0; i < 5; i++) await deleteAudio(i); 
-                await clearAllAudio(); 
-                localStorage.clear(); 
-                stages = JSON.parse(JSON.stringify(DEFAULT_STAGES)); 
-                currentStage = 0; 
-                totalTime = 0; 
-                savedTime = 0; 
-                audioMeta = [null, null, null, null, null]; 
-                autoSave = true; 
-                stats = { sessions: [], totalSessions: 0, totalMinutes: 0, currentStreak: 0, lastTrainingDate: null, dailyRecords: {} }; 
-                localStorage.setItem(AUTO_SAVE_KEY, 'true'); 
-                localStorage.setItem(STAGES_KEY, JSON.stringify(stages)); 
-                renderRows(); 
-                initPlaylist(); 
-                updateStage(); 
-                updateDisp(); 
-                updateStats(); 
-                updateChartData(); 
-                updateTotalLabel(); 
-                updateMini(); 
-                $('currentMode').textContent = '准备开始'; 
-                $('playBtn').textContent = '▶ 开始训练'; 
-                $('autoSaveToggle').classList.add('active'); 
-                alert('✅ 已清除'); 
-            } catch (e) { 
-                showError('清除失败'); 
-            }
+            try { pause(); stopAll(); for (let i = 0; i < 5; i++) await deleteAudio(i); await clearAllAudio(); localStorage.clear(); stages = JSON.parse(JSON.stringify(DEFAULT_STAGES)); currentStage = 0; totalTime = 0; savedTime = 0; audioMeta = [null, null, null, null, null]; autoSave = true; stats = { sessions: [], totalSessions: 0, totalMinutes: 0, currentStreak: 0, lastTrainingDate: null, dailyRecords: {} }; localStorage.setItem(AUTO_SAVE_KEY, 'true'); localStorage.setItem(STAGES_KEY, JSON.stringify(stages)); renderRows(); initPlaylist(); updateStage(); updateDisp(); updateStats(); updateChartData(); updateTotalLabel(); updateMini(); $('currentMode').textContent = '准备开始'; $('playBtn').textContent = '▶ 开始训练'; $('autoSaveToggle').classList.add('active'); alert('✅ 已清除'); } catch (e) { showError('清除失败'); }
         }
-        
-        function toggleAuto() { 
-            autoSave = !autoSave; 
-            localStorage.setItem(AUTO_SAVE_KEY, String(autoSave)); 
-            $('autoSaveToggle').classList.toggle('active', autoSave); 
-            if (autoSave) saveState(); 
-        }
-        
-        async function requestWL() { 
-            try { 
-                if ('wakeLock' in navigator && isPlaying) { 
-                    wakeLock = await navigator.wakeLock.request('screen'); 
-                } 
-            } catch (e) {} 
-        }
-        
-        async function releaseWL() { 
-            if (wakeLock) { 
-                try { 
-                    await wakeLock.release(); 
-                    wakeLock = null; 
-                } catch (e) {} 
-            } 
-        }
+        function toggleAuto() { autoSave = !autoSave; localStorage.setItem(AUTO_SAVE_KEY, String(autoSave)); $('autoSaveToggle').classList.toggle('active', autoSave); if (autoSave) saveState(); }
+        async function requestWL() { try { if ('wakeLock' in navigator && isPlaying) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+        async function releaseWL() { if (wakeLock) { try { await wakeLock.release(); wakeLock = null; } catch (e) {} } }
 
         // 事件绑定
         function bindEvents() {
@@ -1901,9 +1324,7 @@
             $('prevBtn').addEventListener('click', prevTrack);
             $('nextBtn').addEventListener('click', nextTrack);
             $('trackProgressBar').addEventListener('click', seekPos);
-            $('configModal').addEventListener('click', e => { 
-                if (e.target === $('configModal')) closeConfig(); 
-            });
+            $('configModal').addEventListener('click', e => { if (e.target === $('configModal')) closeConfig(); });
             $('btnSaveConfig').addEventListener('click', saveConfig);
             $('btnCancelConfig').addEventListener('click', closeConfig);
             $('btnLocalFile').addEventListener('click', triggerFile);
@@ -1911,127 +1332,44 @@
             $('btnDeleteLocal').addEventListener('click', delFile);
             $('btnDeleteOnline').addEventListener('click', delUrl);
             $('advancedToggle').addEventListener('click', toggleAdv);
-            
-            $('localFileInput').addEventListener('change', async e => {
-                const f = e.target.files[0]; 
-                if (!f) return;
-                try { 
-                    tempFile = f; 
-                    tempUrl = ''; 
-                    tempDuration = await getAudioDur(f); 
-                    if (tempDuration > 0) $('cfg_duration').value = tempDuration; 
-                    $('localFileName').textContent = f.name; 
-                    $('localFileSize').textContent = (f.size / 1024 / 1024).toFixed(2) + ' MB'; 
-                    $('localFileItem').style.display = 'flex'; 
-                    $('noMusicItem').style.display = 'none'; 
-                } catch (e) {}
-                e.target.value = '';
-            });
-            
+            $('localFileInput').addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { tempFile = f; tempUrl = ''; tempDuration = await getAudioDur(f); if (tempDuration > 0) $('cfg_duration').value = tempDuration; $('localFileName').textContent = f.name; $('localFileSize').textContent = (f.size / 1024 / 1024).toFixed(2) + ' MB'; $('localFileItem').style.display = 'flex'; $('noMusicItem').style.display = 'none'; } catch (e) {} e.target.value = ''; });
             $('importFile').addEventListener('change', function() { handleImport(this); });
             document.querySelectorAll('.chart-tab').forEach(t => t.addEventListener('click', () => switchChart(t.dataset.type)));
             $('autoSaveToggle').addEventListener('click', toggleAuto);
-            
-            document.addEventListener('keydown', e => {
-                if (e.target.tagName === 'INPUT') return;
-                if (e.code === 'Space') { 
-                    e.preventDefault(); 
-                    togglePlay(); 
-                } else if (e.code === 'ArrowLeft') { 
-                    e.preventDefault(); 
-                    prevTrack(); 
-                } else if (e.code === 'ArrowRight') { 
-                    e.preventDefault(); 
-                    nextTrack(); 
-                }
-            });
-            
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden && autoSave) saveState();
-                if (!document.hidden && isPlaying) { 
-                    updateMS(stages[currentStage], audioMeta[currentStage]); 
-                    sendMediaNotification(); 
-                }
-            });
+            document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.code === 'Space') { e.preventDefault(); togglePlay(); } else if (e.code === 'ArrowLeft') { e.preventDefault(); prevTrack(); } else if (e.code === 'ArrowRight') { e.preventDefault(); nextTrack(); } });
+            document.addEventListener('visibilitychange', () => { if (document.hidden && autoSave) saveState(); if (!document.hidden && isPlaying) { updateMS(stages[currentStage], audioMeta[currentStage]); sendMediaNotification(); } });
         }
 
         // 初始化
         async function init() {
             try {
-                log('初始化开始 v' + APP_VERSION + ' - 方案二');
+                log('初始化开始 v' + APP_VERSION + ' - MediaSession优先方案');
                 const ua = navigator.userAgent || ''; 
                 isHuawei = /huawei|honor|harmonyos/i.test(ua);
-                log('设备:', isHuawei ? '华为/Honor' : '其他');
-                
-                if (isHuawei) {
-                    const guide = $('huaweiGuide');
-                    if (guide) guide.classList.add('show');
-                }
-                
-                initPWA(); 
-                registerSW();
-                loadStages(); 
-                loadStats();
+                if (isHuawei) { const guide = $('huaweiGuide'); if (guide) guide.classList.add('show'); }
+                initPWA(); registerSW();
+                loadStages(); loadStats();
                 autoSave = localStorage.getItem(AUTO_SAVE_KEY) !== 'false';
                 $('autoSaveToggle').classList.toggle('active', autoSave);
-                initChart(); 
-                await loadState();
-                updateStats(); 
-                updateChartData(); 
-                bindEvents();
-                
-                setTimeout(() => {
-                    updateDiag();
-                    log('诊断已更新');
-                }, 500);
-                
-                // 请求通知权限
+                initChart(); await loadState();
+                updateStats(); updateChartData(); bindEvents();
+                setTimeout(() => { updateDiag(); }, 500);
                 if (Notification.permission === 'default') {
-                    setTimeout(async () => {
-                        try {
-                            const p = await Notification.requestPermission();
-                            log('通知权限:', p);
-                            updateDiag();
-                        } catch (e) {
-                            log('通知权限请求失败:', e);
-                        }
-                    }, 2000);
+                    setTimeout(async () => { try { const p = await Notification.requestPermission(); log('通知权限:', p); updateDiag(); } catch (e) { log('通知权限请求失败:', e); } }, 2000);
                 }
-                
-                setInterval(() => { 
-                    if (autoSave && isPlaying) saveState(); 
-                }, 15000);
-                
-                window.addEventListener('beforeunload', () => { 
-                    if (autoSave) saveState(); 
-                });
-                
-                const activateAudio = async () => {
-                    try { 
-                        await ensureAC(); 
-                        log('音频上下文已激活'); 
-                    } catch (e) {
-                        log('音频激活失败:', e);
-                    }
-                    document.removeEventListener('touchstart', activateAudio);
-                    document.removeEventListener('click', activateAudio);
-                };
-                
+                setInterval(() => { if (autoSave && isPlaying) saveState(); }, 15000);
+                window.addEventListener('beforeunload', () => { if (autoSave) saveState(); });
+                const activateAudio = async () => { try { await ensureAC(); log('音频上下文已激活'); } catch (e) { log('音频激活失败:', e); } document.removeEventListener('touchstart', activateAudio); document.removeEventListener('click', activateAudio); };
                 document.addEventListener('touchstart', activateAudio, { once: true });
                 document.addEventListener('click', activateAudio, { once: true });
-                
-                log('初始化完成 - 方案二');
-                console.log('🧠 神经重塑训练 v' + APP_VERSION + ' - 方案二：requireInteraction=false, priority=high, category=transport');
-            } catch (e) { 
-                console.error('[Init] 初始化失败:', e);
-                showError('初始化失败: ' + (e.message || '未知错误')); 
-            }
+                log('初始化完成 - v5.3 MediaSession优先方案');
+                console.log('🧠 神经重塑训练 v' + APP_VERSION + ' - MediaSession优先：系统锁屏媒体播放器');
+            } catch (e) { console.error('[Init] 初始化失败:', e); showError('初始化失败: ' + (e.message || '未知错误')); }
         }
 
         window.app = {
             togglePlay, reset, exportData, importData, clearAll, 
-            toggleAutoSave: toggleAuto,
-            prevTrack, nextTrack, switchTrack, seekPos, 
+            toggleAutoSave: toggleAuto, prevTrack, nextTrack, switchTrack, seekPos, 
             openConfig, handleImport, copyRow,
             showDiagnostic, sendTestNotification, showNotifSettingsGuide, 
             updateDiagnostic: updateDiag,
@@ -2039,25 +1377,13 @@
             get isPlaying() { return isPlaying; }
         };
         
-        window.togglePlay = togglePlay; 
-        window.reset = reset; 
-        window.exportData = exportData;
-        window.importData = importData; 
-        window.clearAllData = clearAll; 
-        window.toggleAutoSave = toggleAuto;
-        window.prevTrack = prevTrack; 
-        window.nextTrack = nextTrack; 
-        window.switchToTrack = switchTrack;
-        window.seekToPosition = seekPos; 
-        window.openConfigModal = openConfig; 
-        window.handleImport = handleImport;
+        window.togglePlay = togglePlay; window.reset = reset; window.exportData = exportData;
+        window.importData = importData; window.clearAllData = clearAll; window.toggleAutoSave = toggleAuto;
+        window.prevTrack = prevTrack; window.nextTrack = nextTrack; window.switchToTrack = switchTrack;
+        window.seekToPosition = seekPos; window.openConfigModal = openConfig; window.handleImport = handleImport;
         window.copyRowContent = copyRow;
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
     })();
     </script>
 </body>
