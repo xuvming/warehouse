@@ -1,5 +1,4 @@
-﻿// 神经重塑训练 - Service Worker v5.5 整合版
-// 功能：点击锁屏通知 → 播放/暂停，下拉通知栏 → 显示按钮，MediaSession → 系统媒体控制
+﻿// 神经重塑训练 - Service Worker v5.5
 const CACHE_NAME = 'neuro-v55';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 const MEDIA_NOTIF_TAG = 'neuro-media-control';
@@ -35,12 +34,12 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 🔑 点击通知 → 默认执行播放/暂停
+// 🔑 点击通知 → 播放/暂停
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] 🔔 通知点击, action:', event.action || 'playpause');
+  console.log('[SW] 通知被点击:', event.action || '默认→播放/暂停');
   event.notification.close();
   
-  // 如果没有点击具体按钮，就执行播放/暂停
+  // 默认点击 = 播放/暂停，按钮点击 = 各自操作
   const action = event.action || 'playpause';
   
   event.waitUntil(
@@ -51,9 +50,7 @@ self.addEventListener('notificationclick', event => {
       } else {
         return self.clients.openWindow('./index.html').then(client => {
           if (client) {
-            setTimeout(() => {
-              client.postMessage({ type: 'MEDIA_ACTION', action: action });
-            }, 1500);
+            setTimeout(() => client.postMessage({ type: 'MEDIA_ACTION', action: action }), 1500);
           }
         });
       }
@@ -61,7 +58,6 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// 接收主应用消息
 self.addEventListener('message', event => {
   if (event.data?.type === 'UPDATE_MEDIA_NOTIFICATION') {
     updateMediaNotification(event.data.payload);
@@ -71,37 +67,33 @@ self.addEventListener('message', event => {
   }
 });
 
-// 🔑 更新通知：显示点击提示 + 操作按钮
 async function updateMediaNotification(payload) {
   try {
     const oldNotifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
     oldNotifs.forEach(n => n.close());
     
-    const statusHint = payload.playing ? '👆 点击通知暂停 ⏸' : '👆 点击通知播放 ▶';
-    
     await self.registration.showNotification(
       payload.title || '🎵 神经重塑训练',
       {
-        body: (payload.body || '训练中...') + '\n' + statusHint,
+        body: (payload.body || '训练中...') + '\n👆点击暂停 | 下拉查看全部',
         icon: payload.icon || '',
         badge: payload.icon || '',
         tag: MEDIA_NOTIF_TAG,
         silent: true,
         requireInteraction: false,
         renotify: true,
-        timestamp: Date.now(),
         actions: [
           { action: 'prev', title: '⏮' },
           { action: 'playpause', title: payload.playing ? '⏸' : '▶' },
           { action: 'next', title: '⏭' }
         ],
-        data: { stage: payload.stage || 0, playing: payload.playing || false, type: 'media-control' }
+        data: { stage: payload.stage || 0, playing: payload.playing || false }
       }
     );
     
-    console.log('[SW] ✅ 通知已更新（点击通知条即可控制）');
+    console.log('[SW] ✅ 通知已发送');
   } catch (e) {
-    console.error('[SW] 通知更新失败:', e);
+    console.error('[SW] 通知失败:', e);
   }
 }
 
@@ -112,4 +104,4 @@ async function closeMediaNotification() {
   } catch (e) {}
 }
 
-console.log('[SW] v5.5 整合版已启动');
+console.log('[SW] v5.5 已启动 - 单击=播放/暂停，下拉=更多');
