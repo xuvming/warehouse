@@ -1,14 +1,18 @@
-{
+﻿{
   "name": "神经重塑训练",
   "short_name": "神经重塑",
   "description": "神经重塑PWA训练应用，支持锁屏标题点击控制与离线运行。包含5个阶段的音频引导训练，节拍器同步，本地/在线音乐播放，训练统计与图表。",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#1a1a2e",
   "background_color": "#1a1a2e",
-  "categories": ["health", "lifestyle", "music"],
+  "categories": [
+    "health",
+    "lifestyle",
+    "music"
+  ],
   "lang": "zh-CN",
   "icons": [
     {
@@ -17,5 +21,6 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "dir": "ltr"
 }
