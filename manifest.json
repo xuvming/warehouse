@@ -1,25 +1,30 @@
 ﻿{
   "name": "神经重塑训练",
   "short_name": "神经重塑",
-  "description": "神经重塑PWA训练应用，支持锁屏控制与离线运行",
+  "description": "神经重塑PWA训练应用，支持锁屏通知点击控制播放/暂停，离线运行",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1a1a2e",
-  "theme_color": "#00d4aa",
+  "theme_color": "#1a1a2e",
   "orientation": "portrait",
   "scope": "./",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%2300d4aa'/%3E%3Ctext x='96' y='110' font-size='90' text-anchor='middle'%3E🧠%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%2300d4aa'/%3E%3Crect x='40' y='40' width='432' height='432' rx='48' fill='%231a1a2e'/%3E%3Ctext x='256' y='286' font-size='240' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%A7%A0%3C/text%3E%3Ccircle cx='256' cy='256' r='220' fill='none' stroke='%2300d4aa' stroke-width='8'/%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%2300d4aa'/%3E%3Ctext x='256' y='290' font-size='240' text-anchor='middle'%3E🧠%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%2300d4aa'/%3E%3Crect x='40' y='40' width='432' height='432' rx='48' fill='%231a1a2e'/%3E%3Ctext x='256' y='286' font-size='240' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%A7%A0%3C/text%3E%3Ccircle cx='256' cy='256' r='220' fill='none' stroke='%2300d4aa' stroke-width='8'/%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "prefer_related_applications": false
 }
+
