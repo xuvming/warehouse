@@ -215,9 +215,9 @@
     </div>
     
     <div class="mediasession-hint" id="mediasessionHint">
-        🎵 锁屏控制已激活<br>
-        <small>锁屏后点亮屏幕，直接点击通知切换播放/暂停</small><br>
-        <small style="color:var(--warning);">下拉通知栏查看 ⏮ ⏭ 按钮</small>
+        🎵 锁屏标题控制已激活<br>
+        <small>🔒 点亮屏幕 → 看标题 ▶/⏸ → 点击通知切换</small><br>
+        <small style="color:var(--warning);">无需下拉，无需解锁，点击标题即控制</small>
     </div>
     
     <div class="status-bar">
@@ -256,7 +256,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏点击通知控制 · PWA离线可用 v5.8</p>
+        <p class="subtitle">锁屏标题点击控制 · 不解锁切换 · v5.8</p>
     </div>
 
     <div class="music-status">
@@ -420,11 +420,11 @@
 
         const APP_VERSION = '5.8.0-lock';
         const DEBUG = true;
-        const STAGES_KEY = 'nrc_v58';
-        const STATE_KEY = 'nrd_v58';
-        const AUTO_SAVE_KEY = 'nra_v58';
-        const STATS_KEY = 'nrs_v58';
-        const AUDIO_DB = 'NADB_v58';
+        const STAGES_KEY = 'nrc_v50';
+        const STATE_KEY = 'nrd_v50';
+        const AUTO_SAVE_KEY = 'nra_v50';
+        const STATS_KEY = 'nrs_v50';
+        const AUDIO_DB = 'NADB_v50';
         const AUDIO_STORE = 'audioFiles';
         const MEDIA_NOTIF_TAG = 'neuro-media-control';
 
@@ -481,22 +481,47 @@
         }
         
         function genIcon() {
+            // 纯矢量神经网络图标（与 manifest SVG 风格一致，无外部依赖）
             const c = document.createElement('canvas'); c.width = 512; c.height = 512;
             const x = c.getContext('2d');
-            x.fillStyle = '#00d4aa';
-            x.beginPath(); x.roundRect(0, 0, 512, 512, 64); x.fill();
+            // 背景
             x.fillStyle = '#1a1a2e';
-            x.beginPath(); x.roundRect(40, 40, 432, 432, 48); x.fill();
-            x.font = 'bold 240px sans-serif';
-            x.textAlign = 'center'; x.textBaseline = 'middle';
-            x.fillText('🧠', 256, 256);
-            x.strokeStyle = '#00d4aa'; x.lineWidth = 8;
-            x.beginPath(); x.arc(256, 256, 220, 0, Math.PI * 2); x.stroke();
+            x.beginPath(); x.roundRect(0, 0, 512, 512, 80); x.fill();
+            // 外圈
+            x.strokeStyle = '#00d4aa'; x.lineWidth = 14;
+            x.beginPath(); x.arc(256, 256, 204, 0, Math.PI * 2); x.stroke();
+            // 连接线（先画线，后画圆点覆盖端点）
+            x.strokeStyle = '#00d4aa'; x.lineWidth = 10; x.lineCap = 'round';
+            const lines = [[256,212,256,144],[300,256,368,256],[256,300,256,368],[212,256,144,256],
+                           [288,224,336,176],[288,288,336,336],[224,288,176,336],[224,224,176,176]];
+            lines.forEach(l => { x.beginPath(); x.moveTo(l[0],l[1]); x.lineTo(l[2],l[3]); x.stroke(); });
+            // 中心大节点
+            x.fillStyle = '#00d4aa'; x.beginPath(); x.arc(256, 256, 44, 0, Math.PI * 2); x.fill();
+            // 四向节点
+            [[256,120],[392,256],[256,392],[120,256]].forEach(p=>{ x.fillStyle='#00d4aa'; x.beginPath(); x.arc(p[0],p[1],24,0,Math.PI*2); x.fill(); });
+            // 对角节点
+            [[352,160],[352,352],[160,352],[160,160]].forEach(p=>{ x.fillStyle='#00a8e8'; x.beginPath(); x.arc(p[0],p[1],16,0,Math.PI*2); x.fill(); });
             return c.toDataURL('image/png');
         }
         
         let _cachedIcon = null;
         function getIcon() { if (!_cachedIcon) _cachedIcon = genIcon(); return _cachedIcon; }
+
+        // 动态创建 apple-touch-icon（无需外部图片文件）
+        function setupAppleIcon() {
+            try {
+                const iconData = genIcon();
+                const sizes = ['152x152', '167x167', '180x180', '512x512'];
+                sizes.forEach(sz => {
+                    const link = document.createElement('link');
+                    link.rel = 'apple-touch-icon';
+                    link.sizes = sz;
+                    link.href = iconData;
+                    document.head.appendChild(link);
+                });
+                log('[Icon] apple-touch-icon 已动态生成');
+            } catch (e) { console.error('[Icon] 生成失败:', e); }
+        }
 
         // IndexedDB
         function openDB() {
@@ -677,8 +702,9 @@
             if ('mediaSession' in navigator) {
                 try {
                     const s = stages[currentStage];
+                    const prefix = isPlaying ? '▶ ' : '⏸ ';
                     navigator.mediaSession.metadata = new MediaMetadata({
-                        title: s.name,
+                        title: prefix + s.name,
                         artist: '神经重塑 · 阶段' + (currentStage + 1) + '/' + stages.length,
                         album: s.bpm + 'BPM',
                         artwork: [
@@ -714,7 +740,7 @@
                     const s = stages[currentStage];
                     navigator.serviceWorker.controller.postMessage({
                         type: 'UPDATE_MEDIA_NOTIFICATION',
-                        payload: { stageName: s.name, body: '神经重塑·阶段' + (currentStage + 1) + '/' + stages.length + '-' + s.bpm + 'BPM', icon: getIcon(), stage: currentStage, playing: isPlaying }
+                        payload: { title: s.name, body: '神经重塑·阶段' + (currentStage + 1) + '/' + stages.length + '-' + s.bpm + 'BPM', icon: getIcon(), stage: currentStage, playing: isPlaying }
                     });
                 } catch (e) {}
             }
@@ -727,9 +753,21 @@
             try {
                 const s = stages[currentStage];
                 if (window._mediaNotification) window._mediaNotification.close();
-                const title = isPlaying ? `⏸ 点击暂停 · ${s.name}` : `▶ 点击播放 · ${s.name}`;
-                window._mediaNotification = new Notification(title, { body: `👆 点击此通知切换播放/暂停\n阶段${currentStage + 1}/${stages.length} · ${s.bpm}BPM`, icon: getIcon(), tag: MEDIA_NOTIF_TAG, silent: true, requireInteraction: false, badge: getIcon() });
-                window._mediaNotification.addEventListener('click', () => { togglePlay(); });
+                const prefix = isPlaying ? '▶ ' : '⏸ ';
+                const title = prefix + s.name;
+                const body = (isPlaying ? '👆 点击暂停 ⏸' : '👆 点击播放 ▶') + ' | 阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM';
+                window._mediaNotification = new Notification(title, { body: body, icon: getIcon(), tag: MEDIA_NOTIF_TAG, silent: true, requireInteraction: false, actions: [{ action: 'prev', title: '⏮' }, { action: 'playpause', title: isPlaying ? '⏸' : '▶' }, { action: 'next', title: '⏭' }] });
+                // 点击主区域切换播放/暂停，不强制 focus（不解锁）
+                window._mediaNotification.addEventListener('click', () => { 
+                    togglePlay(); 
+                    setTimeout(() => fallbackNotification(), 100);
+                });
+                // 处理 action 按钮
+                window._mediaNotification.addEventListener('notificationclick', (e) => {
+                    e.notification.close();
+                    const handlers = { 'playpause': togglePlay, 'prev': prevTrack, 'next': nextTrack };
+                    if (handlers[e.action]) handlers[e.action]();
+                });
             } catch (e) {}
         }
 
@@ -742,20 +780,11 @@
             try {
                 if (!audioContextReady) await ensureAC();
                 if (!isPlaying) { await createBG(stages[currentStage]); isPlaying = true; $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸'; mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); }, 1000); }
-                if (Notification.permission !== 'granted') { const p = await Notification.requestPermission(); if (p !== 'granted') { alert('⚠️ 需要通知权限才能使用锁屏控制'); return; } }
+                if (Notification.permission !== 'granted') { const p = await Notification.requestPermission(); if (p !== 'granted') { alert('⚠️ 需要通知权限'); return; } }
                 await sendMediaNotification();
-                showToast('systemToast', '📢 锁屏控制已激活！点击通知即可控制', 8000);
+                showToast('systemToast', '📢 通知已发送！锁屏点击标题控制播放', 8000);
                 updateDiag();
-                const ua = navigator.userAgent || '';
-                const isIOS = /iPad|iPhone|iPod/.test(ua);
-                const isHuawei = /huawei|honor|harmonyos/i.test(ua);
-                if (isIOS) {
-                    alert('✅ 媒体控制已激活\n\n🔒 iOS 锁屏控制方法：\n1️⃣ 锁屏后唤醒屏幕\n2️⃣ 在锁屏界面查看媒体控制卡片\n3️⃣ 点击卡片上的播放/暂停按钮\n\n💡 无需解锁，直接控制');
-                } else if (isHuawei) {
-                    alert('✅ 锁屏控制已激活\n\n🔒 华为/荣耀 操作方法：\n1️⃣ 锁屏后按电源键点亮屏幕\n2️⃣ 在锁屏通知栏找到「神经重塑」通知\n3️⃣ 👆 直接点击通知标题区域\n   → 立即切换 播放/暂停\n\n4️⃣ 下拉通知栏可看到 ⏮ ⏭ 按钮\n\n⚠️ 如点击无反应：\n设置→通知→Chrome/浏览器→锁屏通知→显示');
-                } else {
-                    alert('✅ 锁屏控制已激活\n\n🔒 操作方法（无需解锁）：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 在锁屏通知栏找到训练通知\n3️⃣ 👆 点击通知标题/内容区域\n   → 立即切换 播放/暂停\n\n4️⃣ 下拉通知栏可使用 ⏮ ⏭ 切歌');
-                }
+                alert('✅ v5.8 锁屏标题控制已激活\n\n🔒 无需解锁，无需下拉：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 看通知标题：\n   ▶ 表示播放中\n   ⏸ 表示已暂停\n3️⃣ 直接点击通知标题\n   → 立即切换 播放/暂停\n\n4️⃣ 下拉通知栏可看到 ⏮ ⏭ 切歌按钮\n\n💡 通知标题即状态，点击标题即控制！');
             } catch (e) { showError('测试失败: ' + e.message); }
         }
 
@@ -775,7 +804,16 @@
 
         function updateMS(stage, meta) {
             if (!('mediaSession' in navigator)) return;
-            try { navigator.mediaSession.metadata = new MediaMetadata({ title: stage?.name || '神经重塑', artist: meta?.name || '神经重塑训练', album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + (stage?.bpm || 60) + 'BPM', artwork: [{ src: getIcon(), sizes: '512x512', type: 'image/png' }] }); navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused'; } catch (e) {}
+            try { 
+                const prefix = isPlaying ? '▶ ' : '⏸ ';
+                navigator.mediaSession.metadata = new MediaMetadata({ 
+                    title: prefix + (stage?.name || '神经重塑'), 
+                    artist: meta?.name || '神经重塑训练', 
+                    album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + (stage?.bpm || 60) + 'BPM', 
+                    artwork: [{ src: getIcon(), sizes: '512x512', type: 'image/png' }] 
+                }); 
+                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused'; 
+            } catch (e) {}
         }
         function updateMSPos(pos, dur) {
             if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
@@ -803,7 +841,10 @@
             if (currentAudio) { savedTime = currentAudio.currentTime; currentAudio.pause(); }
             stopMetro();
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-            releaseWL(); saveState(); updateDiag(); closeMediaNotification();
+            releaseWL(); saveState(); updateDiag(); 
+            // 更新通知为暂停状态（标题显示 ⏸），而不是关闭
+            updateMS(stages[currentStage], audioMeta[currentStage]);
+            sendMediaNotification();
         }
         function nextStage() { if (currentStage < stages.length - 1) switchTrack(currentStage + 1); else complete(); }
         function complete() {
@@ -891,7 +932,11 @@
                 if (e.data?.type === 'MEDIA_ACTION') {
                     const action = e.data.action;
                     const handlers = { 'playpause': togglePlay, 'prev': prevTrack, 'next': nextTrack, 'play': () => { if (!isPlaying) togglePlay(); }, 'pause': () => { if (isPlaying) togglePlay(); }, 'previoustrack': prevTrack, 'nexttrack': nextTrack, 'stop': () => { if (isPlaying) pause(); } };
-                    if (handlers[action]) { handlers[action](); setTimeout(() => { if (isPlaying) sendMediaNotification(); }, 100); }
+                    if (handlers[action]) { 
+                        handlers[action](); 
+                        // 无论播放还是暂停，都立即更新通知状态
+                        setTimeout(() => sendMediaNotification(), 100); 
+                    }
                 }
             });
             navigator.serviceWorker.addEventListener('controllerchange', () => { if (isPlaying) setTimeout(sendMediaNotification, 500); });
@@ -976,7 +1021,7 @@
                 log('初始化 v' + APP_VERSION);
                 const ua = navigator.userAgent || ''; isHuawei = /huawei|honor|harmonyos/i.test(ua);
                 if (isHuawei) { const guide = $('huaweiGuide'); if (guide) guide.classList.add('show'); }
-                initPWA(); registerSW();
+                initPWA(); registerSW(); setupAppleIcon();
                 loadStages(); loadStats();
                 autoSave = localStorage.getItem(AUTO_SAVE_KEY) !== 'false';
                 $('autoSaveToggle').classList.toggle('active', autoSave);
@@ -990,7 +1035,7 @@
                 document.addEventListener('touchstart', activateAudio, { once: true });
                 document.addEventListener('click', activateAudio, { once: true });
                 log('初始化完成');
-                console.log('🧠 神经重塑 v' + APP_VERSION + ' - 点击通知控制播放/暂停');
+                console.log('🧠 神经重塑 v' + APP_VERSION + ' - 锁屏标题点击控制，不解锁切换播放/暂停');
             } catch (e) { console.error('[Init] 失败:', e); showError('初始化失败'); }
         }
 

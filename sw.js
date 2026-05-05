@@ -1,4 +1,4 @@
-﻿// 神经重塑训练 - Service Worker v5.8 锁屏点击优化版
+// 神经重塑训练 - Service Worker v5.8 锁屏标题点击控制
 const CACHE_NAME = 'neuro-v58';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 const MEDIA_NOTIF_TAG = 'neuro-media-control';
@@ -34,29 +34,30 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 🔔 点击通知 → 播放/暂停；按钮点击 → 对应操作
+// 🔔 通知点击处理：不解锁、不亮屏、只发消息控制播放
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] 🔔 通知被点击:', event.action || '主体点击(播放/暂停)');
-  event.notification.close();
+  const rawAction = event.action || 'playpause';
+  console.log('[SW] 🔔 通知被点击, action=', rawAction);
   
-  // 如果没有点击特定按钮（点击通知主体），默认切换播放/暂停
-  const action = event.action || 'playpause';
+  // 立即关闭旧通知，后续由主页面触发重新发送新状态的通知
+  event.notification.close();
   
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       if (clients.length > 0) {
-        // 向所有客户端发送指令，不强制聚焦（避免触发解锁）
-        clients.forEach(client => {
-          client.postMessage({ type: 'MEDIA_ACTION', action: action });
-        });
-        return;
+        // 客户端已存在：只发消息，不 focus()，不解锁
+        const client = clients[0];
+        client.postMessage({ type: 'MEDIA_ACTION', action: rawAction });
+        // 返回 Promise.resolve() 而不 focus()，保持锁屏状态
+        return Promise.resolve();
       } else {
-        // 无窗口时打开（首次使用或已被关闭）
+        // 客户端不存在（罕见）：需要打开窗口
+        console.log('[SW] 无活跃客户端，打开窗口...');
         return self.clients.openWindow('./index.html').then(client => {
           if (client) {
             setTimeout(() => {
-              client.postMessage({ type: 'MEDIA_ACTION', action: action });
-            }, 2000);
+              client.postMessage({ type: 'MEDIA_ACTION', action: rawAction });
+            }, 1800);
           }
         });
       }
@@ -73,25 +74,23 @@ self.addEventListener('message', event => {
   }
 });
 
-// 🔑 更新媒体通知（锁屏点击优化版）
+// 🔑 更新媒体通知（标题即状态，点击标题即可控制）
 async function updateMediaNotification(payload) {
   try {
-    // 关闭旧通知，避免堆叠
     const oldNotifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
     oldNotifs.forEach(n => n.close());
     
     const isPlaying = payload.playing;
-    const stageName = payload.stageName || '神经重塑';
+    const stageName = payload.title || '神经重塑';
+    // 标题前带播放状态图标，锁屏上直接可见
+    const title = (isPlaying ? '▶ ' : '⏸ ') + stageName.replace(/^[▶⏸]\s*/, '');
     
-    // 标题直接显示状态和操作提示，用户一看就知道点击后会怎样
-    const title = isPlaying 
-      ? `⏸ 点击暂停 · ${stageName}` 
-      : `▶ 点击播放 · ${stageName}`;
-    
-    // 正文提供操作引导
-    const body = isPlaying
-      ? `👆 点击此通知立即暂停\n💡 下拉通知栏可切换上一首/下一首`
-      : `👆 点击此通知继续播放\n💡 下拉通知栏可切换上一首/下一首`;
+    // 正文提示点击操作
+    const hint = isPlaying 
+      ? '👆 点击本通知暂停 ⏸' 
+      : '👆 点击本通知播放 ▶';
+    const subHint = '下拉通知栏 ⏮ ⏭ 切歌';
+    const body = hint + '\n' + subHint;
     
     await self.registration.showNotification(
       title,
@@ -101,17 +100,17 @@ async function updateMediaNotification(payload) {
         badge: payload.icon || '',
         tag: MEDIA_NOTIF_TAG,
         silent: true,
-        requireInteraction: false,  // 不需要用户交互也能保持
+        requireInteraction: false,
         renotify: true,
-        ongoing: true,              // 保持通知不被滑动清除
-        sticky: true,               // 粘性通知，常驻锁屏
-        priority: 'max',            // 最高优先级，显示在通知栏顶部
+        ongoing: true,
+        sticky: true,
+        priority: 'max',
         timestamp: Date.now(),
-        vibrate: isPlaying ? [30] : [50, 30], // 轻微震动反馈，确认操作
+        // actions 在部分系统锁屏不显示，但保留给下拉状态栏使用
         actions: [
-          { action: 'prev', title: '⏮ 上一首' },
+          { action: 'prev', title: '⏮ 上首' },
           { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
-          { action: 'next', title: '⏭ 下一首' }
+          { action: 'next', title: '⏭ 下首' }
         ],
         data: { 
           stage: payload.stage || 0, 
@@ -121,7 +120,7 @@ async function updateMediaNotification(payload) {
       }
     );
     
-    console.log('[SW] ✅ v5.8 通知已更新:', isPlaying ? '播放中' : '已暂停');
+    console.log('[SW] ✅ 通知已更新:', title, isPlaying ? '(播放中)' : '(已暂停)');
   } catch (e) {
     console.error('[SW] 通知失败:', e);
   }
@@ -134,5 +133,4 @@ async function closeMediaNotification() {
   } catch (e) {}
 }
 
-console.log('[SW] v5.8 锁屏点击优化版已启动');
-
+console.log('[SW] v5.8 锁屏标题点击控制已启动');
