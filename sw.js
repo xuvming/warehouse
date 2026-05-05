@@ -1,10 +1,16 @@
-// 神经重塑训练 - Service Worker v5.8 锁屏标题点击控制
-const CACHE_NAME = 'neuro-v58';
+﻿// 神经重塑训练 - Service Worker v5.9 鸿蒙专用适配版
+// 三通道通信确保锁屏/后台通知点击可靠送达
+const CACHE_NAME = 'neuro-v59';
 const STATIC_ASSETS = ['./', './index.html', './manifest.json'];
 const MEDIA_NOTIF_TAG = 'neuro-media-control';
+const BC_NAME = 'neuro-media-bc';
+
+// BroadcastChannel 实例（同源跨上下文通信，不受 clients 冻结影响）
+let bc = null;
+try { bc = new BroadcastChannel(BC_NAME); } catch(e) {}
 
 self.addEventListener('install', event => {
-  console.log('[SW] Installing v5.8...');
+  console.log('[SW] Installing v5.9...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(STATIC_ASSETS).catch(err => console.error('[SW] 缓存失败:', err));
@@ -13,7 +19,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating v5.8...');
+  console.log('[SW] Activating v5.9...');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)));
@@ -34,34 +40,48 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 🔔 通知点击处理：不解锁、不亮屏、只发消息控制播放
+// 🔔 通知点击处理：三通道确保消息送达
 self.addEventListener('notificationclick', event => {
   const rawAction = event.action || 'playpause';
-  console.log('[SW] 🔔 通知被点击, action=', rawAction);
+  console.log('[SW] 🔔 通知点击 action=', rawAction);
   
-  // 立即关闭旧通知，后续由主页面触发重新发送新状态的通知
   event.notification.close();
   
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      if (clients.length > 0) {
-        // 客户端已存在：只发消息，不 focus()，不解锁
-        const client = clients[0];
-        client.postMessage({ type: 'MEDIA_ACTION', action: rawAction });
-        // 返回 Promise.resolve() 而不 focus()，保持锁屏状态
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clients => {
+        let sentCount = 0;
+        
+        // 通道1：clients.postMessage
+        if (clients.length > 0) {
+          clients.forEach(client => {
+            try {
+              client.postMessage({ type: 'MEDIA_ACTION', action: rawAction, via: 'clients', t: Date.now() });
+              sentCount++;
+            } catch (e) {}
+          });
+        }
+        
+        // 通道2：BroadcastChannel
+        if (bc) {
+          try {
+            bc.postMessage({ type: 'MEDIA_ACTION', action: rawAction, via: 'broadcast', t: Date.now() });
+            sentCount++;
+          } catch (e) {}
+        }
+        
+        // 通道3：URL hash 唤醒（终极备选）
+        if (sentCount === 0) {
+          const hashUrl = './index.html#action=' + encodeURIComponent(rawAction) + '&t=' + Date.now();
+          return self.clients.openWindow(hashUrl);
+        }
+        
         return Promise.resolve();
-      } else {
-        // 客户端不存在（罕见）：需要打开窗口
-        console.log('[SW] 无活跃客户端，打开窗口...');
-        return self.clients.openWindow('./index.html').then(client => {
-          if (client) {
-            setTimeout(() => {
-              client.postMessage({ type: 'MEDIA_ACTION', action: rawAction });
-            }, 1800);
-          }
-        });
-      }
-    })
+      })
+      .catch(() => {
+        const hashUrl = './index.html#action=' + encodeURIComponent(rawAction) + '&t=' + Date.now();
+        return self.clients.openWindow(hashUrl);
+      })
   );
 });
 
@@ -74,7 +94,6 @@ self.addEventListener('message', event => {
   }
 });
 
-// 🔑 更新媒体通知（标题即状态，点击标题即可控制）
 async function updateMediaNotification(payload) {
   try {
     const oldNotifs = await self.registration.getNotifications({ tag: MEDIA_NOTIF_TAG });
@@ -82,20 +101,13 @@ async function updateMediaNotification(payload) {
     
     const isPlaying = payload.playing;
     const stageName = payload.title || '神经重塑';
-    // 标题前带播放状态图标，锁屏上直接可见
     const title = (isPlaying ? '▶ ' : '⏸ ') + stageName.replace(/^[▶⏸]\s*/, '');
-    
-    // 正文提示点击操作
-    const hint = isPlaying 
-      ? '👆 点击本通知暂停 ⏸' 
-      : '👆 点击本通知播放 ▶';
-    const subHint = '下拉通知栏 ⏮ ⏭ 切歌';
-    const body = hint + '\n' + subHint;
+    const hint = isPlaying ? '👆 点击暂停' : '👆 点击播放';
     
     await self.registration.showNotification(
       title,
       {
-        body: body,
+        body: hint + ' · 下拉查看 ⏮ ⏭',
         icon: payload.icon || '',
         badge: payload.icon || '',
         tag: MEDIA_NOTIF_TAG,
@@ -106,21 +118,16 @@ async function updateMediaNotification(payload) {
         sticky: true,
         priority: 'max',
         timestamp: Date.now(),
-        // actions 在部分系统锁屏不显示，但保留给下拉状态栏使用
         actions: [
-          { action: 'prev', title: '⏮ 上首' },
-          { action: 'playpause', title: isPlaying ? '⏸ 暂停' : '▶ 播放' },
-          { action: 'next', title: '⏭ 下首' }
+          { action: 'prev', title: '⏮' },
+          { action: 'playpause', title: isPlaying ? '⏸' : '▶' },
+          { action: 'next', title: '⏭' }
         ],
-        data: { 
-          stage: payload.stage || 0, 
-          playing: isPlaying, 
-          type: 'media-control' 
-        }
+        data: { stage: payload.stage || 0, playing: isPlaying, type: 'media-control' }
       }
     );
     
-    console.log('[SW] ✅ 通知已更新:', title, isPlaying ? '(播放中)' : '(已暂停)');
+    console.log('[SW] 通知已更新:', title);
   } catch (e) {
     console.error('[SW] 通知失败:', e);
   }
@@ -133,4 +140,5 @@ async function closeMediaNotification() {
   } catch (e) {}
 }
 
-console.log('[SW] v5.8 锁屏标题点击控制已启动');
+console.log('[SW] v5.9 鸿蒙专用适配版已启动');
+

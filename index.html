@@ -215,9 +215,9 @@
     </div>
     
     <div class="mediasession-hint" id="mediasessionHint">
-        🎵 锁屏标题控制已激活<br>
-        <small>🔒 点亮屏幕 → 看标题 ▶/⏸ → 点击通知切换</small><br>
-        <small style="color:var(--warning);">无需下拉，无需解锁，点击标题即控制</small>
+        🎵 锁屏控制已激活 (v5.9 鸿蒙适配)<br>
+        <small>🔒 点亮屏幕 → 点击通知切换播放/暂停</small><br>
+        <small style="color:var(--warning);">鸿蒙系统：点击通知后可能需稍等 1-2 秒响应</small>
     </div>
     
     <div class="status-bar">
@@ -238,6 +238,8 @@
         <div class="diag-row"><span class="diag-label">MediaSession API</span><span class="diag-value" id="diagMedia">检测中...</span></div>
         <div class="diag-row"><span class="diag-label">Service Worker</span><span class="diag-value" id="diagSW">检测中...</span></div>
         <div class="diag-row"><span class="diag-label">音频状态</span><span class="diag-value" id="diagPlaying">检测中...</span></div>
+        <div class="diag-row"><span class="diag-label">系统类型</span><span class="diag-value" id="diagSys">检测中...</span></div>
+        <div class="diag-row"><span class="diag-label">BroadcastChannel</span><span class="diag-value" id="diagBC">检测中...</span></div>
         <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.showNotifSettingsGuide()">⚙️ 通知设置</button>
             <button class="btn btn-warning" style="flex:1;min-width:100px;padding:10px;font-size:12px;" onclick="app.sendTestNotification()">📢 测试锁屏通知</button>
@@ -256,7 +258,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">锁屏标题点击控制 · 不解锁切换 · v5.8</p>
+        <p class="subtitle">鸿蒙适配版 · 锁屏点击控制 · v5.9</p>
     </div>
 
     <div class="music-status">
@@ -418,7 +420,7 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '5.8.0-lock';
+        const APP_VERSION = '5.9.0-harmony';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v50';
         const STATE_KEY = 'nrd_v50';
@@ -454,6 +456,7 @@
         let metroInterval = null, metroProgress = null, mainLoop = null, metroStart = 0;
         let bgOsc = null, bgGain = null;
         let wakeLock = null;
+        let bcChannel = null;
         let errCount = 0;
         let isHuawei = false;
         let deferredPrompt = null;
@@ -697,7 +700,7 @@
         }
 
         async function sendMediaNotification() {
-            log('[媒体] v5.8 发送通知...');
+            log('[媒体] v5.9 发送通知...');
             
             if ('mediaSession' in navigator) {
                 try {
@@ -784,7 +787,7 @@
                 await sendMediaNotification();
                 showToast('systemToast', '📢 通知已发送！锁屏点击标题控制播放', 8000);
                 updateDiag();
-                alert('✅ v5.8 锁屏标题控制已激活\n\n🔒 无需解锁，无需下拉：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 看通知标题：\n   ▶ 表示播放中\n   ⏸ 表示已暂停\n3️⃣ 直接点击通知标题\n   → 立即切换 播放/暂停\n\n4️⃣ 下拉通知栏可看到 ⏮ ⏭ 切歌按钮\n\n💡 通知标题即状态，点击标题即控制！');
+                alert('✅ v5.9 鸿蒙适配版已激活\n\n🔒 使用方法：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 点击通知栏的「▶ 阶段名」\n⚠️ 鸿蒙系统：点击后可能有延迟，建议保持屏幕常亮训练\n💡 三通道：clients + BroadcastChannel + URLhash');
             } catch (e) { showError('测试失败: ' + e.message); }
         }
 
@@ -886,12 +889,15 @@
                 const np = Notification.permission;
                 const hm = 'mediaSession' in navigator;
                 const hsw = 'serviceWorker' in navigator && !!navigator.serviceWorker.controller;
+                const bc = 'BroadcastChannel' in window;
                 const setV = (id, v, cls) => { const el = $(id); if (el) { el.textContent = v; el.className = 'diag-value ' + (cls || ''); } };
                 setV('diagPWA', sa ? '✅ 已安装PWA' : '❌ 浏览器模式', sa ? 'ok' : 'warn');
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
-                setV('diagPlaying', isPlaying ? '▶ 播放中 (v5.8)' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagPlaying', isPlaying ? '▶ 播放中 (v5.9)' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagSys', isHuawei ? '⚠ 鸿蒙/华为（特殊适配）' : '✅ 标准系统', isHuawei ? 'warn' : 'ok');
+                setV('diagBC', bc ? '✅ 支持' : '❌ 不支持', bc ? 'ok' : 'warn');
             } catch (e) {}
         }
         function showDiagnostic() { const p = $('diagnosticPanel'); if (p) { p.classList.toggle('show'); if (p.classList.contains('show')) { updateDiag(); $('lockScreenHint').classList.remove('show'); } } }
@@ -925,21 +931,71 @@
             window.addEventListener('appinstalled', () => { $('pwaInstallHint').classList.remove('show'); });
         }
         
+        // 🔑 统一处理媒体控制指令（来自任何通道）
+        function handleMediaAction(action) {
+            const handlers = { 'playpause': togglePlay, 'prev': prevTrack, 'next': nextTrack, 'play': () => { if (!isPlaying) togglePlay(); }, 'pause': () => { if (isPlaying) togglePlay(); }, 'previoustrack': prevTrack, 'nexttrack': nextTrack, 'stop': () => { if (isPlaying) pause(); } };
+            if (handlers[action]) {
+                log('[控制] 执行动作:', action);
+                handlers[action]();
+                setTimeout(() => sendMediaNotification(), 100);
+                return true;
+            }
+            log('[控制] 未知动作:', action);
+            return false;
+        }
+
         function registerSW() {
             if (!('serviceWorker' in navigator)) { log('[SW] 不支持'); return; }
-            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js', { scope: './' }).then(r => log('SW 注册成功')).catch(e => log('SW 注册失败:', e)); });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                    .then(r => log('SW 注册成功'))
+                    .catch(e => log('SW 注册失败:', e));
+            });
+
+            // 通道1：SW postMessage
             navigator.serviceWorker.addEventListener('message', e => {
                 if (e.data?.type === 'MEDIA_ACTION') {
-                    const action = e.data.action;
-                    const handlers = { 'playpause': togglePlay, 'prev': prevTrack, 'next': nextTrack, 'play': () => { if (!isPlaying) togglePlay(); }, 'pause': () => { if (isPlaying) togglePlay(); }, 'previoustrack': prevTrack, 'nexttrack': nextTrack, 'stop': () => { if (isPlaying) pause(); } };
-                    if (handlers[action]) { 
-                        handlers[action](); 
-                        // 无论播放还是暂停，都立即更新通知状态
-                        setTimeout(() => sendMediaNotification(), 100); 
-                    }
+                    handleMediaAction(e.data.action);
                 }
             });
-            navigator.serviceWorker.addEventListener('controllerchange', () => { if (isPlaying) setTimeout(sendMediaNotification, 500); });
+
+            // 通道2：BroadcastChannel（鸿蒙系统 clients 常不可用，BC 更可靠）
+            initBroadcastChannel();
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (isPlaying) setTimeout(sendMediaNotification, 500);
+            });
+        }
+
+        function initBroadcastChannel() {
+            if (!('BroadcastChannel' in window)) { log('[BC] 浏览器不支持'); return; }
+            try {
+                bcChannel = new BroadcastChannel('neuro-media-bc');
+                bcChannel.addEventListener('message', e => {
+                    if (e.data?.type === 'MEDIA_ACTION') {
+                        log('[BC] 收到广播消息:', e.data.action);
+                        handleMediaAction(e.data.action);
+                    }
+                });
+                log('[BC] BroadcastChannel 已初始化');
+            } catch (e) { console.error('[BC] 初始化失败:', e); }
+        }
+
+        // 通道3：URL hash 唤醒（页面关闭后通过 openWindow + hash 恢复）
+        function handleHashAction() {
+            const hash = location.hash;
+            if (!hash || hash.length < 2) return false;
+            const params = new URLSearchParams(hash.slice(1));
+            const action = params.get('action');
+            if (!action) return false;
+            log('[Hash] 从 URL hash 恢复动作:', action);
+            // 延迟执行，确保音频上下文已就绪
+            setTimeout(() => {
+                handleMediaAction(action);
+                // 清除 hash，防止刷新重复执行
+                history.replaceState(null, '', location.pathname + location.search);
+            }, 800);
+            return true;
         }
 
         function initPlaylist() {
@@ -1022,6 +1078,8 @@
                 const ua = navigator.userAgent || ''; isHuawei = /huawei|honor|harmonyos/i.test(ua);
                 if (isHuawei) { const guide = $('huaweiGuide'); if (guide) guide.classList.add('show'); }
                 initPWA(); registerSW(); setupAppleIcon();
+                // 通道3：检查 URL hash（SW 通过 openWindow+hash 唤醒时）
+                handleHashAction();
                 loadStages(); loadStats();
                 autoSave = localStorage.getItem(AUTO_SAVE_KEY) !== 'false';
                 $('autoSaveToggle').classList.toggle('active', autoSave);
@@ -1035,7 +1093,7 @@
                 document.addEventListener('touchstart', activateAudio, { once: true });
                 document.addEventListener('click', activateAudio, { once: true });
                 log('初始化完成');
-                console.log('🧠 神经重塑 v' + APP_VERSION + ' - 锁屏标题点击控制，不解锁切换播放/暂停');
+                console.log('🧠 神经重塑 v' + APP_VERSION + ' - 三通道锁屏控制 (clients + BroadcastChannel + hash)');
             } catch (e) { console.error('[Init] 失败:', e); showError('初始化失败'); }
         }
 
