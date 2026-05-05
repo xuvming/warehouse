@@ -567,7 +567,7 @@
 
         function startMetro(bpm) {
             stopMetro();
-            const stage = stages[currentStage], dur = stage stage.duration ||.duration || 300;
+            const stage = stages[currentStage], dur = stage.duration || 300;
             $('trackDuration').textContent = fmtTime(dur);
             $('trackCurrentTime').textContent = '00:00';
             $('trackProgressFill').style.width = '0%';
@@ -673,15 +673,14 @@
 
         async function sendMediaNotification() {
             log('[媒体] v5.8 发送通知...');
-            const s = stages[currentStage];
             
-            // 1. MediaSession API（原生锁屏媒体卡片，安卓10+/HarmonyOS/iOS支持）
             if ('mediaSession' in navigator) {
                 try {
+                    const s = stages[currentStage];
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: s.name,
-                        artist: '神经重塑训练',
-                        album: `阶段 ${currentStage + 1}/${stages.length} · ${s.bpm}BPM`,
+                        artist: '神经重塑 · 阶段' + (currentStage + 1) + '/' + stages.length,
+                        album: s.bpm + 'BPM',
                         artwork: [
                             { src: getIcon(), sizes: '96x96', type: 'image/png' },
                             { src: getIcon(), sizes: '128x128', type: 'image/png' },
@@ -694,13 +693,9 @@
                     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
                     if ('setPositionState' in navigator.mediaSession) {
                         const pos = currentAudio?.currentTime || 0;
-                        const dur = currentAudio?.duration || s?.duration || 300;
+                        const dur = currentAudio?.duration || stages[currentStage]?.duration || 300;
                         if (dur > 0 && isFinite(dur)) {
-                            navigator.mediaSession.setPositionState({ 
-                                duration: dur, 
-                                playbackRate: isPlaying ? 1.0 : 0.0, 
-                                position: Math.min(Math.max(pos, 0), dur) 
-                            });
+                            navigator.mediaSession.setPositionState({ duration: dur, playbackRate: isPlaying ? 1.0 : 0.0, position: Math.min(Math.max(pos, 0), dur) });
                         }
                     }
                     try { navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) togglePlay(); }); } catch (e) {}
@@ -714,21 +709,16 @@
                 } catch (e) {}
             }
             
-            // 2. Service Worker 通知（点击通知主体切换播放/暂停，兼容所有安卓）
             if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                 try {
+                    const s = stages[currentStage];
                     navigator.serviceWorker.controller.postMessage({
                         type: 'UPDATE_MEDIA_NOTIFICATION',
-                        payload: { 
-                            stageName: s.name,
-                            body: `阶段${currentStage + 1}/${stages.length} · ${s.bpm}BPM`, 
-                            icon: getIcon(), 
-                            stage: currentStage, 
-                            playing: isPlaying 
-                        }
+                        payload: { stageName: s.name, body: '神经重塑·阶段' + (currentStage + 1) + '/' + stages.length + '-' + s.bpm + 'BPM', icon: getIcon(), stage: currentStage, playing: isPlaying }
                     });
                 } catch (e) {}
             }
+            // 降级通知（SW不可用时）
             else { fallbackNotification(); }
         }
 
@@ -737,25 +727,9 @@
             try {
                 const s = stages[currentStage];
                 if (window._mediaNotification) window._mediaNotification.close();
-                
-                // 标题直接提示点击后的操作
-                const title = isPlaying 
-                    ? `⏸ 点击暂停 · ${s.name}` 
-                    : `▶ 点击播放 · ${s.name}`;
-                    
-                window._mediaNotification = new Notification(title, { 
-                    body: `👆 点击此通知切换播放/暂停\n阶段${currentStage + 1}/${stages.length} · ${s.bpm}BPM`, 
-                    icon: getIcon(), 
-                    tag: MEDIA_NOTIF_TAG, 
-                    silent: true, 
-                    requireInteraction: false,
-                    badge: getIcon()
-                });
-                
-                // 点击通知直接切换，不聚焦窗口（保持锁屏）
-                window._mediaNotification.addEventListener('click', () => { 
-                    togglePlay();
-                });
+                const title = isPlaying ? `⏸ 点击暂停 · ${s.name}` : `▶ 点击播放 · ${s.name}`;
+                window._mediaNotification = new Notification(title, { body: `👆 点击此通知切换播放/暂停\n阶段${currentStage + 1}/${stages.length} · ${s.bpm}BPM`, icon: getIcon(), tag: MEDIA_NOTIF_TAG, silent: true, requireInteraction: false, badge: getIcon() });
+                window._mediaNotification.addEventListener('click', () => { togglePlay(); });
             } catch (e) {}
         }
 
@@ -767,33 +741,14 @@
         async function sendTestNotification() {
             try {
                 if (!audioContextReady) await ensureAC();
-                if (!isPlaying) { 
-                    await createBG(stages[currentStage]); 
-                    isPlaying = true; 
-                    $('playBtn').textContent = '⏸ 暂停'; 
-                    $('miniPlayBtn').textContent = '⏸'; 
-                    mainLoop = setInterval(() => { 
-                        if (!isPlaying) return; 
-                        totalTime++; 
-                        updateDisp(); 
-                    }, 1000); 
-                }
-                if (Notification.permission !== 'granted') { 
-                    const p = await Notification.requestPermission(); 
-                    if (p !== 'granted') { 
-                        alert('⚠️ 需要通知权限才能使用锁屏控制'); 
-                        return; 
-                    } 
-                }
+                if (!isPlaying) { await createBG(stages[currentStage]); isPlaying = true; $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸'; mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); }, 1000); }
+                if (Notification.permission !== 'granted') { const p = await Notification.requestPermission(); if (p !== 'granted') { alert('⚠️ 需要通知权限才能使用锁屏控制'); return; } }
                 await sendMediaNotification();
                 showToast('systemToast', '📢 锁屏控制已激活！点击通知即可控制', 8000);
                 updateDiag();
-                
-                // 根据系统显示针对性操作提示
                 const ua = navigator.userAgent || '';
                 const isIOS = /iPad|iPhone|iPod/.test(ua);
                 const isHuawei = /huawei|honor|harmonyos/i.test(ua);
-                
                 if (isIOS) {
                     alert('✅ 媒体控制已激活\n\n🔒 iOS 锁屏控制方法：\n1️⃣ 锁屏后唤醒屏幕\n2️⃣ 在锁屏界面查看媒体控制卡片\n3️⃣ 点击卡片上的播放/暂停按钮\n\n💡 无需解锁，直接控制');
                 } else if (isHuawei) {
@@ -801,9 +756,7 @@
                 } else {
                     alert('✅ 锁屏控制已激活\n\n🔒 操作方法（无需解锁）：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 在锁屏通知栏找到训练通知\n3️⃣ 👆 点击通知标题/内容区域\n   → 立即切换 播放/暂停\n\n4️⃣ 下拉通知栏可使用 ⏮ ⏭ 切歌');
                 }
-            } catch (e) { 
-                showError('测试失败: ' + e.message); 
-            }
+            } catch (e) { showError('测试失败: ' + e.message); }
         }
 
         function showNotifSettingsGuide() {

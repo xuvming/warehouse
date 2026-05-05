@@ -34,7 +34,7 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 🔔 通知点击处理：点击通知主体 = 播放/暂停；点击按钮 = 对应操作
+// 🔔 点击通知 → 播放/暂停；按钮点击 → 对应操作
 self.addEventListener('notificationclick', event => {
   console.log('[SW] 🔔 通知被点击:', event.action || '主体点击(播放/暂停)');
   event.notification.close();
