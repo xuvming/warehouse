@@ -666,7 +666,8 @@
             return new Promise(resolve => {
                 let done = false;
                 const exec = async () => {
-                    if (done) return; done = true;
+                    if (done) return;
+                    done = true;
                     try {
                         if (resume > 0 && isFinite(resume)) audio.currentTime = resume;
                         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
@@ -1102,6 +1103,21 @@
 
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
     })();
+    </script>
+
+    <!-- PWA 最简注册代码（不影响现有播放器） -->
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./sw.js')
+          .then(function(registration) {
+            console.log('✅ Service Worker 注册成功:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('⚠️ Service Worker 注册失败:', error);
+          });
+      });
+    }
     </script>
 </body>
 </html>
