@@ -553,10 +553,11 @@
             } catch (e) { console.error('[Icon] 生成失败:', e); }
         }
 
-        // 生成极短静音 WAV 音频（触发系统媒体会话的"诱饵"音频）
+        // 生成静音 WAV 音频 Blob URL（音频数据全为零 = 无声音输出）
+        // 使用正常音量播放，但音频本身静音，这样 Chrome 媒体检测能识别，但用户听不到
         function generateSilentWav() {
             const sampleRate = 44100;
-            const duration = 1.0; // 1秒
+            const duration = 2.0; // 2秒循环
             const numSamples = sampleRate * duration;
             const numChannels = 2;
             const blockAlign = numChannels * 2;
@@ -564,52 +565,56 @@
             const dataSize = numSamples * blockAlign;
             const buffer = new ArrayBuffer(44 + dataSize);
             const view = new DataView(buffer);
-            // WAV header
             let offset = 0;
             const writeStr = s => { for (let i = 0; i < s.length; i++) view.setUint8(offset++, s.charCodeAt(i)); };
             writeStr('RIFF'); view.setUint32(offset, 36 + dataSize, true); offset += 4;
             writeStr('WAVE'); writeStr('fmt '); view.setUint32(offset, 16, true); offset += 4;
-            view.setUint16(offset, 1, true); offset += 2; // PCM
+            view.setUint16(offset, 1, true); offset += 2;
             view.setUint16(offset, numChannels, true); offset += 2;
             view.setUint32(offset, sampleRate, true); offset += 4;
             view.setUint32(offset, byteRate, true); offset += 4;
             view.setUint16(offset, blockAlign, true); offset += 2;
             view.setUint16(offset, 16, true); offset += 2;
             writeStr('data'); view.setUint32(offset, dataSize, true); offset += 4;
-            // Silent data (zeros) - already zeroed
+            // 数据全零（静音）- ArrayBuffer 默认已初始化为零
             const blob = new Blob([buffer], { type: 'audio/wav' });
             return URL.createObjectURL(blob);
         }
 
-        // 获取/创建隐藏的 session audio 元素（系统媒体会话的生命线）
+        // 创建媒体会话音频元素（Chrome 媒体检测的关键）
+        // 注意：不能用 display:none！Chrome 会忽略。用屏幕外定位。
+        // 必须带 controls 属性，Chrome 媒体检测优先识别 controls 音频
         function ensureSessionAudio() {
             if (!_sessionAudio) {
                 _sessionAudio = document.createElement('audio');
                 _sessionAudio.id = '__session_audio';
                 _sessionAudio.loop = true;
                 _sessionAudio.preload = 'auto';
+                _sessionAudio.controls = true; // Chrome 媒体检测的关键！
                 _sessionAudio.setAttribute('playsinline', '');
                 _sessionAudio.setAttribute('webkit-playsinline', '');
-                _sessionAudio.style.cssText = 'display:none;width:0;height:0;position:absolute;opacity:0;pointer-events:none;';
+                _sessionAudio.setAttribute('x5-playsinline', '');
+                // 移出屏幕外（不能用 display:none，否则 Chrome 检测不到）
+                _sessionAudio.style.cssText = 'position:fixed;left:-3000px;top:-3000px;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-9999;';
                 document.body.appendChild(_sessionAudio);
-                log('[SessionAudio] 已创建隐藏音频元素');
+                // 预生成静音音频
+                if (!_silentAudioUrl) _silentAudioUrl = generateSilentWav();
+                _sessionAudio.src = _silentAudioUrl;
+                log('[SessionAudio] 已创建媒体音频元素（含 controls）');
             }
             return _sessionAudio;
         }
 
-        // 启动 session audio（触发系统媒体会话的关键）
+        // 启动媒体会话音频（触发系统媒体会话的关键入口）
         async function startSessionAudio() {
             try {
                 const audio = ensureSessionAudio();
-                if (!audio.src) {
-                    if (!_silentAudioUrl) _silentAudioUrl = generateSilentWav();
-                    audio.src = _silentAudioUrl;
-                    await audio.load();
-                }
                 if (audio.paused) {
-                    audio.volume = 0.01; // 几乎静音
+                    // 正常音量播放静音音频（Chrome 媒体检测需要"真实"播放）
+                    audio.volume = 1.0;
+                    audio.muted = false;
                     await audio.play();
-                    log('[SessionAudio] 已开始播放');
+                    log('[SessionAudio] 已开始播放（volume=1.0, muted=false）');
                 }
                 return true;
             } catch (e) {
@@ -618,7 +623,7 @@
             }
         }
 
-        // 停止 session audio
+        // 停止媒体会话音频
         function stopSessionAudio() {
             if (_sessionAudio && !_sessionAudio.paused) {
                 try { _sessionAudio.pause(); } catch (e) {}
