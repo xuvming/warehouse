@@ -881,7 +881,7 @@
             await sendMediaNotification();
             await requestWL(); showHint(); showMediaSessionHint(); updateDiag();
         }
-        function pause() {
+        async function pause() {
             isPlaying = false;
             $('playBtn').textContent = '▶ 继续'; $('miniPlayBtn').textContent = '▶';
             clearInterval(mainLoop); mainLoop = null; stopPositionUpdater();
