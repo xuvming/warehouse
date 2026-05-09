@@ -462,6 +462,9 @@
         let deferredPrompt = null;
         let audioContextReady = false;
         let positionUpdateInterval = null;
+        // 隐藏音频元素 + 静音音频（用于触发系统媒体会话）
+        let _sessionAudio = null;
+        let _silentAudioUrl = null;
 
         const $ = id => document.getElementById(id);
         function log(...a) { if (DEBUG) console.log('[NeuroApp v' + APP_VERSION + ']', ...a); }
@@ -550,6 +553,79 @@
             } catch (e) { console.error('[Icon] 生成失败:', e); }
         }
 
+        // 生成极短静音 WAV 音频（触发系统媒体会话的"诱饵"音频）
+        function generateSilentWav() {
+            const sampleRate = 44100;
+            const duration = 1.0; // 1秒
+            const numSamples = sampleRate * duration;
+            const numChannels = 2;
+            const blockAlign = numChannels * 2;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = numSamples * blockAlign;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+            // WAV header
+            let offset = 0;
+            const writeStr = s => { for (let i = 0; i < s.length; i++) view.setUint8(offset++, s.charCodeAt(i)); };
+            writeStr('RIFF'); view.setUint32(offset, 36 + dataSize, true); offset += 4;
+            writeStr('WAVE'); writeStr('fmt '); view.setUint32(offset, 16, true); offset += 4;
+            view.setUint16(offset, 1, true); offset += 2; // PCM
+            view.setUint16(offset, numChannels, true); offset += 2;
+            view.setUint32(offset, sampleRate, true); offset += 4;
+            view.setUint32(offset, byteRate, true); offset += 4;
+            view.setUint16(offset, blockAlign, true); offset += 2;
+            view.setUint16(offset, 16, true); offset += 2;
+            writeStr('data'); view.setUint32(offset, dataSize, true); offset += 4;
+            // Silent data (zeros) - already zeroed
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            return URL.createObjectURL(blob);
+        }
+
+        // 获取/创建隐藏的 session audio 元素（系统媒体会话的生命线）
+        function ensureSessionAudio() {
+            if (!_sessionAudio) {
+                _sessionAudio = document.createElement('audio');
+                _sessionAudio.id = '__session_audio';
+                _sessionAudio.loop = true;
+                _sessionAudio.preload = 'auto';
+                _sessionAudio.setAttribute('playsinline', '');
+                _sessionAudio.setAttribute('webkit-playsinline', '');
+                _sessionAudio.style.cssText = 'display:none;width:0;height:0;position:absolute;opacity:0;pointer-events:none;';
+                document.body.appendChild(_sessionAudio);
+                log('[SessionAudio] 已创建隐藏音频元素');
+            }
+            return _sessionAudio;
+        }
+
+        // 启动 session audio（触发系统媒体会话的关键）
+        async function startSessionAudio() {
+            try {
+                const audio = ensureSessionAudio();
+                if (!audio.src) {
+                    if (!_silentAudioUrl) _silentAudioUrl = generateSilentWav();
+                    audio.src = _silentAudioUrl;
+                    await audio.load();
+                }
+                if (audio.paused) {
+                    audio.volume = 0.01; // 几乎静音
+                    await audio.play();
+                    log('[SessionAudio] 已开始播放');
+                }
+                return true;
+            } catch (e) {
+                console.error('[SessionAudio] 启动失败:', e);
+                return false;
+            }
+        }
+
+        // 停止 session audio
+        function stopSessionAudio() {
+            if (_sessionAudio && !_sessionAudio.paused) {
+                try { _sessionAudio.pause(); } catch (e) {}
+                log('[SessionAudio] 已暂停');
+            }
+        }
+
         // IndexedDB
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -598,6 +674,7 @@
         
         function stopAll() {
             stopBG(); stopMetro();
+            stopSessionAudio();
             if (currentAudio) { try { currentAudio.pause(); if (currentAudio.src && currentAudio.src.startsWith('blob:')) URL.revokeObjectURL(currentAudio.src); currentAudio.src = ''; } catch (e) {} currentAudio = null; }
             stopPositionUpdater();
         }
@@ -644,6 +721,8 @@
         
         async function createBG(stage) {
             stopBG();
+            // 启动 session audio（触发系统媒体会话）
+            await startSessionAudio();
             try { const ctx = await ensureAC(); bgOsc = ctx.createOscillator(); bgGain = ctx.createGain(); bgOsc.connect(bgGain); bgGain.connect(ctx.destination); bgOsc.frequency.value = 100; bgGain.gain.value = 0.005; bgOsc.start(); } catch (e) { console.error('[BG] 失败:', e); }
             startMetro(stage.bpm);
             $('currentMode').textContent = stage.name + ' · 节拍器';
@@ -694,12 +773,14 @@
                     done = true;
                     try {
                         if (resume > 0 && isFinite(resume)) audio.currentTime = resume;
-                        // 在 audio.play() 之前先设置 MediaSession 状态（Android TWA 关键）
+                        // 启动 session audio（触发系统媒体会话的关键）
+                        await startSessionAudio();
+                        // 设置 MediaSession 状态
                         if ('mediaSession' in navigator) {
                             navigator.mediaSession.playbackState = 'playing';
                         }
                         await audio.play();
-                        // 音频成功播放后，确保系统媒体会话已激活
+                        // 音频成功播放后，再次确保系统媒体会话已激活
                         if ('mediaSession' in navigator) {
                             navigator.mediaSession.playbackState = 'playing';
                         }
@@ -875,6 +956,9 @@
             isPlaying = true; errCount = 0;
             $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸';
             savedTime = 0;
+            // 启动 session audio（触发系统媒体会话的关键）
+            await startSessionAudio();
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
             try { await playStageMusic(currentStage, savedTime); } catch (e) { console.error('[Play] 失败:', e); await createBG(stages[currentStage]); }
             mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); if (totalTime - stageStart(currentStage) >= (stages[currentStage]?.duration || 300)) nextStage(); }, 1000);
             await updateMS(stages[currentStage], audioMeta[currentStage]);
@@ -887,6 +971,7 @@
             clearInterval(mainLoop); mainLoop = null; stopPositionUpdater();
             if (currentAudio) { savedTime = currentAudio.currentTime; currentAudio.pause(); }
             stopMetro();
+            stopSessionAudio();
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
             releaseWL(); saveState(); updateDiag(); 
             // 更新通知为暂停状态（标题显示 ⏸），而不是关闭
@@ -1043,7 +1128,7 @@
         }
 
         // 全局初始化 MediaSession（页面加载时调用一次即可）
-        function initMediaSession() {
+        async function initMediaSession() {
             if (!('mediaSession' in navigator)) { log('[MS] MediaSession API 不支持'); return; }
             try {
                 navigator.mediaSession.setActionHandler('play', () => { log('[MS] play action'); if (!isPlaying) togglePlay(); });
@@ -1163,7 +1248,8 @@
             document.addEventListener('visibilitychange', async () => {
                 if (document.hidden && autoSave) saveState();
                 if (!document.hidden && isPlaying) {
-                    // 页面从后台恢复时，重新激活 MediaSession（Android TWA 需要）
+                    // 页面从后台恢复时，重新启动 session audio 并激活 MediaSession
+                    await startSessionAudio();
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'playing';
                     }
@@ -1180,7 +1266,7 @@
                 if (isHuawei) { const guide = $('huaweiGuide'); if (guide) guide.classList.add('show'); }
 
                 // 提前初始化 MediaSession（确保 action handlers 在首次播放前已注册）
-                initMediaSession();
+                await initMediaSession();
                 // 预生成 Blob URL 图标（避免播放时才异步生成导致延迟）
                 getIconBlobUrl().then(() => log('[MS] Blob URL 图标已预加载'));
 
