@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "neuro-reshape-controller",
   "name": "🧠 神经重塑训练",
   "short_name": "神经重塑",
@@ -13,6 +13,10 @@
   "dir": "ltr",
   "lang": "zh-CN",
   "categories": ["music", "health", "lifestyle"],
+  "capture_links": "existing-client",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "./icons/icon-192x192.png",

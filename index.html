@@ -215,7 +215,7 @@
     </div>
     
     <div class="mediasession-hint" id="mediasessionHint">
-        🎵 锁屏控制已激活 (v6.0 媒体会话修复)<br>
+        🎵 锁屏控制已激活 (v6.1 重设计)<br>
         <small>🔒 点亮屏幕 → 点击通知切换播放/暂停</small><br>
         <small style="color:var(--warning);">鸿蒙系统：点击通知后可能需稍等 1-2 秒响应</small>
     </div>
@@ -258,7 +258,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">媒体会话修复版 · 锁屏控制 · v6.0</p>
+        <p class="subtitle">媒体会话重设计 · 锁屏控制 · v6.1</p>
     </div>
 
     <div class="music-status">
@@ -420,15 +420,15 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '6.0.0-mediafix';
+        const APP_VERSION = '6.1.0-mediafix';
         const DEBUG = true;
-        const STAGES_KEY = 'nrc_v50';
-        const STATE_KEY = 'nrd_v50';
-        const AUTO_SAVE_KEY = 'nra_v50';
-        const STATS_KEY = 'nrs_v50';
-        const AUDIO_DB = 'NADB_v50';
+        const STAGES_KEY = 'nrc_v60';
+        const STATE_KEY = 'nrd_v60';
+        const AUTO_SAVE_KEY = 'nra_v60';
+        const STATS_KEY = 'nrs_v60';
+        const AUDIO_DB = 'NADB_v60';
         const AUDIO_STORE = 'audioFiles';
-        const MEDIA_NOTIF_TAG = 'neuro-media-control';
+        const MEDIA_NOTIF_TAG = 'neuro-media-control'; // 保留标签但不再使用 SW 通知
 
         const DEFAULT_STAGES = [
             { name: "坐立战马", bpm: 72, duration: 300, action: "坐位平衡，双手扶膝", imagine: "想象骑战马，脊柱逐节直立" },
@@ -462,7 +462,7 @@
         let deferredPrompt = null;
         let audioContextReady = false;
         let positionUpdateInterval = null;
-        // 隐藏音频元素 + 静音音频（用于触发系统媒体会话）
+        // 隐藏音频元素（用于辅助保持 media session）
         let _sessionAudio = null;
         let _silentAudioUrl = null;
 
@@ -487,30 +487,22 @@
         }
         
         function genIcon() {
-            // 纯矢量神经网络图标（与 manifest SVG 风格一致，无外部依赖）
             const c = document.createElement('canvas'); c.width = 512; c.height = 512;
             const x = c.getContext('2d');
-            // 背景
             x.fillStyle = '#1a1a2e';
             x.beginPath(); x.roundRect(0, 0, 512, 512, 80); x.fill();
-            // 外圈
             x.strokeStyle = '#00d4aa'; x.lineWidth = 14;
             x.beginPath(); x.arc(256, 256, 204, 0, Math.PI * 2); x.stroke();
-            // 连接线（先画线，后画圆点覆盖端点）
             x.strokeStyle = '#00d4aa'; x.lineWidth = 10; x.lineCap = 'round';
             const lines = [[256,212,256,144],[300,256,368,256],[256,300,256,368],[212,256,144,256],
                            [288,224,336,176],[288,288,336,336],[224,288,176,336],[224,224,176,176]];
             lines.forEach(l => { x.beginPath(); x.moveTo(l[0],l[1]); x.lineTo(l[2],l[3]); x.stroke(); });
-            // 中心大节点
             x.fillStyle = '#00d4aa'; x.beginPath(); x.arc(256, 256, 44, 0, Math.PI * 2); x.fill();
-            // 四向节点
             [[256,120],[392,256],[256,392],[120,256]].forEach(p=>{ x.fillStyle='#00d4aa'; x.beginPath(); x.arc(p[0],p[1],24,0,Math.PI*2); x.fill(); });
-            // 对角节点
             [[352,160],[352,352],[160,352],[160,160]].forEach(p=>{ x.fillStyle='#00a8e8'; x.beginPath(); x.arc(p[0],p[1],16,0,Math.PI*2); x.fill(); });
             return c.toDataURL('image/png');
         }
         function genIconBlobUrl() {
-            // Android MediaSession artwork 不支持 data URL，必须返回 blob URL
             const c = document.createElement('canvas'); c.width = 512; c.height = 512;
             const x = c.getContext('2d');
             x.fillStyle = '#1a1a2e';
@@ -537,7 +529,6 @@
             return _cachedIconBlobUrl;
         }
 
-        // 动态创建 apple-touch-icon（无需外部图片文件）
         function setupAppleIcon() {
             try {
                 const iconData = genIcon();
@@ -553,11 +544,9 @@
             } catch (e) { console.error('[Icon] 生成失败:', e); }
         }
 
-        // 生成静音 WAV 音频 Blob URL（音频数据全为零 = 无声音输出）
-        // 使用正常音量播放，但音频本身静音，这样 Chrome 媒体检测能识别，但用户听不到
         function generateSilentWav() {
             const sampleRate = 44100;
-            const duration = 2.0; // 2秒循环
+            const duration = 2.0;
             const numSamples = sampleRate * duration;
             const numChannels = 2;
             const blockAlign = numChannels * 2;
@@ -576,58 +565,45 @@
             view.setUint16(offset, blockAlign, true); offset += 2;
             view.setUint16(offset, 16, true); offset += 2;
             writeStr('data'); view.setUint32(offset, dataSize, true); offset += 4;
-            // 数据全零（静音）- ArrayBuffer 默认已初始化为零
             const blob = new Blob([buffer], { type: 'audio/wav' });
             return URL.createObjectURL(blob);
         }
 
-        // 创建媒体会话音频元素（Chrome 媒体检测的关键）
-        // 注意：不能用 display:none！Chrome 会忽略。用屏幕外定位。
-        // 必须带 controls 属性，Chrome 媒体检测优先识别 controls 音频
         function ensureSessionAudio() {
             if (!_sessionAudio) {
                 _sessionAudio = document.createElement('audio');
                 _sessionAudio.id = '__session_audio';
                 _sessionAudio.loop = true;
                 _sessionAudio.preload = 'auto';
-                _sessionAudio.controls = true; // Chrome 媒体检测的关键！
+                _sessionAudio.controls = true;
                 _sessionAudio.setAttribute('playsinline', '');
                 _sessionAudio.setAttribute('webkit-playsinline', '');
                 _sessionAudio.setAttribute('x5-playsinline', '');
-                // 移出屏幕外（不能用 display:none，否则 Chrome 检测不到）
                 _sessionAudio.style.cssText = 'position:fixed;left:-3000px;top:-3000px;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-9999;';
                 document.body.appendChild(_sessionAudio);
-                // 预生成静音音频
                 if (!_silentAudioUrl) _silentAudioUrl = generateSilentWav();
                 _sessionAudio.src = _silentAudioUrl;
-                log('[SessionAudio] 已创建媒体音频元素（含 controls）');
             }
             return _sessionAudio;
         }
 
-        // 启动媒体会话音频（触发系统媒体会话的关键入口）
         async function startSessionAudio() {
             try {
                 const audio = ensureSessionAudio();
                 if (audio.paused) {
-                    // 正常音量播放静音音频（Chrome 媒体检测需要"真实"播放）
-                    audio.volume = 1.0;
+                    audio.volume = 0.15; // 轻微音量，确保系统识别但不扰人
                     audio.muted = false;
                     await audio.play();
-                    log('[SessionAudio] 已开始播放（volume=1.0, muted=false）');
                 }
                 return true;
             } catch (e) {
-                console.error('[SessionAudio] 启动失败:', e);
                 return false;
             }
         }
 
-        // 停止媒体会话音频
         function stopSessionAudio() {
             if (_sessionAudio && !_sessionAudio.paused) {
                 try { _sessionAudio.pause(); } catch (e) {}
-                log('[SessionAudio] 已暂停');
             }
         }
 
@@ -726,12 +702,24 @@
         
         async function createBG(stage) {
             stopBG();
-            // 启动 session audio（触发系统媒体会话）
+            // 启动 session audio（轻微音量，确保系统检测到媒体流）
             await startSessionAudio();
-            try { const ctx = await ensureAC(); bgOsc = ctx.createOscillator(); bgGain = ctx.createGain(); bgOsc.connect(bgGain); bgGain.connect(ctx.destination); bgOsc.frequency.value = 100; bgGain.gain.value = 0.005; bgOsc.start(); } catch (e) { console.error('[BG] 失败:', e); }
+            try {
+                const ctx = await ensureAC();
+                bgOsc = ctx.createOscillator();
+                bgGain = ctx.createGain();
+                bgOsc.connect(bgGain);
+                bgGain.connect(ctx.destination);
+                bgOsc.frequency.value = 80;       // 低频嗡声，可隐约听到但不刺耳
+                bgGain.gain.value = 0.02;          // 增益提高，确保系统识别
+                bgOsc.start();
+            } catch (e) {}
             startMetro(stage.bpm);
             $('currentMode').textContent = stage.name + ' · 节拍器';
-            await updateMS(stage, null); updateMini(); showHint(); showMediaSessionHint();
+            await updateMS(stage, null);
+            updateMini();
+            showHint();
+            showMediaSessionHint();
         }
 
         async function playStageMusic(idx, resume = 0) {
@@ -778,21 +766,17 @@
                     done = true;
                     try {
                         if (resume > 0 && isFinite(resume)) audio.currentTime = resume;
-                        // 启动 session audio（触发系统媒体会话的关键）
                         await startSessionAudio();
-                        // 设置 MediaSession 状态
                         if ('mediaSession' in navigator) {
                             navigator.mediaSession.playbackState = 'playing';
                         }
                         await audio.play();
-                        // 音频成功播放后，再次确保系统媒体会话已激活
                         if ('mediaSession' in navigator) {
                             navigator.mediaSession.playbackState = 'playing';
                         }
                         $('currentMode').textContent = text;
                         await updateMS(stages[currentStage], audioMeta[currentStage]);
                         updateMini(); showHint(); showMediaSessionHint(); startPositionUpdater();
-                        sendMediaNotification().catch(() => {});
                         resolve(true);
                     } catch (e) { console.error('[Audio] play() 失败:', e); await createBG(stages[currentStage]); resolve(false); }
                 };
@@ -817,111 +801,7 @@
             }, 1000);
         }
 
-        async function sendMediaNotification() {
-            log('[媒体] v6.0 发送通知...');
-            
-            if ('mediaSession' in navigator) {
-                try {
-                    const s = stages[currentStage];
-                    const prefix = isPlaying ? '▶ ' : '⏸ ';
-                    const iconUrl = await getIconBlobUrl();
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: prefix + s.name,
-                        artist: '神经重塑 · 阶段' + (currentStage + 1) + '/' + stages.length,
-                        album: s.bpm + 'BPM',
-                        artwork: [
-                            { src: iconUrl, sizes: '96x96', type: 'image/png' },
-                            { src: iconUrl, sizes: '128x128', type: 'image/png' },
-                            { src: iconUrl, sizes: '192x192', type: 'image/png' },
-                            { src: iconUrl, sizes: '256x256', type: 'image/png' },
-                            { src: iconUrl, sizes: '384x384', type: 'image/png' },
-                            { src: iconUrl, sizes: '512x512', type: 'image/png' }
-                        ]
-                    });
-                    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-                    if ('setPositionState' in navigator.mediaSession) {
-                        const pos = currentAudio?.currentTime || 0;
-                        const dur = currentAudio?.duration || stages[currentStage]?.duration || 300;
-                        if (dur > 0 && isFinite(dur)) {
-                            navigator.mediaSession.setPositionState({ duration: dur, playbackRate: isPlaying ? 1.0 : 0.0, position: Math.min(Math.max(pos, 0), dur) });
-                        }
-                    }
-                    // Action handlers 已在 initMediaSession() 中全局注册，无需重复设置
-                } catch (e) {}
-            }
-            
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                try {
-                    const s = stages[currentStage];
-                    navigator.serviceWorker.controller.postMessage({
-                        type: 'UPDATE_MEDIA_NOTIFICATION',
-                        payload: {
-                            title: s.name,
-                            subtitle: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
-                            stage: currentStage,
-                            playing: isPlaying,
-                            // SW 将使用缓存的静态图标，不使用 data URL
-                            icon: ''
-                        }
-                    });
-                } catch (e) {}
-            }
-            // 降级通知（SW不可用时）
-            else { fallbackNotification().catch(() => {}); }
-        }
-
-        async function fallbackNotification() {
-            if (Notification.permission !== 'granted') return;
-            try {
-                const s = stages[currentStage];
-                if (window._mediaNotification) window._mediaNotification.close();
-                const prefix = isPlaying ? '▶ ' : '⏸ ';
-                const title = prefix + s.name;
-                const body = (isPlaying ? '👆 点击暂停 ⏸' : '👆 点击播放 ▶') + ' | 阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM';
-                const iconUrl = await getIconBlobUrl();
-                window._mediaNotification = new Notification(title, { body: body, icon: iconUrl, tag: MEDIA_NOTIF_TAG, silent: true, requireInteraction: false, actions: [{ action: 'prev', title: '⏮' }, { action: 'playpause', title: isPlaying ? '⏸' : '▶' }, { action: 'next', title: '⏭' }] });
-                // 点击主区域切换播放/暂停，不强制 focus（不解锁）
-                window._mediaNotification.addEventListener('click', () => { 
-                    togglePlay(); 
-                    setTimeout(() => fallbackNotification(), 100);
-                });
-                // 处理 action 按钮
-                window._mediaNotification.addEventListener('notificationclick', (e) => {
-                    e.notification.close();
-                    const handlers = { 'playpause': togglePlay, 'prev': prevTrack, 'next': nextTrack };
-                    if (handlers[e.action]) handlers[e.action]();
-                });
-            } catch (e) {}
-        }
-
-        async function closeMediaNotification() {
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) { navigator.serviceWorker.controller.postMessage({ type: 'CLOSE_MEDIA_NOTIFICATION' }); }
-            if (window._mediaNotification) { window._mediaNotification.close(); window._mediaNotification = null; }
-        }
-
-        async function sendTestNotification() {
-            try {
-                if (!audioContextReady) await ensureAC();
-                if (!isPlaying) { await createBG(stages[currentStage]); isPlaying = true; $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸'; mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); }, 1000); }
-                if (Notification.permission !== 'granted') { const p = await Notification.requestPermission(); if (p !== 'granted') { alert('⚠️ 需要通知权限'); return; } }
-                await sendMediaNotification();
-                // 额外发送一个持久通知（鸿蒙系统兼容）
-                setTimeout(() => fallbackNotification().catch(() => {}), 300);
-                showToast('systemToast', '📢 通知已发送！锁屏点击标题控制播放', 8000);
-                updateDiag();
-                alert('✅ v6.0 媒体会话修复版已激活\n\n🔒 使用方法：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 点击通知栏的「▶ 阶段名」\n⚠️ 鸿蒙系统：点击后可能有延迟，建议保持屏幕常亮训练\n💡 三通道：clients + BroadcastChannel + URLhash');
-            } catch (e) { showError('测试失败: ' + e.message); }
-        }
-
-        function showNotifSettingsGuide() {
-            const overlay = document.createElement('div');
-            overlay.className = 'settings-guide-overlay';
-            overlay.innerHTML = '<div style="background:linear-gradient(135deg,#1e1e3a,#16213e);border:2px solid #ffd93d;border-radius:24px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);"><div style="font-size:48px;margin-bottom:16px;">🔔</div><h3 style="color:#ffd93d;margin-bottom:16px;">锁屏通知按钮设置</h3><div style="text-align:left;color:#b0c4de;font-size:13px;line-height:2.2;"><p>📱 <strong>系统设置 → 通知 → Chrome</strong></p><p>✅ 1. 允许通知</p><p>✅ 2. <strong style="color:#ff6b6b;">锁屏通知 → 显示所有内容</strong></p><p>✅ 3. 设为「重要」或「优先」</p><p>✅ 4. 重启手机后测试</p><p style="color:#ffd93d;margin-top:8px;">华为/荣耀：</p><p>设置→通知和状态栏→锁屏通知→显示</p></div><button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(90deg,#ffd93d,#ffa500);color:#000;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer;">我知道了</button></div>';
-            overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-            document.body.appendChild(overlay);
-            setTimeout(() => { if (overlay.parentElement) overlay.remove(); }, 25000);
-        }
-
+        // 不再发送自定义系统通知，只设置 MediaSession
         function showMediaSessionHint() {
             const h = $('mediasessionHint');
             if (h) { h.classList.add('show'); clearTimeout(h._mht); h._mht = setTimeout(() => h.classList.remove('show'), 6000); }
@@ -961,13 +841,11 @@
             isPlaying = true; errCount = 0;
             $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸';
             savedTime = 0;
-            // 启动 session audio（触发系统媒体会话的关键）
             await startSessionAudio();
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
             try { await playStageMusic(currentStage, savedTime); } catch (e) { console.error('[Play] 失败:', e); await createBG(stages[currentStage]); }
             mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); if (totalTime - stageStart(currentStage) >= (stages[currentStage]?.duration || 300)) nextStage(); }, 1000);
             await updateMS(stages[currentStage], audioMeta[currentStage]);
-            await sendMediaNotification();
             await requestWL(); showHint(); showMediaSessionHint(); updateDiag();
         }
         async function pause() {
@@ -979,9 +857,8 @@
             stopSessionAudio();
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
             releaseWL(); saveState(); updateDiag(); 
-            // 更新通知为暂停状态（标题显示 ⏸），而不是关闭
             await updateMS(stages[currentStage], audioMeta[currentStage]);
-            await sendMediaNotification();
+            // 注意：不发送任何自定义通知
         }
         function nextStage() { if (currentStage < stages.length - 1) switchTrack(currentStage + 1); else complete(); }
         function complete() {
@@ -990,7 +867,7 @@
             currentStage = 0; totalTime = 0; savedTime = 0;
             updateDisp(); updateStage(); updateMini();
             $('trackProgressFill').style.width = '0%'; $('playBtn').textContent = '▶ 开始训练';
-            initPlaylist(); saveState(); releaseWL(); closeMediaNotification();
+            initPlaylist(); saveState(); releaseWL();
         }
         function reset() {
             pause(); stopAll();
@@ -999,7 +876,7 @@
             $('playBtn').textContent = '▶ 开始训练';
             $('trackProgressFill').style.width = '0%'; $('trackCurrentTime').textContent = '00:00';
             $('currentMode').textContent = '准备开始';
-            initPlaylist(); saveState(); releaseWL(); closeMediaNotification();
+            initPlaylist(); saveState(); releaseWL();
         }
         function switchTrack(idx) {
             if (idx === currentStage && !isPlaying) { togglePlay(); return; }
@@ -1029,7 +906,7 @@
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
-                setV('diagPlaying', isPlaying ? '▶ 播放中 (v6.0)' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagPlaying', isPlaying ? '▶ 播放中 (v6.1)' : '⏸ 暂停', isPlaying ? 'ok' : '');
                 setV('diagSys', isHuawei ? '⚠ 鸿蒙/华为（特殊适配）' : '✅ 标准系统', isHuawei ? 'warn' : 'ok');
                 setV('diagBC', bc ? '✅ 支持' : '❌ 不支持', bc ? 'ok' : 'warn');
             } catch (e) {}
@@ -1065,16 +942,15 @@
             window.addEventListener('appinstalled', () => { $('pwaInstallHint').classList.remove('show'); });
         }
         
-        // 🔑 统一处理媒体控制指令（来自任何通道）
         function handleMediaAction(action) {
             const handlers = { 'playpause': togglePlay, 'prev': prevTrack, 'next': nextTrack, 'play': () => { if (!isPlaying) togglePlay(); }, 'pause': () => { if (isPlaying) togglePlay(); }, 'previoustrack': prevTrack, 'nexttrack': nextTrack, 'stop': () => { if (isPlaying) pause(); } };
             if (handlers[action]) {
                 log('[控制] 执行动作:', action);
                 handlers[action]();
-                setTimeout(() => sendMediaNotification().catch(() => {}), 100);
+                // 更新 MediaSession 状态（会自动更新锁屏控件）
+                updateMS(stages[currentStage], audioMeta[currentStage]);
                 return true;
             }
-            log('[控制] 未知动作:', action);
             return false;
         }
 
@@ -1086,18 +962,16 @@
                     .catch(e => log('SW 注册失败:', e));
             });
 
-            // 通道1：SW postMessage
             navigator.serviceWorker.addEventListener('message', e => {
                 if (e.data?.type === 'MEDIA_ACTION') {
                     handleMediaAction(e.data.action);
                 }
             });
 
-            // 通道2：BroadcastChannel（鸿蒙系统 clients 常不可用，BC 更可靠）
             initBroadcastChannel();
 
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (isPlaying) setTimeout(sendMediaNotification, 500);
+                // SW 重新激活后不需要额外操作
             });
         }
 
@@ -1115,54 +989,19 @@
             } catch (e) { console.error('[BC] 初始化失败:', e); }
         }
 
-        // Android TWA 专用：持久音频元素，用于维持系统媒体会话活性
-        let _mediaSessionAudio = null;
-        function ensureMediaSessionAudio() {
-            // 创建一个隐藏的音频元素来确保 Android 系统识别媒体会话
-            if (!_mediaSessionAudio) {
-                _mediaSessionAudio = document.createElement('audio');
-                _mediaSessionAudio.id = '__ms_audio';
-                _mediaSessionAudio.loop = true;
-                _mediaSessionAudio.preload = 'auto';
-                _mediaSessionAudio.crossOrigin = 'anonymous';
-                _mediaSessionAudio.style.display = 'none';
-                _mediaSessionAudio.setAttribute('playsinline', '');
-                document.body.appendChild(_mediaSessionAudio);
-            }
-            return _mediaSessionAudio;
-        }
-
-        // 全局初始化 MediaSession（页面加载时调用一次即可）
         async function initMediaSession() {
             if (!('mediaSession' in navigator)) { log('[MS] MediaSession API 不支持'); return; }
-            try {
-                navigator.mediaSession.setActionHandler('play', () => { log('[MS] play action'); if (!isPlaying) togglePlay(); });
-            } catch (e) {}
-            try {
-                navigator.mediaSession.setActionHandler('pause', () => { log('[MS] pause action'); if (isPlaying) togglePlay(); });
-            } catch (e) {}
-            try {
-                navigator.mediaSession.setActionHandler('previoustrack', () => { log('[MS] prev action'); prevTrack(); });
-            } catch (e) {}
-            try {
-                navigator.mediaSession.setActionHandler('nexttrack', () => { log('[MS] next action'); nextTrack(); });
-            } catch (e) {}
-            try {
-                navigator.mediaSession.setActionHandler('stop', () => { log('[MS] stop action'); if (isPlaying) pause(); });
-            } catch (e) {}
-            try {
-                navigator.mediaSession.setActionHandler('seekto', (d) => { log('[MS] seekto', d); if (d.seekTime != null && currentAudio && isFinite(d.seekTime)) currentAudio.currentTime = d.seekTime; });
-            } catch (e) {}
-            try {
-                navigator.mediaSession.setActionHandler('seekforward', (d) => { log('[MS] seekforward'); if (currentAudio && isFinite(currentAudio.duration)) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + (d.seekOffset || 10)); });
-            } catch (e) {}
-            try {
-                navigator.mediaSession.setActionHandler('seekbackward', (d) => { log('[MS] seekbackward'); if (currentAudio && isFinite(currentAudio.currentTime)) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - (d.seekOffset || 10)); });
-            } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('play', () => { log('[MS] play action'); if (!isPlaying) togglePlay(); }); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('pause', () => { log('[MS] pause action'); if (isPlaying) togglePlay(); }); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('previoustrack', () => { log('[MS] prev action'); prevTrack(); }); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('nexttrack', () => { log('[MS] next action'); nextTrack(); }); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('stop', () => { log('[MS] stop action'); if (isPlaying) pause(); }); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('seekto', (d) => { log('[MS] seekto', d); if (d.seekTime != null && currentAudio && isFinite(d.seekTime)) currentAudio.currentTime = d.seekTime; }); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('seekforward', (d) => { log('[MS] seekforward'); if (currentAudio && isFinite(currentAudio.duration)) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + (d.seekOffset || 10)); }); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler('seekbackward', (d) => { log('[MS] seekbackward'); if (currentAudio && isFinite(currentAudio.currentTime)) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - (d.seekOffset || 10)); }); } catch (e) {}
             log('[MS] MediaSession action handlers 已注册');
         }
 
-        // 通道3：URL hash 唤醒（页面关闭后通过 openWindow + hash 恢复）
         function handleHashAction() {
             const hash = location.hash;
             if (!hash || hash.length < 2) return false;
@@ -1170,10 +1009,8 @@
             const action = params.get('action');
             if (!action) return false;
             log('[Hash] 从 URL hash 恢复动作:', action);
-            // 延迟执行，确保音频上下文已就绪
             setTimeout(() => {
                 handleMediaAction(action);
-                // 清除 hash，防止刷新重复执行
                 history.replaceState(null, '', location.pathname + location.search);
             }, 800);
             return true;
@@ -1253,13 +1090,12 @@
             document.addEventListener('visibilitychange', async () => {
                 if (document.hidden && autoSave) saveState();
                 if (!document.hidden && isPlaying) {
-                    // 页面从后台恢复时，重新启动 session audio 并激活 MediaSession
                     await startSessionAudio();
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'playing';
                     }
                     await updateMS(stages[currentStage], audioMeta[currentStage]);
-                    await sendMediaNotification();
+                    // 不再发送自定义通知
                 }
             });
         }
@@ -1270,13 +1106,10 @@
                 const ua = navigator.userAgent || ''; isHuawei = /huawei|honor|harmonyos/i.test(ua);
                 if (isHuawei) { const guide = $('huaweiGuide'); if (guide) guide.classList.add('show'); }
 
-                // 提前初始化 MediaSession（确保 action handlers 在首次播放前已注册）
                 await initMediaSession();
-                // 预生成 Blob URL 图标（避免播放时才异步生成导致延迟）
                 getIconBlobUrl().then(() => log('[MS] Blob URL 图标已预加载'));
 
                 initPWA(); registerSW(); setupAppleIcon();
-                // 通道3：检查 URL hash（SW 通过 openWindow+hash 唤醒时）
                 handleHashAction();
                 loadStages(); loadStats();
                 autoSave = localStorage.getItem(AUTO_SAVE_KEY) !== 'false';
@@ -1291,31 +1124,15 @@
                 document.addEventListener('touchstart', activateAudio, { once: true });
                 document.addEventListener('click', activateAudio, { once: true });
                 log('初始化完成');
-                console.log('🧠 神经重塑 v' + APP_VERSION + ' - 三通道锁屏控制 (clients + BroadcastChannel + hash)');
+                console.log('🧠 神经重塑 v' + APP_VERSION + ' - 原生锁屏控制 (MediaSession)');
             } catch (e) { console.error('[Init] 失败:', e); showError('初始化失败'); }
         }
 
-        window.app = { togglePlay, reset, exportData, importData, clearAll, toggleAutoSave: toggleAuto, prevTrack, nextTrack, switchTrack, seekPos, openConfig, handleImport, copyRow, showDiagnostic, sendTestNotification, showNotifSettingsGuide, updateDiagnostic: updateDiag, get version() { return APP_VERSION; }, get isPlaying() { return isPlaying; } };
+        window.app = { togglePlay, reset, exportData, importData, clearAll, toggleAutoSave: toggleAuto, prevTrack, nextTrack, switchTrack, seekPos, openConfig, handleImport, copyRow, showDiagnostic, sendTestNotification: async () => { if (Notification.permission !== 'granted') { try { const p = await Notification.requestPermission(); if (p !== 'granted') { alert('需要通知权限'); return; } } catch (e) {} } alert('MediaSession 已激活，锁屏通知由系统自动生成。'); }, showNotifSettingsGuide, updateDiagnostic: updateDiag, get version() { return APP_VERSION; }, get isPlaying() { return isPlaying; } };
         window.togglePlay = togglePlay; window.reset = reset; window.exportData = exportData; window.importData = importData; window.clearAllData = clearAll; window.toggleAutoSave = toggleAuto; window.prevTrack = prevTrack; window.nextTrack = nextTrack; window.switchToTrack = switchTrack; window.seekToPosition = seekPos; window.openConfigModal = openConfig; window.handleImport = handleImport; window.copyRowContent = copyRow;
 
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
     })();
     </script>
-
-    <!-- PWA 最简注册代码（不影响现有播放器） -->
-    <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./sw.js')
-          .then(function(registration) {
-            console.log('✅ Service Worker 注册成功:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('⚠️ Service Worker 注册失败:', error);
-          });
-      });
-    }
-    </script>
 </body>
 </html>
-
