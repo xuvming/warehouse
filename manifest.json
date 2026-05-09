@@ -1,10 +1,18 @@
-﻿{
-  "name": "你的音乐播放器",
-  "short_name": "播放器",
+{
+  "id": "neuro-reshape-controller",
+  "name": "🧠 神经重塑训练",
+  "short_name": "神经重塑",
+  "description": "神经重塑PWA训练应用，支持锁屏媒体控制、节拍器与离线运行",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2196F3",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "dir": "ltr",
+  "lang": "zh-CN",
+  "categories": ["music", "health", "lifestyle"],
   "icons": [
     {
       "src": "./icons/icon-192x192.png",
@@ -33,6 +41,24 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "▶ 开始训练",
+      "short_name": "开始",
+      "description": "立即开始训练会话",
+      "url": "./index.html?action=playpause",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "⏸ 暂停/继续",
+      "short_name": "暂停",
+      "description": "暂停或继续当前训练",
+      "url": "./index.html?action=playpause",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }
-

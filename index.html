@@ -215,7 +215,7 @@
     </div>
     
     <div class="mediasession-hint" id="mediasessionHint">
-        🎵 锁屏控制已激活 (v5.9 鸿蒙适配)<br>
+        🎵 锁屏控制已激活 (v6.0 媒体会话修复)<br>
         <small>🔒 点亮屏幕 → 点击通知切换播放/暂停</small><br>
         <small style="color:var(--warning);">鸿蒙系统：点击通知后可能需稍等 1-2 秒响应</small>
     </div>
@@ -258,7 +258,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">鸿蒙适配版 · 锁屏点击控制 · v5.9</p>
+        <p class="subtitle">媒体会话修复版 · 锁屏控制 · v6.0</p>
     </div>
 
     <div class="music-status">
@@ -420,7 +420,7 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '5.9.0-harmony';
+        const APP_VERSION = '6.0.0-mediafix';
         const DEBUG = true;
         const STAGES_KEY = 'nrc_v50';
         const STATE_KEY = 'nrd_v50';
@@ -506,9 +506,33 @@
             [[352,160],[352,352],[160,352],[160,160]].forEach(p=>{ x.fillStyle='#00a8e8'; x.beginPath(); x.arc(p[0],p[1],16,0,Math.PI*2); x.fill(); });
             return c.toDataURL('image/png');
         }
+        function genIconBlobUrl() {
+            // Android MediaSession artwork 不支持 data URL，必须返回 blob URL
+            const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+            const x = c.getContext('2d');
+            x.fillStyle = '#1a1a2e';
+            x.beginPath(); x.roundRect(0, 0, 512, 512, 80); x.fill();
+            x.strokeStyle = '#00d4aa'; x.lineWidth = 14;
+            x.beginPath(); x.arc(256, 256, 204, 0, Math.PI * 2); x.stroke();
+            x.strokeStyle = '#00d4aa'; x.lineWidth = 10; x.lineCap = 'round';
+            const lines = [[256,212,256,144],[300,256,368,256],[256,300,256,368],[212,256,144,256],
+                           [288,224,336,176],[288,288,336,336],[224,288,176,336],[224,224,176,176]];
+            lines.forEach(l => { x.beginPath(); x.moveTo(l[0],l[1]); x.lineTo(l[2],l[3]); x.stroke(); });
+            x.fillStyle = '#00d4aa'; x.beginPath(); x.arc(256, 256, 44, 0, Math.PI * 2); x.fill();
+            [[256,120],[392,256],[256,392],[120,256]].forEach(p=>{ x.fillStyle='#00d4aa'; x.beginPath(); x.arc(p[0],p[1],24,0,Math.PI*2); x.fill(); });
+            [[352,160],[352,352],[160,352],[160,160]].forEach(p=>{ x.fillStyle='#00a8e8'; x.beginPath(); x.arc(p[0],p[1],16,0,Math.PI*2); x.fill(); });
+            return new Promise(resolve => {
+                c.toBlob(blob => { resolve(URL.createObjectURL(blob)); }, 'image/png');
+            });
+        }
         
         let _cachedIcon = null;
+        let _cachedIconBlobUrl = null;
         function getIcon() { if (!_cachedIcon) _cachedIcon = genIcon(); return _cachedIcon; }
+        async function getIconBlobUrl() {
+            if (!_cachedIconBlobUrl) _cachedIconBlobUrl = await genIconBlobUrl();
+            return _cachedIconBlobUrl;
+        }
 
         // 动态创建 apple-touch-icon（无需外部图片文件）
         function setupAppleIcon() {
@@ -623,7 +647,7 @@
             try { const ctx = await ensureAC(); bgOsc = ctx.createOscillator(); bgGain = ctx.createGain(); bgOsc.connect(bgGain); bgGain.connect(ctx.destination); bgOsc.frequency.value = 100; bgGain.gain.value = 0.005; bgOsc.start(); } catch (e) { console.error('[BG] 失败:', e); }
             startMetro(stage.bpm);
             $('currentMode').textContent = stage.name + ' · 节拍器';
-            updateMS(stage, null); updateMini(); showHint(); showMediaSessionHint();
+            await updateMS(stage, null); updateMini(); showHint(); showMediaSessionHint();
         }
 
         async function playStageMusic(idx, resume = 0) {
@@ -645,7 +669,7 @@
                         if (currentAudio) { try { currentAudio.pause(); } catch (e) {} if (currentAudio.src && currentAudio.src.startsWith('blob:')) URL.revokeObjectURL(currentAudio.src); }
                         const blob = new Blob([entry.data], { type: entry.type || 'audio/mpeg' });
                         const url = URL.createObjectURL(blob);
-                        currentAudio = new Audio(url); currentAudio.loop = true;
+                        currentAudio = new Audio(url); currentAudio.loop = true; currentAudio.setAttribute('playsinline', ''); currentAudio.setAttribute('webkit-playsinline', '');
                         currentAudio.addEventListener('timeupdate', onUpd); currentAudio.addEventListener('loadedmetadata', onUpd);
                         return await playAudio(currentAudio, resume, stage.name + ' · 📁 ' + (meta.name || entry.name));
                     }
@@ -654,7 +678,7 @@
             if (meta?.onlineUrl) {
                 try {
                     if (currentAudio) { try { currentAudio.pause(); } catch (e) {} if (currentAudio.src && currentAudio.src.startsWith('blob:')) URL.revokeObjectURL(currentAudio.src); }
-                    currentAudio = new Audio(meta.onlineUrl); currentAudio.crossOrigin = 'anonymous'; currentAudio.loop = true;
+                    currentAudio = new Audio(meta.onlineUrl); currentAudio.crossOrigin = 'anonymous'; currentAudio.loop = true; currentAudio.setAttribute('playsinline', ''); currentAudio.setAttribute('webkit-playsinline', '');
                     currentAudio.addEventListener('timeupdate', onUpd); currentAudio.addEventListener('loadedmetadata', onUpd);
                     return await playAudio(currentAudio, resume, stage.name + ' · 🌐 ' + (meta.onlineName || '在线链接'));
                 } catch (e) { console.error('[Audio] 在线链接失败:', e); }
@@ -670,12 +694,19 @@
                     done = true;
                     try {
                         if (resume > 0 && isFinite(resume)) audio.currentTime = resume;
-                        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+                        // 在 audio.play() 之前先设置 MediaSession 状态（Android TWA 关键）
+                        if ('mediaSession' in navigator) {
+                            navigator.mediaSession.playbackState = 'playing';
+                        }
                         await audio.play();
+                        // 音频成功播放后，确保系统媒体会话已激活
+                        if ('mediaSession' in navigator) {
+                            navigator.mediaSession.playbackState = 'playing';
+                        }
                         $('currentMode').textContent = text;
-                        updateMS(stages[currentStage], audioMeta[currentStage]);
+                        await updateMS(stages[currentStage], audioMeta[currentStage]);
                         updateMini(); showHint(); showMediaSessionHint(); startPositionUpdater();
-                        sendMediaNotification();
+                        sendMediaNotification().catch(() => {});
                         resolve(true);
                     } catch (e) { console.error('[Audio] play() 失败:', e); await createBG(stages[currentStage]); resolve(false); }
                 };
@@ -701,23 +732,24 @@
         }
 
         async function sendMediaNotification() {
-            log('[媒体] v5.9 发送通知...');
+            log('[媒体] v6.0 发送通知...');
             
             if ('mediaSession' in navigator) {
                 try {
                     const s = stages[currentStage];
                     const prefix = isPlaying ? '▶ ' : '⏸ ';
+                    const iconUrl = await getIconBlobUrl();
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: prefix + s.name,
                         artist: '神经重塑 · 阶段' + (currentStage + 1) + '/' + stages.length,
                         album: s.bpm + 'BPM',
                         artwork: [
-                            { src: getIcon(), sizes: '96x96', type: 'image/png' },
-                            { src: getIcon(), sizes: '128x128', type: 'image/png' },
-                            { src: getIcon(), sizes: '192x192', type: 'image/png' },
-                            { src: getIcon(), sizes: '256x256', type: 'image/png' },
-                            { src: getIcon(), sizes: '384x384', type: 'image/png' },
-                            { src: getIcon(), sizes: '512x512', type: 'image/png' }
+                            { src: iconUrl, sizes: '96x96', type: 'image/png' },
+                            { src: iconUrl, sizes: '128x128', type: 'image/png' },
+                            { src: iconUrl, sizes: '192x192', type: 'image/png' },
+                            { src: iconUrl, sizes: '256x256', type: 'image/png' },
+                            { src: iconUrl, sizes: '384x384', type: 'image/png' },
+                            { src: iconUrl, sizes: '512x512', type: 'image/png' }
                         ]
                     });
                     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
@@ -728,14 +760,7 @@
                             navigator.mediaSession.setPositionState({ duration: dur, playbackRate: isPlaying ? 1.0 : 0.0, position: Math.min(Math.max(pos, 0), dur) });
                         }
                     }
-                    try { navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) togglePlay(); }); } catch (e) {}
-                    try { navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) togglePlay(); }); } catch (e) {}
-                    try { navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack()); } catch (e) {}
-                    try { navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack()); } catch (e) {}
-                    try { navigator.mediaSession.setActionHandler('stop', () => { if (isPlaying) pause(); }); } catch (e) {}
-                    try { navigator.mediaSession.setActionHandler('seekto', (d) => { if (d.seekTime != null && currentAudio && isFinite(d.seekTime)) currentAudio.currentTime = d.seekTime; }); } catch (e) {}
-                    try { navigator.mediaSession.setActionHandler('seekforward', (d) => { if (currentAudio && isFinite(currentAudio.duration)) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + (d.seekOffset || 10)); }); } catch (e) {}
-                    try { navigator.mediaSession.setActionHandler('seekbackward', (d) => { if (currentAudio && isFinite(currentAudio.currentTime)) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - (d.seekOffset || 10)); }); } catch (e) {}
+                    // Action handlers 已在 initMediaSession() 中全局注册，无需重复设置
                 } catch (e) {}
             }
             
@@ -744,15 +769,22 @@
                     const s = stages[currentStage];
                     navigator.serviceWorker.controller.postMessage({
                         type: 'UPDATE_MEDIA_NOTIFICATION',
-                        payload: { title: s.name, body: '神经重塑·阶段' + (currentStage + 1) + '/' + stages.length + '-' + s.bpm + 'BPM', icon: getIcon(), stage: currentStage, playing: isPlaying }
+                        payload: {
+                            title: s.name,
+                            subtitle: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM',
+                            stage: currentStage,
+                            playing: isPlaying,
+                            // SW 将使用缓存的静态图标，不使用 data URL
+                            icon: ''
+                        }
                     });
                 } catch (e) {}
             }
             // 降级通知（SW不可用时）
-            else { fallbackNotification(); }
+            else { fallbackNotification().catch(() => {}); }
         }
 
-        function fallbackNotification() {
+        async function fallbackNotification() {
             if (Notification.permission !== 'granted') return;
             try {
                 const s = stages[currentStage];
@@ -760,7 +792,8 @@
                 const prefix = isPlaying ? '▶ ' : '⏸ ';
                 const title = prefix + s.name;
                 const body = (isPlaying ? '👆 点击暂停 ⏸' : '👆 点击播放 ▶') + ' | 阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + s.bpm + 'BPM';
-                window._mediaNotification = new Notification(title, { body: body, icon: getIcon(), tag: MEDIA_NOTIF_TAG, silent: true, requireInteraction: false, actions: [{ action: 'prev', title: '⏮' }, { action: 'playpause', title: isPlaying ? '⏸' : '▶' }, { action: 'next', title: '⏭' }] });
+                const iconUrl = await getIconBlobUrl();
+                window._mediaNotification = new Notification(title, { body: body, icon: iconUrl, tag: MEDIA_NOTIF_TAG, silent: true, requireInteraction: false, actions: [{ action: 'prev', title: '⏮' }, { action: 'playpause', title: isPlaying ? '⏸' : '▶' }, { action: 'next', title: '⏭' }] });
                 // 点击主区域切换播放/暂停，不强制 focus（不解锁）
                 window._mediaNotification.addEventListener('click', () => { 
                     togglePlay(); 
@@ -786,9 +819,11 @@
                 if (!isPlaying) { await createBG(stages[currentStage]); isPlaying = true; $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸'; mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); }, 1000); }
                 if (Notification.permission !== 'granted') { const p = await Notification.requestPermission(); if (p !== 'granted') { alert('⚠️ 需要通知权限'); return; } }
                 await sendMediaNotification();
+                // 额外发送一个持久通知（鸿蒙系统兼容）
+                setTimeout(() => fallbackNotification().catch(() => {}), 300);
                 showToast('systemToast', '📢 通知已发送！锁屏点击标题控制播放', 8000);
                 updateDiag();
-                alert('✅ v5.9 鸿蒙适配版已激活\n\n🔒 使用方法：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 点击通知栏的「▶ 阶段名」\n⚠️ 鸿蒙系统：点击后可能有延迟，建议保持屏幕常亮训练\n💡 三通道：clients + BroadcastChannel + URLhash');
+                alert('✅ v6.0 媒体会话修复版已激活\n\n🔒 使用方法：\n1️⃣ 点亮屏幕（按电源键）\n2️⃣ 点击通知栏的「▶ 阶段名」\n⚠️ 鸿蒙系统：点击后可能有延迟，建议保持屏幕常亮训练\n💡 三通道：clients + BroadcastChannel + URLhash');
             } catch (e) { showError('测试失败: ' + e.message); }
         }
 
@@ -806,17 +841,25 @@
             if (h) { h.classList.add('show'); clearTimeout(h._mht); h._mht = setTimeout(() => h.classList.remove('show'), 6000); }
         }
 
-        function updateMS(stage, meta) {
+        async function updateMS(stage, meta) {
             if (!('mediaSession' in navigator)) return;
-            try { 
+            try {
                 const prefix = isPlaying ? '▶ ' : '⏸ ';
-                navigator.mediaSession.metadata = new MediaMetadata({ 
-                    title: prefix + (stage?.name || '神经重塑'), 
-                    artist: meta?.name || '神经重塑训练', 
-                    album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + (stage?.bpm || 60) + 'BPM', 
-                    artwork: [{ src: getIcon(), sizes: '512x512', type: 'image/png' }] 
-                }); 
-                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused'; 
+                const iconUrl = await getIconBlobUrl();
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: prefix + (stage?.name || '神经重塑'),
+                    artist: meta?.name || '神经重塑训练',
+                    album: '阶段' + (currentStage + 1) + '/' + stages.length + ' · ' + (stage?.bpm || 60) + 'BPM',
+                    artwork: [
+                        { src: iconUrl, sizes: '96x96', type: 'image/png' },
+                        { src: iconUrl, sizes: '128x128', type: 'image/png' },
+                        { src: iconUrl, sizes: '192x192', type: 'image/png' },
+                        { src: iconUrl, sizes: '256x256', type: 'image/png' },
+                        { src: iconUrl, sizes: '384x384', type: 'image/png' },
+                        { src: iconUrl, sizes: '512x512', type: 'image/png' }
+                    ]
+                });
+                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
             } catch (e) {}
         }
         function updateMSPos(pos, dur) {
@@ -834,8 +877,8 @@
             savedTime = 0;
             try { await playStageMusic(currentStage, savedTime); } catch (e) { console.error('[Play] 失败:', e); await createBG(stages[currentStage]); }
             mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); if (totalTime - stageStart(currentStage) >= (stages[currentStage]?.duration || 300)) nextStage(); }, 1000);
-            updateMS(stages[currentStage], audioMeta[currentStage]);
-            sendMediaNotification();
+            await updateMS(stages[currentStage], audioMeta[currentStage]);
+            await sendMediaNotification();
             await requestWL(); showHint(); showMediaSessionHint(); updateDiag();
         }
         function pause() {
@@ -847,8 +890,8 @@
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
             releaseWL(); saveState(); updateDiag(); 
             // 更新通知为暂停状态（标题显示 ⏸），而不是关闭
-            updateMS(stages[currentStage], audioMeta[currentStage]);
-            sendMediaNotification();
+            await updateMS(stages[currentStage], audioMeta[currentStage]);
+            await sendMediaNotification();
         }
         function nextStage() { if (currentStage < stages.length - 1) switchTrack(currentStage + 1); else complete(); }
         function complete() {
@@ -896,7 +939,7 @@
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
-                setV('diagPlaying', isPlaying ? '▶ 播放中 (v5.9)' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagPlaying', isPlaying ? '▶ 播放中 (v6.0)' : '⏸ 暂停', isPlaying ? 'ok' : '');
                 setV('diagSys', isHuawei ? '⚠ 鸿蒙/华为（特殊适配）' : '✅ 标准系统', isHuawei ? 'warn' : 'ok');
                 setV('diagBC', bc ? '✅ 支持' : '❌ 不支持', bc ? 'ok' : 'warn');
             } catch (e) {}
@@ -938,7 +981,7 @@
             if (handlers[action]) {
                 log('[控制] 执行动作:', action);
                 handlers[action]();
-                setTimeout(() => sendMediaNotification(), 100);
+                setTimeout(() => sendMediaNotification().catch(() => {}), 100);
                 return true;
             }
             log('[控制] 未知动作:', action);
@@ -980,6 +1023,53 @@
                 });
                 log('[BC] BroadcastChannel 已初始化');
             } catch (e) { console.error('[BC] 初始化失败:', e); }
+        }
+
+        // Android TWA 专用：持久音频元素，用于维持系统媒体会话活性
+        let _mediaSessionAudio = null;
+        function ensureMediaSessionAudio() {
+            // 创建一个隐藏的音频元素来确保 Android 系统识别媒体会话
+            if (!_mediaSessionAudio) {
+                _mediaSessionAudio = document.createElement('audio');
+                _mediaSessionAudio.id = '__ms_audio';
+                _mediaSessionAudio.loop = true;
+                _mediaSessionAudio.preload = 'auto';
+                _mediaSessionAudio.crossOrigin = 'anonymous';
+                _mediaSessionAudio.style.display = 'none';
+                _mediaSessionAudio.setAttribute('playsinline', '');
+                document.body.appendChild(_mediaSessionAudio);
+            }
+            return _mediaSessionAudio;
+        }
+
+        // 全局初始化 MediaSession（页面加载时调用一次即可）
+        function initMediaSession() {
+            if (!('mediaSession' in navigator)) { log('[MS] MediaSession API 不支持'); return; }
+            try {
+                navigator.mediaSession.setActionHandler('play', () => { log('[MS] play action'); if (!isPlaying) togglePlay(); });
+            } catch (e) {}
+            try {
+                navigator.mediaSession.setActionHandler('pause', () => { log('[MS] pause action'); if (isPlaying) togglePlay(); });
+            } catch (e) {}
+            try {
+                navigator.mediaSession.setActionHandler('previoustrack', () => { log('[MS] prev action'); prevTrack(); });
+            } catch (e) {}
+            try {
+                navigator.mediaSession.setActionHandler('nexttrack', () => { log('[MS] next action'); nextTrack(); });
+            } catch (e) {}
+            try {
+                navigator.mediaSession.setActionHandler('stop', () => { log('[MS] stop action'); if (isPlaying) pause(); });
+            } catch (e) {}
+            try {
+                navigator.mediaSession.setActionHandler('seekto', (d) => { log('[MS] seekto', d); if (d.seekTime != null && currentAudio && isFinite(d.seekTime)) currentAudio.currentTime = d.seekTime; });
+            } catch (e) {}
+            try {
+                navigator.mediaSession.setActionHandler('seekforward', (d) => { log('[MS] seekforward'); if (currentAudio && isFinite(currentAudio.duration)) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + (d.seekOffset || 10)); });
+            } catch (e) {}
+            try {
+                navigator.mediaSession.setActionHandler('seekbackward', (d) => { log('[MS] seekbackward'); if (currentAudio && isFinite(currentAudio.currentTime)) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - (d.seekOffset || 10)); });
+            } catch (e) {}
+            log('[MS] MediaSession action handlers 已注册');
         }
 
         // 通道3：URL hash 唤醒（页面关闭后通过 openWindow + hash 恢复）
@@ -1070,7 +1160,17 @@
             document.querySelectorAll('.chart-tab').forEach(t => t.addEventListener('click', () => switchChart(t.dataset.type)));
             $('autoSaveToggle').addEventListener('click', toggleAuto);
             document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.code === 'Space') { e.preventDefault(); togglePlay(); } else if (e.code === 'ArrowLeft') { e.preventDefault(); prevTrack(); } else if (e.code === 'ArrowRight') { e.preventDefault(); nextTrack(); } });
-            document.addEventListener('visibilitychange', () => { if (document.hidden && autoSave) saveState(); if (!document.hidden && isPlaying) { updateMS(stages[currentStage], audioMeta[currentStage]); sendMediaNotification(); } });
+            document.addEventListener('visibilitychange', async () => {
+                if (document.hidden && autoSave) saveState();
+                if (!document.hidden && isPlaying) {
+                    // 页面从后台恢复时，重新激活 MediaSession（Android TWA 需要）
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
+                    await updateMS(stages[currentStage], audioMeta[currentStage]);
+                    await sendMediaNotification();
+                }
+            });
         }
 
         async function init() {
@@ -1078,6 +1178,12 @@
                 log('初始化 v' + APP_VERSION);
                 const ua = navigator.userAgent || ''; isHuawei = /huawei|honor|harmonyos/i.test(ua);
                 if (isHuawei) { const guide = $('huaweiGuide'); if (guide) guide.classList.add('show'); }
+
+                // 提前初始化 MediaSession（确保 action handlers 在首次播放前已注册）
+                initMediaSession();
+                // 预生成 Blob URL 图标（避免播放时才异步生成导致延迟）
+                getIconBlobUrl().then(() => log('[MS] Blob URL 图标已预加载'));
+
                 initPWA(); registerSW(); setupAppleIcon();
                 // 通道3：检查 URL hash（SW 通过 openWindow+hash 唤醒时）
                 handleHashAction();
