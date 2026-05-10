@@ -1,5 +1,5 @@
-﻿// 神经重塑训练 - Service Worker v6.2 (纯净版)
-const CACHE_NAME = 'neuro-v62';
+﻿// 神经重塑训练 - Service Worker v6.3 (纯净版)
+const CACHE_NAME = 'neuro-v63';
 const STATIC_ASSETS = [
   './', './index.html', './manifest.json',
   './icons/icon-192x192.png', './icons/icon-512x512.png',
@@ -29,10 +29,8 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// 不再发送自定义通知，仅监听点击事件（保留兼容）
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  // 打开页面（大多数情况不需要，因为MediaSession已接管）
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       if (clients.length > 0) return clients[0].focus();

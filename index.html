@@ -257,7 +257,7 @@
 
     <div class="header">
         <h1>🧠 神经重塑训练</h1>
-        <p class="subtitle">原生锁屏控制 · v6.2</p>
+        <p class="subtitle">媒体控件修复版 · 锁屏控制 · v6.3</p>
     </div>
 
     <div class="music-status">
@@ -419,13 +419,13 @@
     (function() {
         'use strict';
 
-        const APP_VERSION = '6.2.0-stable';
+        const APP_VERSION = '6.3.0-mediafix';
         const DEBUG = true;
-        const STAGES_KEY = 'nrc_v62';
-        const STATE_KEY = 'nrd_v62';
-        const AUTO_SAVE_KEY = 'nra_v62';
-        const STATS_KEY = 'nrs_v62';
-        const AUDIO_DB = 'NADB_v62';
+        const STAGES_KEY = 'nrc_v63';
+        const STATE_KEY = 'nrd_v63';
+        const AUTO_SAVE_KEY = 'nra_v63';
+        const STATS_KEY = 'nrs_v63';
+        const AUDIO_DB = 'NADB_v63';
         const AUDIO_STORE = 'audioFiles';
 
         const DEFAULT_STAGES = [
@@ -461,12 +461,11 @@
         let audioContextReady = false;
         let positionUpdateInterval = null;
         let _sessionAudio = null;
-        let _silentAudioUrl = null;
+        let _pulseAudioUrl = null;
 
-        // 兼容旧版本残留调用（防止崩溃）
+        // 占位，防止旧引用崩溃
         async function sendMediaNotification() {}
         async function closeMediaNotification() {}
-        async function fallbackNotification() {}
 
         const $ = id => document.getElementById(id);
         function log(...a) { if (DEBUG) console.log('[NeuroApp v' + APP_VERSION + ']', ...a); }
@@ -545,10 +544,10 @@
             } catch (e) {}
         }
 
-        // 静音WAV生成
-        function generateSilentWav() {
+        // 生成带脉冲的WAV文件（开头有微弱声音，触发媒体识别）
+        function generatePulseWav() {
             const sampleRate = 44100;
-            const duration = 2.0;
+            const duration = 2.0; // 2秒循环
             const numSamples = sampleRate * duration;
             const numChannels = 2;
             const blockAlign = numChannels * 2;
@@ -567,6 +566,21 @@
             view.setUint16(offset, blockAlign, true); offset += 2;
             view.setUint16(offset, 16, true); offset += 2;
             writeStr('data'); view.setUint32(offset, dataSize, true); offset += 4;
+            // 填充音频数据：开头10ms为一个1kHz正弦波，幅度0.02（极低），其余静音
+            const pulseSamples = Math.floor(sampleRate * 0.01); // 10ms
+            for (let i = 0; i < numSamples; i++) {
+                let sample = 0;
+                if (i < pulseSamples) {
+                    const t = i / sampleRate;
+                    sample = Math.sin(2 * Math.PI * 1000 * t) * 0.02;
+                }
+                const intSample = Math.max(-32768, Math.min(32767, sample * 32767));
+                // 立体声，左右通道相同
+                for (let ch = 0; ch < numChannels; ch++) {
+                    view.setInt16(offset, intSample, true);
+                    offset += 2;
+                }
+            }
             const blob = new Blob([buffer], { type: 'audio/wav' });
             return URL.createObjectURL(blob);
         }
@@ -581,8 +595,8 @@
                 _sessionAudio.setAttribute('playsinline', '');
                 _sessionAudio.style.cssText = 'position:fixed;left:-3000px;top:-3000px;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-9999;';
                 document.body.appendChild(_sessionAudio);
-                if (!_silentAudioUrl) _silentAudioUrl = generateSilentWav();
-                _sessionAudio.src = _silentAudioUrl;
+                if (!_pulseAudioUrl) _pulseAudioUrl = generatePulseWav();
+                _sessionAudio.src = _pulseAudioUrl;
             }
             return _sessionAudio;
         }
@@ -590,7 +604,7 @@
         async function startSessionAudio() {
             try {
                 const audio = ensureSessionAudio();
-                audio.volume = 0.15; // 轻微音量，触发 Android 媒体识别
+                audio.volume = 0.1; // 低音量
                 audio.muted = false;
                 if (audio.paused) await audio.play();
             } catch (e) {}
@@ -647,7 +661,7 @@
         }
 
         function stopAll() {
-            stopBG(); stopMetro(); stopSessionAudio();
+            stopBG(); stopMetro();
             if (currentAudio) { try { currentAudio.pause(); if (currentAudio.src?.startsWith('blob:')) URL.revokeObjectURL(currentAudio.src); currentAudio.src = ''; currentAudio = null; } catch (e) {} }
             stopPositionUpdater();
         }
@@ -693,6 +707,7 @@
 
         async function createBG(stage) {
             stopBG();
+            // 节拍器模式需要辅助音频
             await startSessionAudio();
             try {
                 const ctx = await ensureAC();
@@ -701,7 +716,7 @@
                 bgOsc.connect(bgGain);
                 bgGain.connect(ctx.destination);
                 bgOsc.frequency.value = 80;
-                bgGain.gain.value = 0.02;  // 可闻音量，触发 Android 媒体控件
+                bgGain.gain.value = 0.02;
                 bgOsc.start();
             } catch (e) {}
             startMetro(stage.bpm);
@@ -754,7 +769,8 @@
                     done = true;
                     try {
                         if (resume > 0 && isFinite(resume)) audio.currentTime = resume;
-                        await startSessionAudio();
+                        // 本地/在线音乐成功播放后，停止辅助脉冲音频（避免干扰）
+                        stopSessionAudio();
                         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                         await audio.play();
                         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
@@ -815,11 +831,9 @@
             try { if (!audioContextReady) await ensureAC(); if (isPlaying) await pause(); else await play(); } catch (e) { showError('播放控制失败'); }
         }
         async function play() {
-            log('[Play] 开始');
             isPlaying = true; errCount = 0;
             $('playBtn').textContent = '⏸ 暂停'; $('miniPlayBtn').textContent = '⏸';
             savedTime = 0;
-            await startSessionAudio();
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
             try { await playStageMusic(currentStage, savedTime); } catch (e) { await createBG(stages[currentStage]); }
             mainLoop = setInterval(() => { if (!isPlaying) return; totalTime++; updateDisp(); if (totalTime - stageStart(currentStage) >= (stages[currentStage]?.duration || 300)) nextStage(); }, 1000);
@@ -888,7 +902,7 @@
                 setV('diagNotif', np === 'granted' ? '✅ 已授权' : np === 'denied' ? '❌ 已拒绝' : '⚠ 未设置', np === 'granted' ? 'ok' : np === 'denied' ? 'error' : 'warn');
                 setV('diagMedia', hm ? '✅ 支持' : '❌ 不支持', hm ? 'ok' : 'error');
                 setV('diagSW', hsw ? '✅ 已注册' : '❌ 未注册', hsw ? 'ok' : 'error');
-                setV('diagPlaying', isPlaying ? '▶ 播放中 (v6.2)' : '⏸ 暂停', isPlaying ? 'ok' : '');
+                setV('diagPlaying', isPlaying ? '▶ 播放中 (v6.3)' : '⏸ 暂停', isPlaying ? 'ok' : '');
                 setV('diagSys', isHuawei ? '⚠ 鸿蒙/华为' : '✅ 标准系统', isHuawei ? 'warn' : 'ok');
                 setV('diagBC', 'BroadcastChannel' in window ? '✅ 支持' : '❌ 不支持', 'BroadcastChannel' in window ? 'ok' : 'warn');
             } catch (e) {}
@@ -1095,7 +1109,7 @@
             } catch (e) { showError('保存失败'); }
         }
 
-        // 其他UI事件绑定省略，保持原逻辑（以下是完整绑定）
+        // UI 事件绑定
         function bindEvents() {
             $('playBtn').addEventListener('click', togglePlay);
             $('resetBtn').addEventListener('click', reset);
@@ -1157,7 +1171,6 @@
             document.addEventListener('visibilitychange', async () => {
                 if (document.hidden && autoSave) saveState();
                 if (!document.hidden && isPlaying) {
-                    await startSessionAudio();
                     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                     await updateMS(stages[currentStage], audioMeta[currentStage]);
                 }
@@ -1214,7 +1227,7 @@
         }
         async function clearAll() {
             if (!confirm('⚠️ 确定清除所有数据？')) return;
-            pause(); stopAll();
+            pause(); stopAll(); stopSessionAudio();
             for (let i=0; i<5; i++) await deleteAudio(i);
             await clearAllAudio();
             localStorage.clear();
@@ -1270,13 +1283,13 @@
             log('初始化完成');
         }
 
-        // 暴露到全局
+        // 暴露全局方法
         window.app = {
             togglePlay, reset, exportData, importData: () => $('importFile').click(), clearAll, toggleAutoSave: toggleAuto,
             prevTrack, nextTrack, switchTrack, seekPos, openConfig, copyRow, showDiagnostic,
             sendTestNotification: async () => {
                 if (Notification.permission !== 'granted') { try { await Notification.requestPermission(); } catch (e) {} }
-                alert('现在使用原生 MediaSession 控件，锁屏通知由系统自动生成，不需要手动发送。');
+                alert('现在使用原生 MediaSession 控件，锁屏通知由系统自动生成，无需手动发送。');
             },
             showNotifSettingsGuide, updateDiagnostic: updateDiag,
             get version() { return APP_VERSION; },
