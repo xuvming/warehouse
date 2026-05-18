@@ -328,11 +328,10 @@
             [[256,120],[392,256],[256,392],[120,256]].forEach(p => { x.fillStyle = '#00d4aa'; x.beginPath(); x.arc(p[0], p[1], 24, 0, Math.PI * 2); x.fill(); });
             return c.toDataURL('image/png');
         }
-        // 图标缓存 - 使用 base64 data URL（系统锁屏可访问，blob URL 不行）
-        let _iconDataUrl = null;
-        function getIconDataUrl() {
-            if (!_iconDataUrl) _iconDataUrl = genIcon();
-            return _iconDataUrl;
+
+        // MediaSession artwork 必须用 HTTPS URL（data URL 锁屏进程不支持）
+        function getIconUrl(size) {
+            return new URL('icons/icon-' + size + 'x' + size + '.png', location.href).href;
         }
 
         // ============================================================
@@ -343,8 +342,8 @@
             if (msInit) return;
             log('=== 初始化 MediaSession + 耳机控制 ===');
 
-            // 预缓存图标（base64 data URL）
-            getIconDataUrl();
+            // 预加载图标 URL
+            log('图标 URL:', getIconUrl(192));
 
             // 注册全部 8 个标准动作
             const set = (name, fn) => { try { navigator.mediaSession.setActionHandler(name, fn); log('  ✅ ' + name); } catch (e) { log('  ⚠️ ' + name, e.message); } };
@@ -358,14 +357,19 @@
             set('seekforward', (d) => handleMediaAction('seekforward', d));
             set('seekto', (d) => handleMediaAction('seekto', d));
 
-            // 设置初始元数据（artwork 必须用 base64 data URL，blob URL 锁屏不可访问）
+            // 设置初始元数据（artwork 必须用 HTTPS URL，data URL 锁屏不可访问）
             try {
-                const iconUrl = getIconDataUrl();
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: '神经重塑训练',
                     artist: '准备开始',
                     album: 'PWA',
-                    artwork: [96, 128, 192, 256, 512].map(s => ({ src: iconUrl, sizes: s + 'x' + s, type: 'image/png' }))
+                    artwork: [
+                        { src: getIconUrl(96), sizes: '96x96', type: 'image/png' },
+                        { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
+                        { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
+                        { src: getIconUrl(256), sizes: '256x256', type: 'image/png' },
+                        { src: getIconUrl(512), sizes: '512x512', type: 'image/png' }
+                    ]
                 });
                 navigator.mediaSession.playbackState = 'paused';
             } catch (e) { log('设置初始元数据失败:', e); }
@@ -467,7 +471,6 @@
             try {
                 const s = stages[cur];
                 const m = meta[cur];
-                const iconUrl = getIconDataUrl(); // base64 data URL（锁屏可访问）
                 const prefix = playing ? '▶ ' : '⏸ ';
 
                 navigator.mediaSession.metadata = new MediaMetadata({
@@ -475,11 +478,11 @@
                     artist: m?.name || '训练播放',
                     album: '阶段' + (cur + 1) + '/5 · ' + (s?.bpm || 60) + 'BPM',
                     artwork: [
-                        { src: iconUrl, sizes: '96x96', type: 'image/png' },
-                        { src: iconUrl, sizes: '128x128', type: 'image/png' },
-                        { src: iconUrl, sizes: '192x192', type: 'image/png' },
-                        { src: iconUrl, sizes: '256x256', type: 'image/png' },
-                        { src: iconUrl, sizes: '512x512', type: 'image/png' }
+                        { src: getIconUrl(96), sizes: '96x96', type: 'image/png' },
+                        { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
+                        { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
+                        { src: getIconUrl(256), sizes: '256x256', type: 'image/png' },
+                        { src: getIconUrl(512), sizes: '512x512', type: 'image/png' }
                     ]
                 });
                 navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
@@ -968,7 +971,7 @@
 
             loadAll();
             $('autoSave').classList.toggle('on', auto);
-            getIconDataUrl(); // 预缓存图标
+            log('图标路径:', getIconUrl(192)); // 调试用
 
             // 注册 Service Worker
             if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); }
@@ -987,8 +990,8 @@
                 getSessAudio(); // 预创建
                 // 立即初始化 MediaSession，这样耳机连接时 handler 已经就绪
                 if (!msInit) await initMediaSession();
-                // 华为/鸿蒙：用户手势后立即设置一次元数据，激活媒体会话
-                if (isHw || isHm) await updateMS();
+                // 设置初始元数据激活媒体会话
+                await updateMS();
                 document.removeEventListener('touchstart', activate);
                 document.removeEventListener('click', activate);
             };
