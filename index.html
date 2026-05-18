@@ -378,91 +378,26 @@
             log('MediaSession 初始化完成');
         }
 
-        // 统一处理 MediaSession 动作（带防抖动、点击模式分析）
+        // 处理 MediaSession 动作（系统已处理双击/三击模式，只需 cooldown 防连发）
+        let _lastAction = '';
+        let _lastActionTime = 0;
+        const ACTION_COOLDOWN = 500;  // 同一动作 500ms 内不重复处理
+
         function handleMediaAction(action, details) {
             const now = Date.now();
-            if (now - lastActionMs < ACTION_COOLDOWN) { log(`[${action}] 冷却中`); return; }
-            lastActionMs = now;
-            log(`[${action}] 触发`, details || '');
-
-            // 记录时间戳用于双击/三击检测
-            recordActionTimestamp(action);
-
-            // 立即执行基本操作（不等待三击判定）
+            if (action === _lastAction && now - _lastActionTime < ACTION_COOLDOWN) { log(`[${action}] cd`); return; }
+            _lastAction = action; _lastActionTime = now;
+            log(`[${action}]`);
             switch (action) {
                 case 'play': if (!playing) togglePlay(); break;
-                case 'pause': if (playing) doPause(); break;
+                case 'pause': if (playing) togglePlay(); break;
                 case 'previoustrack': prevTrack(); break;
                 case 'nexttrack': nextTrack(); break;
                 case 'stop': if (playing) doPause(); break;
-                case 'seekbackward':
-                    if (curAud?.duration) curAud.currentTime = Math.max(0, curAud.currentTime - (details?.seekOffset || 10));
-                    else total = Math.max(0, total - 10);
-                    break;
-                case 'seekforward':
-                    if (curAud?.duration) curAud.currentTime = Math.min(curAud.duration, curAud.currentTime + (details?.seekOffset || 10));
-                    else total = Math.min(totalDur(), total + 10);
-                    break;
-                case 'seekto':
-                    if (details?.seekTime != null && curAud?.duration) curAud.currentTime = details.seekTime;
-                    break;
+                case 'seekbackward': if (curAud?.duration) curAud.currentTime = Math.max(0, curAud.currentTime - 10); break;
+                case 'seekforward': if (curAud?.duration) curAud.currentTime = Math.min(curAud.duration, curAud.currentTime + 10); break;
+                case 'seekto': if (details?.seekTime != null && curAud?.duration) curAud.currentTime = details.seekTime; break;
             }
-
-            // 更新元数据
-            updateMS();
-        }
-
-        // ========== 双击/三击检测引擎 ==========
-        const actionTimestamps = {};  // action -> 时间戳数组
-        const actionTimeouts = {};    // action -> 定时器
-        const DBL_THRESHOLD = 500;    // 双击间隔 ms
-        const TRIPLE_THRESHOLD = 700; // 三击判定窗口 ms
-
-        function recordActionTimestamp(action) {
-            if (!actionTimestamps[action]) actionTimestamps[action] = [];
-            const queue = actionTimestamps[action];
-            queue.push(Date.now());
-
-            // 清理超时的
-            const cutoff = Date.now() - TRIPLE_THRESHOLD;
-            while (queue.length && queue[0] < cutoff) queue.shift();
-
-            // 清除之前的判定定时器
-            if (actionTimeouts[action]) clearTimeout(actionTimeouts[action]);
-
-            // 设置新的判定定时器
-            actionTimeouts[action] = setTimeout(() => {
-                const clicks = queue.length;
-                queue.length = 0;
-                if (clicks >= 3) {
-                    log(`🔥 检测到 ${action} 三击!`);
-                    onTripleClick(action);
-                } else if (clicks === 2) {
-                    log(`🔥 检测到 ${action} 双击!`);
-                    onDoubleClick(action);
-                }
-            }, TRIPLE_THRESHOLD);
-        }
-
-        function onDoubleClick(action) {
-            // 华为 FreeBuds 双击映射
-            // 双击右耳 = nexttrack → 下一首
-            // 双击左耳 = previoustrack → 上一首
-            switch (action) {
-                case 'nexttrack': log('🎧 双击右耳 → 下一首'); nextTrack(); break;
-                case 'previoustrack': log('🎧 双击左耳 → 上一首'); prevTrack(); break;
-                case 'play': case 'pause': log('🎧 双击 → 播放/暂停'); togglePlay(); break;
-            }
-            updateMS();
-        }
-
-        function onTripleClick(action) {
-            // 三击映射为回退/快进
-            switch (action) {
-                case 'previoustrack': log('🎧 三击 → 上一首'); prevTrack(); break;
-                case 'nexttrack': log('🎧 三击 → 下一首'); nextTrack(); break;
-            }
-            updateMS();
         }
 
         // ========== 更新 MediaSession 元数据和状态 ==========
@@ -600,15 +535,36 @@
         }
 
         // ========== 媒体音频（MediaSession 激活关键）==========
-        // 华为/鸿蒙系统要求：
-        // 1. audio 元素必须在 DOM 中可见（不能 visibility:hidden）
-        // 2. controls=true 系统才能识别为媒体播放器
-        // 3. 音量不能太低（<0.1 系统可能忽略）
-        // 4. 音频必须先于 MediaSession 设置播放
-        // 5. 使用 data URL 避免 blob URL 在系统进程中失效
+        // 华为/鸿蒙系统检测媒体播放的条件：
+        // 1. <audio controls> 必须在 DOM 中
+        // 2. 元素不能 visibility:hidden（opacity:0 可以）
+        // 3. 音量 >= 0.1
+        // 4. 音频必须真实播放（play() 成功）
+        // 5. 音频需有有效时长（>= 1 秒）
 
-        // 极小的 base64 WAV（1秒静音，系统可检测到但人耳听不到）
-        const SILENCE_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA=='; // 约200字节，1秒静音
+        // 生成有效 WAV 文件（系统进程可检测的真实音频）
+        function genWav() {
+            const sr = 8000, dur = 10, samples = sr * dur;
+            const buf = new ArrayBuffer(44 + samples * 2);
+            const v = new DataView(buf);
+            let o = 0;
+            const w = s => { for (let i = 0; i < s.length; i++) v.setUint8(o++, s.charCodeAt(i)); };
+            w('RIFF'); v.setUint32(o, 36 + samples * 2, true); o += 4;
+            w('WAVEfmt '); v.setUint32(o, 16, true); o += 4;
+            v.setUint16(o, 1, true); o += 2;  // PCM
+            v.setUint16(o, 1, true); o += 2;  // mono
+            v.setUint32(o, sr, true); o += 4;
+            v.setUint32(o, sr * 2, true); o += 4;  // byte rate
+            v.setUint16(o, 2, true); o += 2;  // block align
+            v.setUint16(o, 16, true); o += 2; // bits
+            w('data'); v.setUint32(o, samples * 2, true); o += 4;
+            for (let i = 0; i < samples; i++) {
+                // 600Hz 正弦波，幅度 0.05，系统可检测但人耳几乎听不到
+                const s = Math.sin(2 * Math.PI * 600 * (i / sr)) * 0.05;
+                v.setInt16(o, Math.max(-32768, Math.min(32767, Math.round(s * 32767))), true); o += 2;
+            }
+            return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+        }
 
         function getSessAudio() {
             if (!sessAud) {
@@ -619,16 +575,15 @@
                 sessAud.setAttribute('x5-video-player-fullscreen', 'false');
                 sessAud.setAttribute('playsinline', '');
                 sessAud.setAttribute('webkit-playsinline', '');
-                sessAud.controls = true;     // 必须！系统识别媒体播放器的关键
-                sessAud.loop = true;          // 循环保持 MediaSession
+                sessAud.controls = true;     // 必须！系统识别媒体播放器
+                sessAud.loop = true;
                 sessAud.muted = false;
-                sessAud.volume = 0.3;         // 华为系统最低检测阈值 ~0.1
+                sessAud.volume = 0.3;         // 华为最低检测阈值 ~0.1
                 sessAud.preload = 'auto';
-                // 可见但极透明（opacity>0, 不设置 visibility:hidden）
-                sessAud.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:2px;opacity:0.01;pointer-events:none;z-index:9999;';
-                sessAud.src = SILENCE_WAV;
+                sessAud.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:2px;opacity:0.01;pointer-events:none;z-index:9999;'; // DOM 可见，opacity>0
+                sessAud.src = genWav();
                 document.body.appendChild(sessAud);
-                log('媒体音频元素已创建（可见+controls）');
+                log('媒体音频已创建');
             }
             return sessAud;
         }
@@ -636,13 +591,10 @@
         async function startSessAudio() {
             try {
                 const a = getSessAudio();
-                a.muted = false;
-                a.volume = 0.3;
-                a.loop = true;
-                a.currentTime = 0;
+                a.muted = false; a.volume = 0.3; a.loop = true; a.currentTime = 0;
                 await a.play();
-                log('媒体音频已开始播放（音量0.3）');
-            } catch (e) { log('媒体音频启动失败:', e.message); }
+                log('媒体音频开始');
+            } catch (e) { log('媒体音频失败:', e.message); }
         }
         function stopSessAudio() {
             if (sessAud && !sessAud.paused) { try { sessAud.pause(); sessAud.currentTime = 0; } catch (e) {} }
@@ -741,18 +693,16 @@
             $('playBtn').textContent = '⏸ 暂停'; $('mPlay').textContent = '⏸';
             saved = 0;
 
-            // 1. 必须先启动音频！系统需要先检测到音频焦点变化
-            //    MediaSession 必须在音频播放之后设置才有效
-            await startSessAudio();
-
-            // 2. 初始化 MediaSession（handler 注册）
+            // 1. 先注册 MediaSession handler
             if (!msInit) await initMediaSession();
+
+            // 2. 启动媒体音频（获取系统音频焦点）
+            await startSessAudio();
 
             // 3. 播放训练音频/节拍器
             try { await playMusic(cur, saved); } catch (e) { await makeBG(stages[cur]); }
 
-            // 4. 音频播放成功后，设置 MediaSession 元数据
-            //    此时系统已检测到音频焦点，MediaSession 通知会显示控制按钮
+            // 4. 设置 MediaSession（音频焦点获取后）
             await updateMS();
 
             // 5. 启动定时器
