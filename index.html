@@ -599,86 +599,53 @@
             }, 50);
         }
 
-        // 隐藏音频（MediaSession 触发器）
+        // ========== 媒体音频（MediaSession 激活关键）==========
+        // 华为/鸿蒙系统要求：
+        // 1. audio 元素必须在 DOM 中可见（不能 visibility:hidden）
+        // 2. controls=true 系统才能识别为媒体播放器
+        // 3. 音量不能太低（<0.1 系统可能忽略）
+        // 4. 音频必须先于 MediaSession 设置播放
+        // 5. 使用 data URL 避免 blob URL 在系统进程中失效
+
+        // 极小的 base64 WAV（1秒静音，系统可检测到但人耳听不到）
+        const SILENCE_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA=='; // 约200字节，1秒静音
+
         function getSessAudio() {
             if (!sessAud) {
                 sessAud = document.createElement('audio');
+                sessAud.id = '__session_audio';
                 sessAud.crossOrigin = 'anonymous';
                 sessAud.setAttribute('x5-video-player-type', 'h5');
                 sessAud.setAttribute('x5-video-player-fullscreen', 'false');
                 sessAud.setAttribute('playsinline', '');
                 sessAud.setAttribute('webkit-playsinline', '');
+                sessAud.controls = true;     // 必须！系统识别媒体播放器的关键
+                sessAud.loop = true;          // 循环保持 MediaSession
                 sessAud.muted = false;
-                sessAud.volume = 0.05;          // 提高音量确保系统检测
-                sessAud.loop = true;             // 必须循环保持 MediaSession
+                sessAud.volume = 0.3;         // 华为系统最低检测阈值 ~0.1
                 sessAud.preload = 'auto';
-                sessAud.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-9999;';
+                // 可见但极透明（opacity>0, 不设置 visibility:hidden）
+                sessAud.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;height:2px;opacity:0.01;pointer-events:none;z-index:9999;';
+                sessAud.src = SILENCE_WAV;
                 document.body.appendChild(sessAud);
-
-                // 生成 10 秒脉冲音频（给系统足够检测时间）
-                const sr = 8000, dur = 10, samples = sr * dur;
-                const buf = new ArrayBuffer(44 + samples * 2);
-                const v = new DataView(buf);
-                let o = 0;
-                const w = s => { for (let i = 0; i < s.length; i++) v.setUint8(o++, s.charCodeAt(i)); };
-                w('RIFF'); v.setUint32(o, 36 + samples * 2, true); o += 4;
-                w('WAVE'); w('fmt '); v.setUint32(o, 16, true); o += 4;
-                v.setUint16(o, 1, true); o += 2; v.setUint16(o, 1, true); o += 2;
-                v.setUint32(o, sr, true); o += 4; v.setUint32(o, sr * 2, true); o += 4;
-                v.setUint16(o, 2, true); o += 2; v.setUint16(o, 16, true); o += 2;
-                w('data'); v.setUint32(o, samples * 2, true); o += 4;
-                for (let i = 0; i < samples; i++) {
-                    const s = Math.sin(2 * Math.PI * 600 * (i / sr)) * 0.02;
-                    v.setInt16(o, Math.max(-32768, Math.min(32767, s * 32767)), true); o += 2;
-                }
-                pulseUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
-                sessAud.src = pulseUrl;
-                log('隐藏音频已创建');
+                log('媒体音频元素已创建（可见+controls）');
             }
             return sessAud;
-        }
-
-        // 可见音频 stub（华为/鸿蒙系统识别媒体播放的关键）
-        let _mediaStub = null;
-        function getMediaStub() {
-            if (!_mediaStub) {
-                _mediaStub = document.createElement('audio');
-                _mediaStub.id = '__media_stub';
-                _mediaStub.crossOrigin = 'anonymous';
-                _mediaStub.setAttribute('x5-video-player-type', 'h5');
-                _mediaStub.controls = true;  // 必须有 controls 系统才识别为媒体
-                _mediaStub.loop = true;
-                _mediaStub.muted = false;
-                _mediaStub.volume = 0.05;
-                // opacity 极低但不为 0，系统检测器能看到
-                _mediaStub.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:1px;opacity:0.001;pointer-events:none;z-index:1;visibility:hidden;';
-                document.body.appendChild(_mediaStub);
-                if (pulseUrl) _mediaStub.src = pulseUrl;
-            }
-            return _mediaStub;
         }
 
         async function startSessAudio() {
             try {
                 const a = getSessAudio();
                 a.muted = false;
-                a.volume = 0.05;
+                a.volume = 0.3;
                 a.loop = true;
                 a.currentTime = 0;
                 await a.play();
-                // 同时启动可见 stub（双保险激活 MediaSession）
-                const stub = getMediaStub();
-                if (!stub.src && pulseUrl) stub.src = pulseUrl;
-                stub.muted = false;
-                stub.volume = 0.05;
-                stub.loop = true;
-                stub.play().catch(()=>{});
-                log('媒体音频已启动（隐藏+stub）');
+                log('媒体音频已开始播放（音量0.3）');
             } catch (e) { log('媒体音频启动失败:', e.message); }
         }
         function stopSessAudio() {
-            if (sessAud && !sessAud.paused) { try { sessAud.pause(); } catch (e) {} }
-            if (_mediaStub && !_mediaStub.paused) { try { _mediaStub.pause(); } catch (e) {} }
+            if (sessAud && !sessAud.paused) { try { sessAud.pause(); sessAud.currentTime = 0; } catch (e) {} }
         }
 
         async function playMusic(idx, resume) {
@@ -774,15 +741,21 @@
             $('playBtn').textContent = '⏸ 暂停'; $('mPlay').textContent = '⏸';
             saved = 0;
 
-            // 1. 先初始化 MediaSession（在播放音频之前！）
-            if (!msInit) await initMediaSession();
-            await updateMS(); // 设置 metadata + playbackState='playing'
-
-            // 2. 启动音频（隐藏 + stub 双保险）
+            // 1. 必须先启动音频！系统需要先检测到音频焦点变化
+            //    MediaSession 必须在音频播放之后设置才有效
             await startSessAudio();
+
+            // 2. 初始化 MediaSession（handler 注册）
+            if (!msInit) await initMediaSession();
+
+            // 3. 播放训练音频/节拍器
             try { await playMusic(cur, saved); } catch (e) { await makeBG(stages[cur]); }
 
-            // 3. 启动定时器
+            // 4. 音频播放成功后，设置 MediaSession 元数据
+            //    此时系统已检测到音频焦点，MediaSession 通知会显示控制按钮
+            await updateMS();
+
+            // 5. 启动定时器
             startPosTimer();
             loop = setInterval(() => { if (!playing) return; total++; updateDisp(); if (total - stageStart(cur) >= (stages[cur]?.duration || 300)) nextStage(); }, 1000);
 
