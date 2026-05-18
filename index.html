@@ -328,15 +328,11 @@
             [[256,120],[392,256],[256,392],[120,256]].forEach(p => { x.fillStyle = '#00d4aa'; x.beginPath(); x.arc(p[0], p[1], 24, 0, Math.PI * 2); x.fill(); });
             return c.toDataURL('image/png');
         }
-        let _iconBlob = null;
-        async function getIconBlob() {
-            if (_iconBlob) return _iconBlob;
-            const icon = genIcon();
-            const img = new Image(); img.src = icon;
-            await new Promise(r => { img.onload = r; });
-            const c = document.createElement('canvas'); c.width = 512; c.height = 512;
-            c.getContext('2d').drawImage(img, 0, 0);
-            return new Promise(r => c.toBlob(b => { _iconBlob = URL.createObjectURL(b); r(_iconBlob); }, 'image/png'));
+        // 图标缓存 - 使用 base64 data URL（系统锁屏可访问，blob URL 不行）
+        let _iconDataUrl = null;
+        function getIconDataUrl() {
+            if (!_iconDataUrl) _iconDataUrl = genIcon();
+            return _iconDataUrl;
         }
 
         // ============================================================
@@ -346,6 +342,9 @@
             if (!('mediaSession' in navigator)) { log('MediaSession 不可用'); return; }
             if (msInit) return;
             log('=== 初始化 MediaSession + 耳机控制 ===');
+
+            // 预缓存图标（base64 data URL）
+            getIconDataUrl();
 
             // 注册全部 8 个标准动作
             const set = (name, fn) => { try { navigator.mediaSession.setActionHandler(name, fn); log('  ✅ ' + name); } catch (e) { log('  ⚠️ ' + name, e.message); } };
@@ -359,9 +358,9 @@
             set('seekforward', (d) => handleMediaAction('seekforward', d));
             set('seekto', (d) => handleMediaAction('seekto', d));
 
-            // 设置初始元数据（必须有 artwork 锁屏才显示）
+            // 设置初始元数据（artwork 必须用 base64 data URL，blob URL 锁屏不可访问）
             try {
-                const iconUrl = await getIconBlob();
+                const iconUrl = getIconDataUrl();
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: '神经重塑训练',
                     artist: '准备开始',
@@ -468,17 +467,27 @@
             try {
                 const s = stages[cur];
                 const m = meta[cur];
-                const iconUrl = await getIconBlob();
+                const iconUrl = getIconDataUrl(); // base64 data URL（锁屏可访问）
                 const prefix = playing ? '▶ ' : '⏸ ';
 
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: prefix + (s?.name || '神经重塑'),
                     artist: m?.name || '训练播放',
                     album: '阶段' + (cur + 1) + '/5 · ' + (s?.bpm || 60) + 'BPM',
-                    artwork: [96, 128, 192, 256, 512].map(sz => ({ src: iconUrl, sizes: sz + 'x' + sz, type: 'image/png' }))
+                    artwork: [
+                        { src: iconUrl, sizes: '96x96', type: 'image/png' },
+                        { src: iconUrl, sizes: '128x128', type: 'image/png' },
+                        { src: iconUrl, sizes: '192x192', type: 'image/png' },
+                        { src: iconUrl, sizes: '256x256', type: 'image/png' },
+                        { src: iconUrl, sizes: '512x512', type: 'image/png' }
+                    ]
                 });
                 navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
-            } catch (e) {}
+                // 华为/鸿蒙：强制刷新 playbackState
+                if (isHm || isHw) {
+                    navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+                }
+            } catch (e) { log('updateMS 失败:', e.message); }
         }
 
         function updateMSPos(pos, dur) {
@@ -486,7 +495,13 @@
             try {
                 const p = pos !== undefined ? pos : (curAud?.currentTime || 0);
                 const d = dur !== undefined ? dur : (curAud?.duration || stages[cur]?.duration || 0);
-                if (d > 0 && Number.isFinite(d)) navigator.mediaSession.setPositionState({ duration: d, playbackRate: playing ? 1 : 0, position: Math.max(0, Math.min(p, d)) });
+                if (d > 0 && Number.isFinite(d)) {
+                    navigator.mediaSession.setPositionState({
+                        duration: Math.round(d),
+                        playbackRate: playing ? 1.0 : 0.0,
+                        position: Math.max(0, Math.min(Math.round(p), Math.round(d)))
+                    });
+                }
             } catch (e) {}
         }
 
@@ -737,14 +752,15 @@
             try { if (!actx) await ensureAC(); playing ? doPause() : doPlayAll(); } catch (e) { err('播放失败: ' + e.message); }
         }
 
-        // 定期更新 MediaSession positionState（锁屏进度条刷新）
+        // 定期更新 MediaSession positionState（锁屏进度条 + 控制按钮刷新）
         let _posTimer = null;
         function startPosTimer() {
             stopPosTimer();
             _posTimer = setInterval(() => {
                 if (!playing) return;
-                if (curAud?.duration) updateMSPos(curAud.currentTime, curAud.duration);
-                else updateMSPos(total, stages[cur]?.duration || 300);
+                const dur = curAud?.duration || stages[cur]?.duration || 300;
+                const pos = curAud?.currentTime || total;
+                updateMSPos(pos, dur);
             }, 1000);
         }
         function stopPosTimer() { if (_posTimer) { clearInterval(_posTimer); _posTimer = null; } }
@@ -754,13 +770,20 @@
             playing = true;
             $('playBtn').textContent = '⏸ 暂停'; $('mPlay').textContent = '⏸';
             saved = 0;
-            await startSessAudio();  // 启动音频（双保险：隐藏音频 + visible stub）
+
+            // 1. 先初始化 MediaSession（在播放音频之前！）
             if (!msInit) await initMediaSession();
+            await updateMS(); // 设置 metadata + playbackState='playing'
+
+            // 2. 启动音频（隐藏 + stub 双保险）
+            await startSessAudio();
             try { await playMusic(cur, saved); } catch (e) { await makeBG(stages[cur]); }
-            // 启动位置刷新定时器（锁屏进度条需要）
+
+            // 3. 启动定时器
             startPosTimer();
             loop = setInterval(() => { if (!playing) return; total++; updateDisp(); if (total - stageStart(cur) >= (stages[cur]?.duration || 300)) nextStage(); }, 1000);
-            await updateMS(); reqWL(); showHint(); updateDiag();
+
+            reqWL(); showHint(); updateDiag();
             $('msHint')?.classList.add('show');
             setTimeout(() => $('msHint')?.classList.remove('show'), 5000);
         }
@@ -945,7 +968,7 @@
 
             loadAll();
             $('autoSave').classList.toggle('on', auto);
-            getIconBlob();
+            getIconDataUrl(); // 预缓存图标
 
             // 注册 Service Worker
             if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); }
@@ -959,10 +982,13 @@
 
             // 用户手势激活音频上下文 + 预初始化 MediaSession
             const activate = async () => {
+                log('👆 用户手势激活');
                 await ensureAC();
                 getSessAudio(); // 预创建
                 // 立即初始化 MediaSession，这样耳机连接时 handler 已经就绪
                 if (!msInit) await initMediaSession();
+                // 华为/鸿蒙：用户手势后立即设置一次元数据，激活媒体会话
+                if (isHw || isHm) await updateMS();
                 document.removeEventListener('touchstart', activate);
                 document.removeEventListener('click', activate);
             };
