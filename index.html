@@ -591,13 +591,14 @@
                 sessAud.setAttribute('playsinline', '');
                 sessAud.setAttribute('webkit-playsinline', '');
                 sessAud.muted = false;
-                sessAud.volume = 0.01;
+                sessAud.volume = 0.05;          // 提高音量确保系统检测
+                sessAud.loop = true;             // 必须循环保持 MediaSession
                 sessAud.preload = 'auto';
                 sessAud.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-9999;';
                 document.body.appendChild(sessAud);
 
-                // 生成脉冲音频
-                const sr = 8000, dur = 1, samples = sr * dur;
+                // 生成 10 秒脉冲音频（给系统足够检测时间）
+                const sr = 8000, dur = 10, samples = sr * dur;
                 const buf = new ArrayBuffer(44 + samples * 2);
                 const v = new DataView(buf);
                 let o = 0;
@@ -619,11 +620,48 @@
             return sessAud;
         }
 
-        async function startSessAudio() {
-            try { const a = getSessAudio(); a.muted = false; a.volume = 0.01; await a.play(); log('隐藏音频开始'); }
-            catch (e) { log('隐藏音频失败:', e.message); }
+        // 可见音频 stub（华为/鸿蒙系统识别媒体播放的关键）
+        let _mediaStub = null;
+        function getMediaStub() {
+            if (!_mediaStub) {
+                _mediaStub = document.createElement('audio');
+                _mediaStub.id = '__media_stub';
+                _mediaStub.crossOrigin = 'anonymous';
+                _mediaStub.setAttribute('x5-video-player-type', 'h5');
+                _mediaStub.controls = true;  // 必须有 controls 系统才识别为媒体
+                _mediaStub.loop = true;
+                _mediaStub.muted = false;
+                _mediaStub.volume = 0.05;
+                // opacity 极低但不为 0，系统检测器能看到
+                _mediaStub.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:1px;opacity:0.001;pointer-events:none;z-index:1;visibility:hidden;';
+                document.body.appendChild(_mediaStub);
+                if (pulseUrl) _mediaStub.src = pulseUrl;
+            }
+            return _mediaStub;
         }
-        function stopSessAudio() { if (sessAud && !sessAud.paused) { try { sessAud.pause(); } catch (e) {} } }
+
+        async function startSessAudio() {
+            try {
+                const a = getSessAudio();
+                a.muted = false;
+                a.volume = 0.05;
+                a.loop = true;
+                a.currentTime = 0;
+                await a.play();
+                // 同时启动可见 stub（双保险激活 MediaSession）
+                const stub = getMediaStub();
+                if (!stub.src && pulseUrl) stub.src = pulseUrl;
+                stub.muted = false;
+                stub.volume = 0.05;
+                stub.loop = true;
+                stub.play().catch(()=>{});
+                log('媒体音频已启动（隐藏+stub）');
+            } catch (e) { log('媒体音频启动失败:', e.message); }
+        }
+        function stopSessAudio() {
+            if (sessAud && !sessAud.paused) { try { sessAud.pause(); } catch (e) {} }
+            if (_mediaStub && !_mediaStub.paused) { try { _mediaStub.pause(); } catch (e) {} }
+        }
 
         async function playMusic(idx, resume) {
             stopAll();
@@ -699,14 +737,28 @@
             try { if (!actx) await ensureAC(); playing ? doPause() : doPlayAll(); } catch (e) { err('播放失败: ' + e.message); }
         }
 
+        // 定期更新 MediaSession positionState（锁屏进度条刷新）
+        let _posTimer = null;
+        function startPosTimer() {
+            stopPosTimer();
+            _posTimer = setInterval(() => {
+                if (!playing) return;
+                if (curAud?.duration) updateMSPos(curAud.currentTime, curAud.duration);
+                else updateMSPos(total, stages[cur]?.duration || 300);
+            }, 1000);
+        }
+        function stopPosTimer() { if (_posTimer) { clearInterval(_posTimer); _posTimer = null; } }
+
         async function doPlayAll() {
             log('=== PLAY ===');
             playing = true;
             $('playBtn').textContent = '⏸ 暂停'; $('mPlay').textContent = '⏸';
             saved = 0;
-            await startSessAudio();
+            await startSessAudio();  // 启动音频（双保险：隐藏音频 + visible stub）
             if (!msInit) await initMediaSession();
             try { await playMusic(cur, saved); } catch (e) { await makeBG(stages[cur]); }
+            // 启动位置刷新定时器（锁屏进度条需要）
+            startPosTimer();
             loop = setInterval(() => { if (!playing) return; total++; updateDisp(); if (total - stageStart(cur) >= (stages[cur]?.duration || 300)) nextStage(); }, 1000);
             await updateMS(); reqWL(); showHint(); updateDiag();
             $('msHint')?.classList.add('show');
@@ -718,6 +770,7 @@
             playing = false;
             $('playBtn').textContent = '▶ 继续'; $('mPlay').textContent = '▶';
             if (loop) clearInterval(loop);
+            stopPosTimer();
             if (curAud) { saved = curAud.currentTime; curAud.pause(); }
             stopMetro(); stopSessAudio();
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
