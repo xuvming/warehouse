@@ -452,8 +452,9 @@
                     artist: '准备开始',
                     album: 'PWA',
                     artwork: [
-                        { src: './cover.jpg', sizes: '512x512', type: 'image/jpeg' },
+                        { src: new URL('./cover.jpg', location.href).href, sizes: '512x512', type: 'image/jpeg' },
                         { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
+                        { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
                         { src: getIconUrl(96), sizes: '96x96', type: 'image/png' }
                     ]
                 });
@@ -564,8 +565,9 @@
                     artist: m?.name || '训练播放',
                     album: '阶段' + (cur + 1) + '/5 · ' + (s?.bpm || 60) + 'BPM',
                     artwork: [
-                        { src: './cover.jpg', sizes: '512x512', type: 'image/jpeg' },
+                        { src: new URL('./cover.jpg', location.href).href, sizes: '512x512', type: 'image/jpeg' },
                         { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
+                        { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
                         { src: getIconUrl(96), sizes: '96x96', type: 'image/png' }
                     ]
                 });
