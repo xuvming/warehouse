@@ -549,17 +549,24 @@
             const v = new DataView(buf);
             let o = 0;
             const w = s => { for (let i = 0; i < s.length; i++) v.setUint8(o++, s.charCodeAt(i)); };
-            w('RIFF'); v.setUint32(o, 36 + samples * 2, true); o += 4;
-            w('WAVEfmt '); v.setUint32(o, 16, true); o += 4;
-            v.setUint16(o, 1, true); o += 2;  // PCM
-            v.setUint16(o, 1, true); o += 2;  // mono
-            v.setUint32(o, sr, true); o += 4;
-            v.setUint32(o, sr * 2, true); o += 4;  // byte rate
-            v.setUint16(o, 2, true); o += 2;  // block align
-            v.setUint16(o, 16, true); o += 2; // bits
-            w('data'); v.setUint32(o, samples * 2, true); o += 4;
+            const u8 = v => { v.setUint8(o++, v); };
+            const u32 = v => { v.setUint32(o, v, true); o += 4; };
+            const u16 = v => { v.setUint16(o, v, true); o += 2; };
+            // RIFF chunk
+            w('RIFF'); u32(36 + samples * 2);
+            w('WAVE');
+            // fmt subchunk
+            w('fmt '); u32(16);     // subchunk size = 16 (PCM)
+            u16(1);                  // audio format = PCM
+            u16(1);                  // num channels = mono
+            u32(sr);                 // sample rate
+            u32(sr * 2);             // byte rate
+            u16(2);                  // block align
+            u16(16);                 // bits per sample
+            // data subchunk
+            w('data'); u32(samples * 2);
+            // audio data (600Hz sine, amp 0.05)
             for (let i = 0; i < samples; i++) {
-                // 600Hz 正弦波，幅度 0.05，系统可检测但人耳几乎听不到
                 const s = Math.sin(2 * Math.PI * 600 * (i / sr)) * 0.05;
                 v.setInt16(o, Math.max(-32768, Math.min(32767, Math.round(s * 32767))), true); o += 2;
             }
@@ -769,7 +776,10 @@
         function reorder(oi, ni) { stages.splice(ni, 0, stages.splice(oi, 1)[0]); meta.splice(ni, 0, meta.splice(oi, 1)[0]); if (cur === oi) cur = ni; else if (oi < cur && ni >= cur) cur--; else if (oi > cur && ni <= cur) cur++; saveAll(); }
 
         function renderRows() {
-            const c = $('fileRows'); if (!c) return;
+            log('renderRows 开始');
+            const c = $('fileRows');
+            if (!c) { log('❌ fileRows 不存在'); return; }
+            log('stages 数量:', stages.length);
             c.innerHTML = stages.map((s, i) => {
                 const m = meta[i]; let dn = (i+1)+'. '+esc(s.name), mt = '未设置音乐';
                 if (m && (m.localFile || m.onlineUrl)) { dn = (i+1)+'. '+esc(m.name || s.name); mt = (m.localFile?'📁':'')+(m.onlineUrl?'🌐':'')+' · '+fmtTime(s.duration); }
@@ -892,17 +902,23 @@
             // 初始化蓝牙监听
             initBluetoothMonitor();
 
+            log('步骤: loadAll');
             loadAll();
+            log('stages:', stages.length, 'meta:', meta.length);
             $('autoSave').classList.toggle('on', auto);
-            log('图标路径:', getIconUrl(192)); // 调试用
 
-            // 注册 Service Worker
+            log('步骤: 注册SW');
             if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); }
 
-            // Apple 图标
+            log('步骤: Apple图标');
             try { const icon = genIcon(); ['152x152', '180x180', '512x512'].forEach(sz => { const link = document.createElement('link'); link.rel = 'apple-touch-icon'; link.sizes = sz; link.href = icon; document.head.appendChild(link); }); } catch (e) {}
 
-            renderRows(); initPl(); updateStage(); updateDisp(); updMini();
+            log('步骤: renderRows');
+            try { renderRows(); } catch (e) { log('❌ renderRows 错误:', e.message); }
+            log('步骤: initPl');
+            try { initPl(); } catch (e) { log('❌ initPl 错误:', e.message); }
+            log('步骤: 其他更新');
+            updateStage(); updateDisp(); updMini();
             updateStats(); initChart(); updateChart();
             bind();
 
