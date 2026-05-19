@@ -3,7 +3,7 @@
  * 功能：PWA离线支持 + MediaSession锁屏控制消息转发
  */
 
-const CACHE_NAME = 'neuro-v7.2.2';
+const CACHE_NAME = 'neuro-v7.0.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
