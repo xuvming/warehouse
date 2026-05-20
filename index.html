@@ -1002,15 +1002,43 @@
         async function saveCfg() {
             try {
                 let dur = parseInt($('cDur').value) || 0;
-                stages[editIdx] = { name: ($('cName').value || '').trim().substring(0, 100) || ('阶段'+(editIdx+1)), bpm: Math.max(30, Math.min(200, parseInt($('cBpm').value) || 60)), duration: Math.max(0, Math.min(7200, dur)), action: '', imagine: '' };
-                if (tmpFile) { await dbPut(editIdx, tmpFile); meta[editIdx] = { ...(meta[editIdx] || {}), name: stages[editIdx].name, localFile: { name: tmpFile.name, type: tmpFile.type, size: tmpFile.size } }; }
-                else if (window._dl) { await dbDel(editIdx); if (meta[editIdx]) meta[editIdx].localFile = null; }
-                if (tmpUrl) { meta[editIdx] = { ...(meta[editIdx] || {}), onlineUrl: tmpUrl, onlineName: tmpUrl.split('/').pop()?.split('?')[0] || '在线' }; }
+                const old = stages[editIdx] || {};
+                stages[editIdx] = { 
+                    name: ($('cName').value || '').trim().substring(0, 100) || old.name || ('阶段'+(editIdx+1)), 
+                    bpm: Math.max(30, Math.min(200, parseInt($('cBpm').value) || 60)), 
+                    duration: Math.max(0, Math.min(7200, dur)), 
+                    action: old.action || '', 
+                    imagine: old.imagine || '' 
+                };
+                // 保存音频文件到 IndexedDB（带超时保护）
+                if (tmpFile) {
+                    try {
+                        await Promise.race([
+                            dbPut(editIdx, tmpFile),
+                            new Promise((_, rej) => setTimeout(() => rej(new Error('存储超时')), 10000))
+                        ]);
+                        meta[editIdx] = { ...(meta[editIdx] || {}), name: stages[editIdx].name, localFile: { name: tmpFile.name, type: tmpFile.type, size: tmpFile.size } };
+                    } catch (dbErr) {
+                        log('IndexedDB存储失败:', dbErr.message);
+                        // IndexedDB 失败也继续保存其他配置
+                        meta[editIdx] = { ...(meta[editIdx] || {}), name: stages[editIdx].name };
+                    }
+                } else if (window._dl) { 
+                    try { await dbDel(editIdx); } catch(e) {} 
+                    if (meta[editIdx]) meta[editIdx].localFile = null; 
+                }
+                if (tmpUrl) { 
+                    meta[editIdx] = { ...(meta[editIdx] || {}), onlineUrl: tmpUrl, onlineName: tmpUrl.split('/').pop()?.split('?')[0] || '在线' }; 
+                }
                 if (!meta[editIdx]) meta[editIdx] = { name: stages[editIdx].name, localFile: null, onlineUrl: '', onlineName: '' };
                 saveAll(); renderRows(); initPl(); updateStage(); updateDisp(); updMini(); renderStagePills();
                 if (cur === editIdx && playing) await playMusic(cur);
                 closeCfg(); ok('已保存');
-            } catch (e) { err('保存失败: ' + e.message); }
+            } catch (e) { 
+                err('保存失败: ' + e.message); 
+                // 即使出错也关闭弹窗，避免卡死
+                setTimeout(closeCfg, 1500);
+            }
         }
 
         // ============================================================
