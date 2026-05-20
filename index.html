@@ -417,9 +417,23 @@
             return c.toDataURL('image/png');
         }
 
-        // MediaSession artwork 必须用 HTTPS URL（data URL 锁屏进程不支持）
+        // ========== URL 生成（PWA 子目录部署兼容）==========
+        // 确保在 standalone PWA 模式下也能正确生成绝对 URL
+        // location.href 在 PWA 中可能是 .../warehouse 或 .../warehouse/ 或 .../warehouse/index.html
+        const BASE_URL = (function() {
+            let p = location.pathname;
+            // 去掉末尾的 index.html
+            p = p.replace(/index\.html$/i, '');
+            // 确保末尾有 /
+            if (!p.endsWith('/')) p += '/';
+            return location.origin + p;
+        })();
+
         function getIconUrl(size) {
-            return new URL('./icons/icon-' + size + 'x' + size + '.png', location.href).href;
+            return BASE_URL + 'icons/icon-' + size + 'x' + size + '.png';
+        }
+        function getCoverUrl() {
+            return BASE_URL + 'cover.jpg';
         }
 
         // ============================================================
@@ -452,7 +466,8 @@
                     artist: '准备开始',
                     album: 'PWA',
                     artwork: [
-                        { src: new URL('./cover.jpg', location.href).href, sizes: '512x512', type: 'image/jpeg' },
+                        { src: getCoverUrl(), sizes: '512x512', type: 'image/jpeg' },
+                        { src: getIconUrl(256), sizes: '256x256', type: 'image/png' },
                         { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
                         { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
                         { src: getIconUrl(96), sizes: '96x96', type: 'image/png' }
@@ -565,7 +580,8 @@
                     artist: m?.name || '训练播放',
                     album: '阶段' + (cur + 1) + '/5 · ' + (s?.bpm || 60) + 'BPM',
                     artwork: [
-                        { src: new URL('./cover.jpg', location.href).href, sizes: '512x512', type: 'image/jpeg' },
+                        { src: getCoverUrl(), sizes: '512x512', type: 'image/jpeg' },
+                        { src: getIconUrl(256), sizes: '256x256', type: 'image/png' },
                         { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
                         { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
                         { src: getIconUrl(96), sizes: '96x96', type: 'image/png' }
@@ -1115,8 +1131,20 @@
             // 用户手势激活音频上下文 + 预初始化 MediaSession
             const activate = async () => {
                 log('👆 用户手势激活');
+                log('BASE_URL:', BASE_URL);
                 await ensureAC();
                 getSessAudio(); // 预创建
+
+                // 预加载封面图和图标到浏览器缓存（锁屏进程需要能直接访问）
+                try {
+                    [getCoverUrl(), getIconUrl(96), getIconUrl(128), getIconUrl(192), getIconUrl(256)].forEach(url => {
+                        const img = new Image();
+                        img.src = url;
+                        img.onload = () => log('预加载成功:', url);
+                        img.onerror = () => log('预加载失败:', url);
+                    });
+                } catch (e) {}
+
                 // 立即初始化 MediaSession，这样耳机连接时 handler 已经就绪
                 if (!msInit) await initMediaSession();
                 // 设置初始元数据激活媒体会话
