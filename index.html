@@ -23,7 +23,7 @@
 <style>
 :root{--g:#00d4aa;--b:#00a8e8;--bg:#0a0a0a;--t:#fff;--t2:rgba(255,255,255,0.7);--tm:rgba(255,255,255,0.4);--d:#ff6b6b;--w:#ffd93d;--o:#00c853}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;background:var(--bg);min-height:100dvh;color:var(--t);display:flex;flex-direction:column;align-items:center;padding:16px 16px 90px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;background:var(--bg);min-height:100dvh;color:var(--t);display:flex;flex-direction:column;align-items:center;padding:16px 16px 100px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(100,80,200,0.12) 0%,transparent 70%),radial-gradient(ellipse 50% 30% at 80% 80%,rgba(80,60,180,0.06) 0%,transparent 70%);z-index:0}
 
 .toast{position:fixed;top:16px;right:16px;background:rgba(26,26,46,0.95);border-radius:30px;padding:8px 18px;font-size:12px;opacity:0;transform:translateX(100%);transition:all .3s;backdrop-filter:blur(20px);z-index:1000;white-space:nowrap}
@@ -31,37 +31,37 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:ra
 
 .top-hint{margin-top:8px;font-size:11px;color:var(--tm);text-align:center;z-index:1}
 
-.cover-wrap{position:relative;width:260px;height:260px;margin:20px auto 16px;z-index:1}
+.cover-wrap{position:relative;width:240px;height:240px;margin:16px auto 12px;z-index:1}
 .cover-wrap img{width:100%;height:100%;object-fit:cover;border-radius:16px;animation:cg 4s ease-in-out infinite}
 @keyframes cg{0%,100%{box-shadow:0 0 20px rgba(100,80,200,0.15),0 0 60px rgba(80,60,180,0.08)}50%{box-shadow:0 0 35px rgba(120,90,220,0.28),0 0 80px rgba(90,70,200,0.15)}}
-.prog-ring{position:absolute;inset:-12px;pointer-events:none}
+.prog-ring{position:absolute;inset:-10px;pointer-events:none}
 .prog-ring svg{transform:rotate(-90deg);width:100%;height:100%}
 .prog-ring circle{fill:none;stroke-width:3}.prog-ring .bg{stroke:rgba(255,255,255,0.06)}
 .prog-ring .bar{stroke:url(#grad);stroke-linecap:round;transition:stroke-dashoffset .5s}
 
 .song-info{text-align:center;padding:0 24px;z-index:1}
 .song-info .title{font-size:22px;font-weight:700;letter-spacing:-.3px}
-.song-info .artist{font-size:13px;color:var(--t2);margin-top:5px}
+.song-info .artist{font-size:13px;color:var(--t2);margin-top:4px}
 
-.tbar{width:calc(100% - 48px);max-width:380px;margin:16px auto 12px;z-index:1}
+.tbar{width:calc(100% - 48px);max-width:380px;margin:14px auto 10px;z-index:1}
 .tbar-track{height:3px;background:rgba(255,255,255,0.12);border-radius:3px;overflow:hidden;cursor:pointer;position:relative}
 .tbar-fill{height:100%;width:0%;background:#fff;border-radius:3px;pointer-events:none;transition:width .1s}
 .tbar-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;background:#fff;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,0.3);transition:left .1s}
 .tbar-time{display:flex;justify-content:space-between;font-size:11px;color:var(--tm);margin-top:6px;font-variant-numeric:tabular-nums}
 
-.player-ctrls{display:flex;align-items:center;justify-content:center;gap:28px;padding:0 24px;z-index:1}
+.player-ctrls{display:flex;align-items:center;justify-content:center;gap:28px;padding:0 24px;z-index:1;margin-top:4px}
 .ctrl-btn{width:44px;height:44px;border-radius:50%;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s;color:#fff;padding:0}
 .ctrl-btn:active{transform:scale(.88);opacity:.7}
 .ctrl-btn.play{width:64px;height:64px;background:#fff;color:#000;box-shadow:0 4px 20px rgba(255,255,255,0.1)}
 .ctrl-btn.play svg{width:28px;height:28px}.ctrl-btn svg{width:22px;height:22px}
 .ctrl-btn.liked svg{fill:var(--o);stroke:var(--o)}
 
-.pills{display:flex;gap:8px;margin:16px 24px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;z-index:1}
+.pills{display:flex;gap:8px;margin:14px 24px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;z-index:1}
 .pills::-webkit-scrollbar{display:none}
 .pill{flex-shrink:0;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:500;background:rgba(255,255,255,0.06);color:var(--tm);border:none;cursor:pointer;transition:all .2s}
 .pill.on{background:rgba(255,255,255,0.12);color:#fff}
 
-.toggle-more{display:flex;align-items:center;justify-content:center;gap:6px;margin:8px 0;color:var(--tm);font-size:12px;cursor:pointer;z-index:1}
+.toggle-more{display:flex;align-items:center;justify-content:center;gap:6px;margin:6px 0;color:var(--tm);font-size:12px;cursor:pointer;z-index:1}
 .panel{display:none;width:100%;max-width:420px;z-index:1}
 .panel.open{display:block}
 
@@ -100,12 +100,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:ra
 .p-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}.p-row label{width:60px;font-size:12px;color:var(--t2)}.p-row input{flex:1;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:12px;font-size:14px;outline:none}
 .modal-act{display:flex;gap:10px;margin-top:20px}
 
-.foot{background:rgba(255,255,255,0.03);border-radius:16px;padding:16px;margin-bottom:80px}
+.foot{background:rgba(255,255,255,0.03);border-radius:16px;padding:16px;margin-bottom:20px}
 
-.mini{position:fixed;bottom:0;left:0;right:0;background:rgba(18,18,18,0.98);border-top:1px solid rgba(255,255,255,0.06);padding:10px 18px env(safe-area-inset-bottom,10px);display:flex;align-items:center;gap:14px;z-index:1500}
-.mini .info{flex:1}.mini .title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini .sub{font-size:11px;color:var(--tm)}
-.m-btn{width:42px;height:42px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;background:rgba(255,255,255,0.08);color:#fff}
-.m-play{width:50px;height:50px;background:linear-gradient(135deg,var(--g),var(--b));color:#0a0a0a;font-size:22px}
+.mini{position:fixed;bottom:env(safe-area-inset-bottom,0);left:0;right:0;background:rgba(18,18,18,0.98);border-top:1px solid rgba(255,255,255,0.06);padding:10px 18px;display:flex;align-items:center;gap:14px;z-index:9999}
+.mini .info{flex:1;min-width:0}.mini .title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini .sub{font-size:11px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-btn{width:42px;height:42px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;background:rgba(255,255,255,0.08);color:#fff;flex-shrink:0}
+.m-play{width:50px;height:50px;background:linear-gradient(135deg,var(--g),var(--b));color:#0a0a0a;font-size:22px;flex-shrink:0}
 
 input[type="file"]{display:none}
 
@@ -144,7 +144,7 @@ input[type="file"]{display:none}
 
 <svg width="0" height="0"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8b7dd4"/><stop offset="100%" stop-color="#5b9bd5"/></linearGradient></defs></svg>
 
-<!-- Cover with progress ring -->
+<!-- Cover -->
 <div class="cover-wrap">
 <svg class="prog-ring" viewBox="0 0 260 260"><circle class="bg" cx="130" cy="130" r="125"/><circle class="bar" cx="130" cy="130" r="125" stroke-dasharray="785.4" stroke-dashoffset="785.4"/></svg>
 <img src="./cover.jpg" alt="神经重塑" id="coverImg" draggable="false">
@@ -156,28 +156,28 @@ input[type="file"]{display:none}
 <div class="artist" id="stSub">准备开始 · 阶段 <span id="stNum">1/5</span></div>
 </div>
 
-<!-- Progress bar -->
+<!-- Progress -->
 <div class="tbar">
 <div class="tbar-track" id="tbar"><div class="tbar-fill" id="tFill" style="width:0%"></div><div class="tbar-dot" id="tDot" style="left:0%"></div></div>
 <div class="tbar-time"><span id="tCur">00:00</span><span id="tDur">00:00</span></div>
 </div>
 
-<!-- Player controls -->
+<!-- Controls -->
 <div class="player-ctrls">
-<button class="ctrl-btn" id="likeBtn" title="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
-<button class="ctrl-btn" id="prevBtn" title="上一首"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-<button class="ctrl-btn play" id="playBtn" title="播放/暂停"><svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
-<button class="ctrl-btn" id="nextBtn" title="下一首"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-<button class="ctrl-btn" id="hintBtn" title="想象提示"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+<button class="ctrl-btn" id="likeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
+<button class="ctrl-btn" id="prevBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+<button class="ctrl-btn play" id="playBtn"><svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+<button class="ctrl-btn" id="nextBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+<button class="ctrl-btn" id="hintBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
 </div>
 
 <!-- Stage pills -->
 <div class="pills" id="pills"></div>
 
-<!-- Expand panel toggle -->
+<!-- Toggle -->
 <div class="toggle-more" onclick="document.getElementById('panel').classList.toggle('open');this.querySelector('span').textContent=document.getElementById('panel').classList.contains('open')?'▲':'▼'"><span>▼</span> 更多设置</div>
 
-<!-- Expandable detail panel -->
+<!-- Detail panel -->
 <div class="panel" id="panel">
 <div class="stage"><span class="num" id="sNum">阶段 1/5</span><div class="title" id="sTitle">坐立战马</div><div class="detail" id="sDetail"></div></div>
 <div class="file-in"><h4 style="color:var(--t2);margin-bottom:10px;font-size:12px">🎵 训练曲目</h4><div id="fRows"></div></div>
@@ -210,7 +210,8 @@ input[type="file"]{display:none}
 <input type="file" id="impFile" accept=".json">
 
 <!-- Mini player -->
-<div class="mini"><div class="info"><div class="title" id="mTitle">坐立战马</div><div class="sub" id="mSub">准备开始</div></div>
+<div class="mini" id="miniPlayer">
+<div class="info"><div class="title" id="mTitle">坐立战马</div><div class="sub" id="mSub">准备开始</div></div>
 <div style="display:flex;gap:8px"><button class="m-btn" id="mPrev">⏮</button><button class="m-btn m-play" id="mPlay">▶</button><button class="m-btn" id="mNext">⏭</button></div>
 </div>
 
@@ -229,22 +230,21 @@ input[type="file"]{display:none}
 
 <script>
 // ============================================================
-// 神经重塑 v8.0 - 锁屏播放器风格重写版
-// 基于原始v7.2，只改UI，修复已知bug
+// 神经重塑 v8.1 - 完全重写修复版
+// 基于原始v7.2，锁屏播放器UI + 全部bug修复
 // ============================================================
 (function(){
 'use strict';
 
-const VER='8.0.0';
+const VER='8.1.0';
 const $=id=>document.getElementById(id);
 const log=(...a)=>console.log('[NR]',...a);
 const err=m=>toast('tErr','⚠ '+m);
 const ok=m=>toast('tOk','✓ '+m);
 function toast(id,msg,dur=3000){const el=$(id);if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(el._to);el._to=setTimeout(()=>el.classList.remove('show'),dur)}
-function esc(s){const d=document.createElement('div');d.textContent=String(s==null?'':s);return d.innerHTML}
 
-const KEYS={STAGES:'nr_s80',STATE:'nr_d80',AUTO:'nr_a80',STATS:'nr_r80'};
-const DB_CONF={NAME:'NADB80',STORE:'audio',VER:1};
+const KEYS={STAGES:'nr_s81',STATE:'nr_d81',AUTO:'nr_a81',STATS:'nr_r81'};
+const DB_CONF={NAME:'NADB81',STORE:'audio',VER:1};
 const DEF=[
 {name:'坐立战马',bpm:72,duration:300,action:'坐位平衡，双手扶膝',imagine:'想象骑战马'},
 {name:'飞檐走壁',bpm:108,duration:420,action:'站立位，重心左右移',imagine:'想象飞檐走壁'},
@@ -252,7 +252,6 @@ const DEF=[
 {name:'凌波微步',bpm:82,duration:360,action:'加快速度，小步跑',imagine:'想象凌波微步'},
 {name:'脑体合一',bpm:60,duration:360,action:'站立深呼吸，闭眼',imagine:'想象脑体合一'}
 ];
-const CIRC=452.39;
 const CIRC2=785.4;
 
 let stages=JSON.parse(JSON.stringify(DEF));
@@ -262,21 +261,26 @@ let chart=null,chartType='weekly';
 let meta=[null,null,null,null,null];
 let stats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastDate:null,daily:{}};
 let editIdx=0,tmpFile=null,tmpUrl='';
-let sortable=null,loop=null,mIval=null,mProg=null,mStart=0;
+let sortable=null;
 let bgOsc=null,bgGain=null,wlock=null;
 let mainVol=0.8,metroVol=0.3;
 let msInit=false,sessAud=null;
 let liked=false;
 
+// 定时器引用
+let loopTimer=null;
+let metroIval=null;
+let metroProg=null;
+let mStartTime=0;
+
 const UA=navigator.userAgent.toLowerCase();
 const isHw=/huawei|honor/.test(UA);
 const isHm=/harmonyos|openharmony/.test(UA)||(isHw&&!/android/.test(UA));
-const isIos=/iphone|ipad|ipod/.test(UA);
 
-let btConnected=false,btDeviceName=null,lastActionMs=0;
+let lastActionMs=0;
 const ACTION_COOLDOWN=300;
 
-// ===== 基础 =====
+// ===== 基础工具 =====
 function fmtTime(s){if(!Number.isFinite(s)||s<0)s=0;const m=Math.floor(s/60),sec=Math.floor(s%60);return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')}
 function totalDur(){return stages.reduce((a,s)=>a+(Number(s.duration)||0),0)}
 function stageStart(i){let t=0;for(let j=0;j<i;j++)t+=stages[j]?.duration||0;return t}
@@ -286,99 +290,94 @@ async function ensureAC(){if(!actx||actx.state==='closed'){const AC=window.Audio
 // ===== IndexedDB =====
 async function openDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_CONF.NAME,DB_CONF.VER);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains(DB_CONF.STORE))e.target.result.createObjectStore(DB_CONF.STORE,{keyPath:'id'})}}catch(e){rej(e)}})}
 async function dbPut(id,file){const db=await openDB();return new Promise((res,rej)=>{const rd=new FileReader();rd.onload=()=>{const tx=db.transaction([DB_CONF.STORE],'readwrite');tx.objectStore(DB_CONF.STORE).put({id,name:file.name,type:file.type,size:file.size,data:rd.result,ts:Date.now()});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)};rd.onerror=()=>rej(rd.error);rd.readAsArrayBuffer(file)})}
-async function dbGet(id){try{const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction([DB_CONF.STORE],'readonly');const r=tx.objectStore(DB_CONF.STORE).get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)})}catch(e){return null}}
+async function dbGet(id){try{const db=await openDB();return new Promise(res=>{const tx=db.transaction([DB_CONF.STORE],'readonly');const r=tx.objectStore(DB_CONF.STORE).get(id);r.onsuccess=()=>res(r.result||null)})}catch(e){return null}}
 async function dbDel(id){try{const db=await openDB();return new Promise(r=>{const tx=db.transaction([DB_CONF.STORE],'readwrite');tx.objectStore(DB_CONF.STORE).delete(id);tx.oncomplete=()=>r()})}catch(e){}}
-async function dbClear(){try{const db=await openDB();return new Promise(r=>{const tx=db.transaction([DB_CONF.STORE],'readwrite');tx.objectStore(DB_CONF.STORE).clear();tx.oncomplete=()=>r()})}catch(e){}}
 
 // ===== URL =====
 const BASE=(()=>{let p=location.pathname;p=p.replace(/index\.html$/i,'');if(!p.endsWith('/'))p+='/';return location.origin+p})();
 const iUrl=s=>BASE+'icons/icon-'+s+'x'+s+'.png';
-const cUrl=()=>BASE+'cover.jpg';
-
-// ===== 图标 =====
-function genIcon(){const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');x.fillStyle='#1a1a2e';x.beginPath();x.roundRect(0,0,512,512,80);x.fill();x.strokeStyle='#00d4aa';x.lineWidth=14;x.beginPath();x.arc(256,256,204,0,Math.PI*2);x.stroke();x.strokeStyle='#00d4aa';x.lineWidth=10;x.lineCap='round';[[256,212,256,144],[300,256,368,256],[256,300,256,368],[212,256,144,256]].forEach(l=>{x.beginPath();x.moveTo(l[0],l[1]);x.lineTo(l[2],l[3]);x.stroke()});x.fillStyle='#00d4aa';x.beginPath();x.arc(256,256,44,0,Math.PI*2);x.fill();[[256,120],[392,256],[256,392],[120,256]].forEach(p=>{x.fillStyle='#00d4aa';x.beginPath();x.arc(p[0],p[1],24,0,Math.PI*2);x.fill()});return c.toDataURL('image/png')}
-
-// ===== MediaSession =====
-async function initMediaSession(){if(!('mediaSession'in navigator))return;if(msInit)return;const set=(name,fn)=>{try{navigator.mediaSession.setActionHandler(name,fn)}catch(e){}};set('play',()=>hA('play'));set('pause',()=>hA('pause'));set('previoustrack',()=>hA('previoustrack'));set('nexttrack',()=>hA('nexttrack'));set('stop',()=>hA('stop'));set('seekbackward',d=>hA('seekbackward',d));set('seekforward',d=>hA('seekforward',d));set('seekto',d=>hA('seekto',d));try{navigator.mediaSession.metadata=new MediaMetadata({title:'神经重塑训练',artist:'准备开始',album:'PWA',artwork:[{src:iUrl(96),sizes:'96x96',type:'image/png'},{src:iUrl(128),sizes:'128x128',type:'image/png'},{src:iUrl(192),sizes:'192x192',type:'image/png'},{src:iUrl(256),sizes:'256x256',type:'image/png'},{src:iUrl(512),sizes:'512x512',type:'image/png'}]});navigator.mediaSession.playbackState='paused'}catch(e){}msInit=true}
-
-function hA(action,details){const now=Date.now();if(now-lastActionMs<ACTION_COOLDOWN)return;lastActionMs=now;recordTS(action);switch(action){case'play':if(!playing)togglePlay();break;case'pause':if(playing)doPause();break;case'previoustrack':prevTrack();break;case'nexttrack':nextTrack();break;case'stop':if(playing)doPause();break;case'seekbackward':if(curAud?.duration)curAud.currentTime=Math.max(0,curAud.currentTime-(details?.seekOffset||10));else total=Math.max(0,total-10);break;case'seekforward':if(curAud?.duration)curAud.currentTime=Math.min(curAud.duration,curAud.currentTime+(details?.seekOffset||10));else total=Math.min(totalDur(),total+10);break;case'seekto':if(details?.seekTime!=null&&curAud?.duration)curAud.currentTime=details.seekTime}updateMS()}
-
-const actionTS={};const actionTO={};const DBL_T=500;const TRIPLE_T=700;
-function recordTS(action){if(!actionTS[action])actionTS[action]=[];const q=actionTS[action];q.push(Date.now());const cutoff=Date.now()-TRIPLE_T;while(q.length&&q[0]<cutoff)q.shift();if(actionTO[action])clearTimeout(actionTO[action]);actionTO[action]=setTimeout(()=>{const clicks=q.length;q.length=0;if(clicks>=3){onTriple(action)}else if(clicks===2){onDouble(action)}},TRIPLE_T)}
-
-function onDouble(action){switch(action){case'nexttrack':nextTrack();break;case'previoustrack':prevTrack();break;case'play':case'pause':togglePlay();break}updateMS()}
-function onTriple(action){switch(action){case'previoustrack':prevTrack();break;case'nexttrack':nextTrack();break}updateMS()}
-
-async function updateMS(){if(!('mediaSession'in navigator))return;try{const s=stages[cur],m=meta[cur];navigator.mediaSession.metadata=new MediaMetadata({title:(playing?'▶ ':'⏸ ')+(s?.name||'神经重塑'),artist:m?.name||'训练播放',album:'阶段'+(cur+1)+'/5 · '+(s?.bpm||60)+'BPM',artwork:[{src:iUrl(96),sizes:'96x96',type:'image/png'},{src:iUrl(128),sizes:'128x128',type:'image/png'},{src:iUrl(192),sizes:'192x192',type:'image/png'},{src:iUrl(256),sizes:'256x256',type:'image/png'},{src:iUrl(512),sizes:'512x512',type:'image/png'}]});navigator.mediaSession.playbackState=playing?'playing':'paused'}catch(e){}}
-
-function updateMSPos(pos,dur){if(!('mediaSession'in navigator)||!('setPositionState'in navigator.mediaSession))return;try{const p=pos!==undefined?pos:(curAud?.currentTime||0);const d=dur!==undefined?dur:(curAud?.duration||stages[cur]?.duration||0);if(d>0&&Number.isFinite(d)){navigator.mediaSession.setPositionState({duration:Math.round(d),playbackRate:playing?1:0,position:Math.max(0,Math.min(Math.round(p),Math.round(d)))})}}catch(e){}}
-
-// ===== 蓝牙 =====
-async function initBluetoothMonitor(){async function check(){try{const devices=await navigator.mediaDevices.enumerateDevices();const audioOuts=devices.filter(d=>d.kind==='audiooutput');const bt=audioOuts.find(d=>/bluetooth|bt|freebuds|airpods|earbuds|headphone|headset|无线/i.test(d.label));const was=btConnected;btConnected=!!bt;btDeviceName=bt?bt.label:null;if(bt&&!was){ok('蓝牙耳机已连接: '+btDeviceName)}updateDiag()}catch(e){}}await check();if(navigator.mediaDevices){navigator.mediaDevices.addEventListener('devicechange',check)}setInterval(check,5000)}
 
 // ===== 音频 =====
 function stopAll(){stopBG();stopMetro();if(curAud){try{curAud.pause();curAud.removeAttribute('src');curAud.load()}catch(e){}curAud=null}}
 function stopBG(){try{bgOsc?.stop()}catch(e){}try{bgGain?.disconnect()}catch(e){}bgOsc=null;bgGain=null}
-function stopMetro(){if(mIval)clearInterval(mIval);mIval=null;if(mProg)clearInterval(mProg);mProg=null}
+function stopMetro(){if(metroIval){clearInterval(metroIval);metroIval=null}if(metroProg){clearInterval(metroProg);metroProg=null}}
 
 function clickMetro(){if(!actx||actx.state!=='running')return;try{const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);o.frequency.value=1000;const n=actx.currentTime;g.gain.setValueAtTime(metroVol*0.5,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.08);o.start(n);o.stop(n+0.08)}catch(e){}}
 
-function startMetro(bpm){stopMetro();const dur=stages[cur]?.duration||300;$('tDur').textContent=fmtTime(dur);$('tCur').textContent='00:00';$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';mStart=performance.now();clickMetro();mIval=setInterval(()=>{if(playing)clickMetro()},(60/bpm)*1000);mProg=setInterval(()=>{if(!playing)return;const e=(performance.now()-mStart)/1000,p=Math.min((e/dur)*100,100);$('tFill').style.width=p+'%';if($('tDot'))$('tDot').style.left=p+'%';$('tCur').textContent=fmtTime(e);updateMSPos(e,dur);if(e>=dur){stopMetro();nextStage()}},50)}
+function startMetro(bpm){stopMetro();const dur=stages[cur]?.duration||300;$('tDur').textContent=fmtTime(dur);$('tCur').textContent='00:00';$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';mStartTime=performance.now();clickMetro();metroIval=setInterval(()=>{if(playing)clickMetro()},(60/bpm)*1000);metroProg=setInterval(()=>{if(!playing)return;const elapsed=(performance.now()-mStartTime)/1000;const pct=Math.min((elapsed/dur)*100,100);$('tFill').style.width=pct+'%';if($('tDot'))$('tDot').style.left=pct+'%';$('tCur').textContent=fmtTime(elapsed);if(elapsed>=dur){stopMetro();nextStage()}} ,50)}
 
-const SILENCE_WAV='data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==';
-function getSessAudio(){if(!sessAud){sessAud=document.createElement('audio');sessAud.id='__session_audio';sessAud.crossOrigin='anonymous';sessAud.setAttribute('playsinline','');sessAud.controls=true;sessAud.loop=true;sessAud.muted=false;sessAud.volume=0.3;sessAud.preload='auto';sessAud.style.cssText='position:fixed;bottom:0;left:0;width:100%;height:2px;opacity:0.01;pointer-events:none;z-index:9999;';sessAud.src=SILENCE_WAV;document.body.appendChild(sessAud)}return sessAud}
+const SILENCE='data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==';
+function getSessAudio(){if(!sessAud){sessAud=document.createElement('audio');sessAud.crossOrigin='anonymous';sessAud.setAttribute('playsinline','');sessAud.controls=true;sessAud.loop=true;sessAud.muted=false;sessAud.volume=0.3;sessAud.preload='auto';sessAud.style.cssText='position:fixed;bottom:0;left:0;width:100%;height:2px;opacity:0.01;pointer-events:none;z-index:9999;';sessAud.src=SILENCE;document.body.appendChild(sessAud)}return sessAud}
 
 async function startSessAudio(){try{const a=getSessAudio();a.muted=false;a.volume=0.3;a.loop=true;a.currentTime=0;await a.play()}catch(e){}}
 function stopSessAudio(){if(sessAud&&!sessAud.paused){try{sessAud.pause();sessAud.currentTime=0}catch(e){}}}
 
-async function playMusic(idx,resume){stopAll();const m=meta[idx],s=stages[idx];if(m?.localFile){try{const entry=await dbGet(idx);if(entry?.data){const blob=new Blob([entry.data],{type:entry.type||'audio/mpeg'});curAud=new Audio(URL.createObjectURL(blob));curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(!curAud?.duration)return;$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration);updateMSPos(curAud.currentTime,curAud.duration)});curAud.addEventListener('ended',()=>{nextStage()});return await doPlay(resume,s.name+' · 📁')}}catch(e){}}if(m?.onlineUrl){try{curAud=new Audio(m.onlineUrl);curAud.crossOrigin='anonymous';curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(curAud?.duration){$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration);updateMSPos(curAud.currentTime,curAud.duration)}});curAud.addEventListener('ended',()=>{nextStage()});return await doPlay(resume,s.name+' · 🌐')}catch(e){}}await makeBG(s);return false}
+// ===== 播放音乐 =====
+async function playMusic(idx,resume){stopAll();const m=meta[idx],s=stages[idx];if(m?.localFile){try{const entry=await dbGet(idx);if(entry?.data){const blob=new Blob([entry.data],{type:entry.type||'audio/mpeg'});curAud=new Audio(URL.createObjectURL(blob));curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(!curAud?.duration)return;$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration)});curAud.addEventListener('ended',()=>{log('本地音频结束');nextStage()});return await doPlay(resume,s.name+' · 📁')}}catch(e){log('本地播放失败',e)}}if(m?.onlineUrl){try{curAud=new Audio(m.onlineUrl);curAud.crossOrigin='anonymous';curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(curAud?.duration){$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration)}});curAud.addEventListener('ended',()=>{log('在线音频结束');nextStage()});return await doPlay(resume,s.name+' · 🌐')}catch(e){log('在线播放失败',e)}}await makeBG(s);return false}
 
-async function doPlay(resume,text){return new Promise(res=>{let done=false;const exec=async()=>{if(done)return;done=true;try{if(resume>0&&Number.isFinite(resume))curAud.currentTime=resume;stopSessAudio();await curAud.play();if('mediaSession'in navigator)navigator.mediaSession.playbackState='playing';$('stSub').textContent=text;await updateMS();updMini();res(true)}catch(e){await makeBG(stages[cur]);res(false)}};exec();setTimeout(()=>{if(!done){done=true;makeBG(stages[cur]);res(false)}},5000)})}
+async function doPlay(resume,text){return new Promise(res=>{let done=false;const exec=async()=>{if(done)return;done=true;try{if(resume>0&&Number.isFinite(resume))curAud.currentTime=resume;stopSessAudio();await curAud.play();if('mediaSession'in navigator)navigator.mediaSession.playbackState='playing';updateSub(text);await updateMS();updMini();res(true)}catch(e){await makeBG(stages[cur]);res(false)}};exec();setTimeout(()=>{if(!done){done=true;makeBG(stages[cur]);res(false)}},5000)})}
 
-async function makeBG(s){stopBG();await startSessAudio();try{const ctx=await ensureAC();bgOsc=ctx.createOscillator();bgGain=ctx.createGain();bgOsc.connect(bgGain);bgGain.connect(ctx.destination);bgOsc.frequency.value=80;bgGain.gain.value=mainVol*0.03;bgOsc.start()}catch(e){}startMetro(s.bpm);$('stSub').textContent=s.name+' · 节拍器';await updateMS();updMini()}
+async function makeBG(s){stopBG();await startSessAudio();try{const ctx=await ensureAC();bgOsc=ctx.createOscillator();bgGain=ctx.createGain();bgOsc.connect(bgGain);bgGain.connect(ctx.destination);bgOsc.frequency.value=80;bgGain.gain.value=mainVol*0.03;bgOsc.start()}catch(e){}startMetro(s.bpm);updateSub(s.name+' · 节拍器');await updateMS();updMini()}
 
 // ===== 播放控制 =====
-async function togglePlay(){try{if(!actx)await ensureAC();playing?doPause():doPlayAll()}catch(e){err('播放失败: '+e.message)}}
+async function togglePlay(){try{if(!actx)await ensureAC();if(playing){doPause()}else{doPlayAll()}}catch(e){err('播放失败: '+e.message)}}
 
-let _posTimer=null;
-function startPosTimer(){stopPosTimer();_posTimer=setInterval(()=>{if(!playing)return;const dur=curAud?.duration||stages[cur]?.duration||300;const pos=curAud?.currentTime||total;updateMSPos(pos,dur)},1000)}
-function stopPosTimer(){if(_posTimer){clearInterval(_posTimer);_posTimer=null}}
+async function doPlayAll(){log('=== PLAY ===');playing=true;updateBtn();saved=0;await startSessAudio();if(!msInit)await initMediaSession();try{await playMusic(cur,saved)}catch(e){await makeBG(stages[cur])}await updateMS();loopTimer=setInterval(()=>{if(!playing)return;total++;updateRing();if(total>0&&total-stageStart(cur)>=(stages[cur]?.duration||300)){nextStage()}},1000);reqWL();showHint();updateDiag()}
 
-async function doPlayAll(){log('=== PLAY ===');playing=true;updateBtn();saved=0;await startSessAudio();if(!msInit)await initMediaSession();try{await playMusic(cur,saved)}catch(e){await makeBG(stages[cur])}await updateMS();startPosTimer();loop=setInterval(()=>{if(!playing)return;total++;updateRing();if(total-stageStart(cur)>=(stages[cur]?.duration||300))nextStage()},1000);reqWL();showHint();updateDiag()}
+async function doPause(){log('=== PAUSE ===');playing=false;updateBtn();if(loopTimer){clearInterval(loopTimer);loopTimer=null}if(curAud){saved=curAud.currentTime;curAud.pause()}stopMetro();stopSessAudio();if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';releaseWL();saveAll();updateDiag();await updateMS()}
 
-async function doPause(){log('=== PAUSE ===');playing=false;updateBtn();if(loop)clearInterval(loop);stopPosTimer();if(curAud){saved=curAud.currentTime;curAud.pause()}stopMetro();stopSessAudio();if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';releaseWL();saveAll();updateDiag();await updateMS()}
+// 阶段结束自动跳转 — 核心修复：防止重复触发
+let stageTransitioning=false;
+function nextStage(){if(stageTransitioning)return;stageTransitioning=true;setTimeout(()=>{stageTransitioning=false},500);if(cur<stages.length-1){switchTrack(cur+1)}else{complete()}}
 
-function nextStage(){if(cur<stages.length-1)switchTrack(cur+1);else complete()}
-function complete(){doPause();stopAll();stopSessAudio();record();$('stTitle').textContent='🎉 完成！';cur=0;total=0;saved=0;updateRing();updateStage();updMini();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';updateBtn();$('stSub').textContent='准备开始';initPl();saveAll();releaseWL()}
-function resetAll(){doPause();stopAll();stopSessAudio();cur=0;total=0;saved=0;updateRing();updateStage();updMini();updateBtn();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';$('tCur').textContent='00:00';$('stSub').textContent='准备开始';initPl();saveAll();releaseWL()}
-function switchTrack(i){if(i===cur&&!playing){togglePlay();return}const was=playing;if(playing)doPause();cur=i;saved=0;updateStage();updMini();renderPills();if(was)setTimeout(()=>doPlayAll(),150);else playMusic(cur).then(()=>{if(curAud&&!playing)curAud.pause()});saveAll()}
+function complete(){doPause();stopAll();stopSessAudio();record();updateTitle('🎉 完成！');updateSub('全部阶段已完成');cur=0;total=0;saved=0;updateRing();updateStage();updMini();updateBtn();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';initPl();saveAll();releaseWL()}
+function resetAll(){doPause();stopAll();stopSessAudio();cur=0;total=0;saved=0;updateRing();updateStage();updMini();updateBtn();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';$('tCur').textContent='00:00';updateSub('准备开始 · 阶段 1/5');initPl();saveAll();releaseWL()}
+
+function switchTrack(i){if(i===cur&&!playing){togglePlay();return}const was=playing;if(playing)doPause();cur=i;saved=0;updateStage();updMini();renderPills();if(was){setTimeout(()=>{doPlayAll()},200)}else{playMusic(cur).then(()=>{if(curAud&&!playing)curAud.pause()})}saveAll()}
+
 function prevTrack(){switchTrack(cur>0?cur-1:stages.length-1)}
 function nextTrack(){switchTrack(cur<stages.length-1?cur+1:0)}
-function seek(e){if(!curAud?.duration)return;const rect=$('tbar').getBoundingClientRect();const p=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));curAud.currentTime=p*curAud.duration;saved=p*curAud.duration;updateMSPos(saved,curAud.duration)}
+function seek(e){if(!curAud?.duration)return;const rect=$('tbar').getBoundingClientRect();const p=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));curAud.currentTime=p*curAud.duration;saved=p*curAud.duration}
 
-// ===== UI =====
+// ===== UI更新（全部集中在这里，确保一致） =====
+function updateTitle(t){$('stTitle').textContent=t||stages[cur]?.name||'—'}
+function updateSub(t){$('stSub').textContent=t||'准备开始 · 阶段 '+(cur+1)+'/5'}
+function updateStageNum(){$('stNum').textContent=(cur+1)+'/5'}
 function updateBtn(){const pi=$('iconPlay'),pa=$('iconPause');if(playing){if(pi)pi.style.display='none';if(pa)pa.style.display='block';$('mPlay').textContent='⏸'}else{if(pi)pi.style.display='block';if(pa)pa.style.display='none';$('mPlay').textContent='▶'}}
 function updateRing(){const td=totalDur();if(td>0){const c=document.querySelector('.prog-ring .bar');if(c)c.style.strokeDashoffset=CIRC2*(1-Math.min(total/td,1))}}
-function updateStage(){const s=stages[cur];if(!s)return;$('stNum').textContent=(cur+1)+'/5';$('stTitle').textContent=s.name;$('sNum').textContent='阶段 '+(cur+1)+'/5';$('sTitle').textContent=s.name;$('sDetail').textContent='动作：'+(s.action||'')+'\nBPM：'+s.bpm+'\n想象：'+(s.imagine||'');renderPills()}
-function renderPills(){const c=$('pills');if(!c)return;c.innerHTML=stages.map((s,i)=>'<button class="pill '+(i===cur?'on':'')+'" data-i="'+i+'">'+esc(s.name)+'</button>').join('');c.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>switchTrack(+p.dataset.i)))}
+
+function updateStage(){const s=stages[cur];if(!s)return;updateTitle(s.name);updateSub();updateStageNum();$('sNum').textContent='阶段 '+(cur+1)+'/5';$('sTitle').textContent=s.name;$('sDetail').textContent='动作：'+(s.action||'')+'\nBPM：'+s.bpm+'\n想象：'+(s.imagine||'');renderPills()}
+
+function renderPills(){const c=$('pills');if(!c)return;c.innerHTML=stages.map((s,i)=>'<button class="pill '+(i===cur?'on':'')+'" data-i="'+i+'">'+s.name+'</button>').join('');c.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>switchTrack(+p.dataset.i)))}
+
 function updMini(){const s=stages[cur],m=meta[cur];$('mTitle').textContent=s?.name||'—';let sub='节拍器';if(m?.localFile)sub='📁 '+(m.name||'本地');else if(m?.onlineUrl)sub='🌐 '+(m.onlineName||'链接');$('mSub').textContent=sub}
+
 function showHint(){const h=$('hintBox');if(h){h.classList.add('show');clearTimeout(h._ht);h._ht=setTimeout(()=>h.classList.remove('show'),8000)}const m=$('msHint');if(m){m.classList.add('show');setTimeout(()=>m.classList.remove('show'),5000)}}
-function updateDiag(){try{const set=(id,v,cls)=>{const el=$(id);if(el){el.textContent=v;el.className='d-val '+(cls||'')}};set('dBt',btConnected?('✅ '+(btDeviceName||'已连接')):'❌ 未连接',btConnected?'ok':'');set('dMs',msInit?'✅ 已初始化':'❌ 未初始化',msInit?'ok':'err');set('dPlay',playing?'▶ 播放中':'⏸ 暂停',playing?'ok':'');set('dSys',isHm?'HarmonyOS':isHw?'华为':isIos?'iOS':'标准','')}catch(e){}}
+
+function updateDiag(){try{const setV=(id,v,cls)=>{const el=$(id);if(el){el.textContent=v;el.className='d-val '+(cls||'')}};setV('dBt','检测中...','');setV('dMs',msInit?'✅ 已初始化':'❌ 未初始化',msInit?'ok':'err');setV('dPlay',playing?'▶ 播放中':'⏸ 暂停',playing?'ok':'');setV('dSys',isHm?'HarmonyOS':isHw?'华为':'标准','')}catch(e){}}
+
+// ===== MediaSession =====
+async function initMediaSession(){if(!('mediaSession'in navigator))return;if(msInit)return;['play','pause','previoustrack','nexttrack','stop'].forEach(name=>{try{navigator.mediaSession.setActionHandler(name,()=>{const now=Date.now();if(now-lastActionMs<ACTION_COOLDOWN)return;lastActionMs=now;switch(name){case'play':if(!playing)togglePlay();break;case'pause':if(playing)doPause();break;case'previoustrack':prevTrack();break;case'nexttrack':nextTrack();break;case'stop':if(playing)doPause()}updateMS()})}catch(e){}});try{navigator.mediaSession.metadata=new MediaMetadata({title:'神经重塑训练',artist:'准备开始',album:'PWA',artwork:[{src:iUrl(96),sizes:'96x96',type:'image/png'},{src:iUrl(128),sizes:'128x128',type:'image/png'},{src:iUrl(192),sizes:'192x192',type:'image/png'},{src:iUrl(256),sizes:'256x256',type:'image/png'},{src:iUrl(512),sizes:'512x512',type:'image/png'}]});navigator.mediaSession.playbackState='paused'}catch(e){}msInit=true}
+
+async function updateMS(){if(!('mediaSession'in navigator))return;try{const s=stages[cur],m=meta[cur];navigator.mediaSession.metadata=new MediaMetadata({title:(playing?'▶ ':'⏸ ')+(s?.name||'神经重塑'),artist:m?.name||'训练播放',album:'阶段'+(cur+1)+'/5 · '+(s?.bpm||60)+'BPM',artwork:[{src:iUrl(96),sizes:'96x96',type:'image/png'},{src:iUrl(128),sizes:'128x128',type:'image/png'},{src:iUrl(192),sizes:'192x192',type:'image/png'},{src:iUrl(256),sizes:'256x256',type:'image/png'},{src:iUrl(512),sizes:'512x512',type:'image/png'}]});navigator.mediaSession.playbackState=playing?'playing':'paused'}catch(e){}}
+
+// ===== 蓝牙 =====
+async function initBluetoothMonitor(){async function check(){try{const devices=await navigator.mediaDevices.enumerateDevices();const audioOuts=devices.filter(d=>d.kind==='audiooutput');const bt=audioOuts.find(d=>/bluetooth|bt|freebuds|airpods|earbuds|headphone|headset|无线/i.test(d.label));const was=!!btDeviceName;if(bt){btDeviceName=bt.label;if(!was)ok('蓝牙耳机已连接: '+btDeviceName)}else{btDeviceName=null}updateDiag()}catch(e){}}await check();if(navigator.mediaDevices){navigator.mediaDevices.addEventListener('devicechange',check)}setInterval(check,5000)}
 
 // ===== 列表 =====
-function initPl(){const c=$('plist');if(!c)return;c.innerHTML=stages.map((s,i)=>{const m=meta[i];let d='节拍器';if(m?.localFile)d='📁本地';else if(m?.onlineUrl)d='🌐链接';return'<div class="track '+(i===cur?'on':'')+'" data-idx="'+i+'"><span class="handle" style="cursor:grab;color:var(--tm);font-size:18px;padding:4px;margin-right:4px">⋮⋮</span><div class="num">'+(i+1)+'</div><div class="info"><div>'+esc(s.name)+'</div><small style="color:var(--tm)">'+s.bpm+'BPM · '+fmtTime(s.duration)+' · '+esc(d)+'</small></div></div>'}).join('');c.querySelectorAll('.track').forEach(t=>t.addEventListener('click',e=>{if(!e.target.classList.contains('handle'))switchTrack(+t.dataset.idx)}));if(sortable)sortable.destroy();try{sortable=new Sortable(c,{handle:'.handle',animation:200,ghostClass:'ghost',onEnd:e=>{if(e.oldIndex!==e.newIndex){reorder(e.oldIndex,e.newIndex);initPl();updateStage();updateRing();updMini();renderRows()}}})}catch(e){}}
+function initPl(){const c=$('plist');if(!c)return;c.innerHTML=stages.map((s,i)=>{const m=meta[i];let d='节拍器';if(m?.localFile)d='📁本地';else if(m?.onlineUrl)d='🌐链接';return'<div class="track '+(i===cur?'on':'')+'" data-idx="'+i+'"><span class="handle" style="cursor:grab;color:var(--tm);font-size:18px;padding:4px;margin-right:4px">⋮⋮</span><div class="num">'+(i+1)+'</div><div class="info"><div>'+s.name+'</div><small style="color:var(--tm)">'+s.bpm+'BPM · '+fmtTime(s.duration)+' · '+d+'</small></div></div>'}).join('');c.querySelectorAll('.track').forEach(t=>t.addEventListener('click',e=>{if(!e.target.classList.contains('handle'))switchTrack(+t.dataset.idx)}));if(sortable)sortable.destroy();try{sortable=new Sortable(c,{handle:'.handle',animation:200,ghostClass:'ghost',onEnd:e=>{if(e.oldIndex!==e.newIndex){reorder(e.oldIndex,e.newIndex);initPl();updateStage();updateRing();updMini();renderRows()}}})}catch(e){}}
+
 function reorder(oi,ni){stages.splice(ni,0,stages.splice(oi,1)[0]);meta.splice(ni,0,meta.splice(oi,1)[0]);if(cur===oi)cur=ni;else if(oi<cur&&ni>=cur)cur--;else if(oi>cur&&ni<=cur)cur++;saveAll()}
 
-function renderRows(){const c=$('fRows');if(!c)return;c.innerHTML=stages.map((s,i)=>{const m=meta[i];let dn=(i+1)+'. '+esc(s.name),mt='未设置音乐';if(m&&(m.localFile||m.onlineUrl)){dn=(i+1)+'. '+esc(m.name||s.name);mt=(m.localFile?'📁':'')+(m.onlineUrl?'🌐':'')+' · '+fmtTime(s.duration)}return'<div class="f-row" data-copy="'+esc(m?.onlineUrl||m?.name||s.name||'')+'"><div class="f-info"><div class="f-name '+(m?.localFile||m?.onlineUrl?'on':'')+'">'+dn+'</div><div class="f-meta">'+esc(mt)+'</div></div><button class="cfg-btn" data-s="'+i+'">⚙️</button></div>'}).join('');c.querySelectorAll('.f-row').forEach(r=>r.addEventListener('click',e=>{if(!e.target.classList.contains('cfg-btn')){const t=r.dataset.copy;if(!t)return;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(()=>ok('已复制'));else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0;';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok('已复制')}catch(e){}document.body.removeChild(ta)}}}));c.querySelectorAll('.cfg-btn').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openCfg(+b.dataset.s)}))}
+function renderRows(){const c=$('fRows');if(!c)return;c.innerHTML=stages.map((s,i)=>{const m=meta[i];let dn=(i+1)+'. '+s.name,mt='未设置音乐';if(m&&(m.localFile||m.onlineUrl)){dn=(i+1)+'. '+(m.name||s.name);mt=(m.localFile?'📁':'')+(m.onlineUrl?'🌐':'')+' · '+fmtTime(s.duration)}return'<div class="f-row" data-copy="'+(m?.onlineUrl||m?.name||s.name||'')+'"><div class="f-info"><div class="f-name '+(m?.localFile||m?.onlineUrl?'on':'')+'">'+dn+'</div><div class="f-meta">'+mt+'</div></div><button class="cfg-btn" data-s="'+i+'">⚙️</button></div>'}).join('');c.querySelectorAll('.f-row').forEach(r=>r.addEventListener('click',e=>{if(!e.target.classList.contains('cfg-btn')){const t=r.dataset.copy;if(!t)return;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(()=>ok('已复制'));else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0;';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok('已复制')}catch(e){}document.body.removeChild(ta)}}}));c.querySelectorAll('.cfg-btn').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();openCfg(+b.dataset.s)}))}
 
 // ===== 配置 =====
-function openCfg(i){editIdx=i;const s=stages[i],m=meta[i];$('cfgTitle').textContent='⚙️ 配置 '+s.name;$('cName').value=s.name||'';$('cBpm').value=s.bpm||60;$('cDur').value=s.duration||300;tmpFile=null;tmpUrl='';window._dl=false;$('cfgModal').classList.add('on')}
+function openCfg(i){editIdx=i;const s=stages[i];$('cfgTitle').textContent='⚙️ 配置 '+s.name;$('cName').value=s.name||'';$('cBpm').value=s.bpm||60;$('cDur').value=s.duration||300;tmpFile=null;tmpUrl='';window._dl=false;$('cfgModal').classList.add('on')}
 function closeCfg(){$('cfgModal').classList.remove('on')}
-async function saveCfg(){try{const old=stages[editIdx]||{};stages[editIdx]={name:($('cName').value||'').trim().substring(0,100)||old.name||('阶段'+(editIdx+1)),bpm:Math.max(30,Math.min(200,parseInt($('cBpm').value)||60)),duration:Math.max(0,Math.min(7200,parseInt($('cDur').value)||0)),action:old.action||'',imagine:old.imagine||''};if(tmpFile){try{await Promise.race([dbPut(editIdx,tmpFile),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name,localFile:{name:tmpFile.name,type:tmpFile.type,size:tmpFile.size}}}catch(dbErr){meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name}}}else if(window._dl){try{await dbDel(editIdx)}catch(e){}if(meta[editIdx])meta[editIdx].localFile=null}if(tmpUrl){meta[editIdx]={...(meta[editIdx]||{}),onlineUrl:tmpUrl,onlineName:tmpUrl.split('/').pop()?.split('?')[0]||'在线'}}if(!meta[editIdx])meta[editIdx]={name:stages[editIdx].name,localFile:null,onlineUrl:'',onlineName:''};saveAll();renderRows();initPl();updateStage();updateRing();updMini();renderPills();if(cur===editIdx&&playing)await playMusic(cur);closeCfg();ok('已保存')}catch(e){err('保存失败: '+e.message);setTimeout(closeCfg,1500)}}
+async function saveCfg(){try{const old=stages[editIdx]||{};stages[editIdx]={name:($('cName').value||'').trim().substring(0,100)||old.name||('阶段'+(editIdx+1)),bpm:Math.max(30,Math.min(200,parseInt($('cBpm').value)||60)),duration:Math.max(0,Math.min(7200,parseInt($('cDur').value)||0)),action:old.action||'',imagine:old.imagine||''};if(tmpFile){try{await Promise.race([dbPut(editIdx,tmpFile),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name,localFile:{name:tmpFile.name,type:tmpFile.type,size:tmpFile.size}}}catch(e){meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name}}}else if(window._dl){try{await dbDel(editIdx)}catch(e){}if(meta[editIdx])meta[editIdx].localFile=null}if(tmpUrl){meta[editIdx]={...(meta[editIdx]||{}),onlineUrl:tUrl,onlineName:tUrl.split('/').pop()?.split('?')[0]||'在线'}}if(!meta[editIdx])meta[editIdx]={name:stages[editIdx].name,localFile:null,onlineUrl:'',onlineName:''};saveAll();renderRows();initPl();updateStage();updateRing();updMini();renderPills();if(cur===editIdx&&playing)await playMusic(cur);closeCfg();ok('已保存')}catch(e){err('保存失败: '+e.message);setTimeout(closeCfg,1500)}}
 
 // ===== 数据 =====
-function saveAll(){try{localStorage.setItem(KEYS.STAGES,JSON.stringify(stages));saveState()}catch(e){}}
-function saveState(){if(!auto)return;try{localStorage.setItem(KEYS.STATE,JSON.stringify({cur,total,saved,meta:meta.map(m=>m?{name:m.name,localFile:m.localFile?{name:m.localFile.name}:null,onlineUrl:m.onlineUrl||''}:null)}))}catch(e){}}
+function saveAll(){try{localStorage.setItem(KEYS.STAGES,JSON.stringify(stages));if(auto){localStorage.setItem(KEYS.STATE,JSON.stringify({cur,total,saved,meta:meta.map(m=>m?{name:m.name,localFile:m.localFile?{name:m.localFile.name}:null,onlineUrl:m.onlineUrl||''}:null)}))}}catch(e){}}
 function loadAll(){try{const s=JSON.parse(localStorage.getItem(KEYS.STAGES));if(Array.isArray(s)&&s.length===5)stages=s}catch(e){}try{const d=JSON.parse(localStorage.getItem(KEYS.STATE));if(d){cur=d.cur||0;total=d.total||0;saved=d.saved||0;d.meta?.forEach((m,i)=>{if(m)meta[i]=m})}}catch(e){}try{stats=JSON.parse(localStorage.getItem(KEYS.STATS))||stats}catch(e){}auto=localStorage.getItem(KEYS.AUTO)!=='false'}
 function saveStats(){try{localStorage.setItem(KEYS.STATS,JSON.stringify(stats))}catch(e){}}
 function record(){const today=new Date().toISOString().split('T')[0];stats.sessions.push({date:today});stats.totalSessions=(stats.totalSessions||0)+1;stats.totalMinutes=(stats.totalMinutes||0)+Math.round(totalDur()/60);stats.daily[today]=(stats.daily[today]||0)+1;let sk=0,d=new Date();while(stats.daily[d.toISOString().split('T')[0]]){sk++;d.setDate(d.getDate()-1)}stats.currentStreak=sk;stats.lastDate=today;saveStats();updateStats();updateChart()}
@@ -393,7 +392,7 @@ function updateChart(){if(chart){chart.data=getChartData(chartType);chart.update
 // ===== 导入导出 =====
 function exportData(){try{const blob=new Blob([JSON.stringify({version:VER,stages,meta,stats,exportDate:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='neuro_'+new Date().toISOString().split('T')[0]+'.json';a.click();ok('已导出')}catch(e){err('导出失败')}}
 async function importData(file){if(!file)return;try{const text=await file.text();let data;try{data=JSON.parse(text)}catch{err('无效JSON');return}if(data.stages){if(!Array.isArray(data.stages)||data.stages.length!==5){err('stages必须是5个');return}stages=data.stages}if(data.stats){stats=data.stats;saveStats()}if(data.meta)meta=data.meta;saveAll();renderRows();initPl();updateStage();updateRing();updMini();updateStats();updateChart();ok('导入成功')}catch(e){err('导入失败')}}
-async function clearAll(){const ok2=confirm('确定清除所有数据？');if(!ok2)return;doPause();stopAll();stopSessAudio();for(let i=0;i<5;i++)await dbDel(i);await dbClear();try{localStorage.clear()}catch(e){}stages=JSON.parse(JSON.stringify(DEF));cur=0;total=0;saved=0;meta=[null,null,null,null,null];auto=true;stats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastDate:null,daily:{}};try{localStorage.setItem(KEYS.AUTO,'true');localStorage.setItem(KEYS.STAGES,JSON.stringify(stages))}catch(e){}renderRows();initPl();updateStage();updateRing();updMini();updateStats();updateChart();$('stSub').textContent='准备开始';updateBtn();$('autoSave').classList.add('on');ok('已清除')}
+async function clearAll(){if(!confirm('确定清除所有数据？'))return;doPause();stopAll();stopSessAudio();for(let i=0;i<5;i++)await dbDel(i);try{localStorage.clear()}catch(e){}stages=JSON.parse(JSON.stringify(DEF));cur=0;total=0;saved=0;meta=[null,null,null,null,null];auto=true;stats={sessions:[],totalSessions:0,totalMinutes:0,currentStreak:0,lastDate:null,daily:{}};try{localStorage.setItem(KEYS.AUTO,'true');localStorage.setItem(KEYS.STAGES,JSON.stringify(stages))}catch(e){}renderRows();initPl();updateStage();updateRing();updMini();updateStats();updateChart();updateTitle();updateSub('准备开始 · 阶段 1/5');updateBtn();$('autoSave').classList.add('on');ok('已清除')}
 
 // ===== Wake Lock =====
 async function reqWL(){try{if('wakeLock'in navigator&&playing)wlock=await navigator.wakeLock.request('screen')}catch(e){}}
@@ -422,7 +421,7 @@ $('selNet').addEventListener('click',()=>{const i=prompt('音频链接:');if(!i)
 $('locFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f||!f.type.startsWith('audio/')){err('请选择音频');e.target.value='';return}tmpFile=f;tmpUrl='';ok('已选择: '+f.name);e.target.value=''});
 $('impFile').addEventListener('change',e=>{importData(e.target.files[0]);e.target.value=''});
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchChart(t.dataset.t)));
-$('autoSave').addEventListener('click',()=>{auto=!auto;try{localStorage.setItem(KEYS.AUTO,String(auto))}catch(e){}$('autoSave').classList.toggle('on',auto);if(auto)saveState()});
+$('autoSave').addEventListener('click',()=>{auto=!auto;try{localStorage.setItem(KEYS.AUTO,String(auto))}catch(e){}$('autoSave').classList.toggle('on',auto);if(auto)saveAll()});
 $('mainVol').addEventListener('input',e=>{mainVol=e.target.value/100;$('mainVolVal').textContent=e.target.value+'%';if(curAud)curAud.volume=mainVol});
 $('metroVol').addEventListener('input',e=>{metroVol=e.target.value/100;$('metroVolVal').textContent=e.target.value+'%'});
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();togglePlay()}else if(e.code==='ArrowLeft'){e.preventDefault();prevTrack()}else if(e.code==='ArrowRight'){e.preventDefault();nextTrack()}});
@@ -430,23 +429,17 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(
 
 // ===== 初始化 =====
 async function init(){
-log('v'+VER,'| 系统:',isHm?'HarmonyOS':isHw?'华为':isIos?'iOS':'标准');
+log('v'+VER,'系统:',isHm?'HarmonyOS':isHw?'华为':'标准');
 if(isHw||isHm)$('hwGuide')?.classList.add('on');
 initBluetoothMonitor();
 loadAll();
 $('autoSave').classList.toggle('on',auto);
-
 if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{})}
-try{const icon=genIcon();['152x152','180x180','512x512'].forEach(sz=>{const link=document.createElement('link');link.rel='apple-touch-icon';link.sizes=sz;link.href=icon;document.head.appendChild(link)})}catch(e){}
-
-renderRows();initPl();updateStage();updateRing();updMini();updateBtn();updateStats();initChart();updateChart();renderPills();
+renderRows();initPl();updateStage();updateRing();updateBtn();updateStats();initChart();updateChart();
 bind();
-
-const activate=async()=>{log('👆 用户手势激活');await ensureAC();getSessAudio();if(!msInit)await initMediaSession();await updateMS();[cUrl(),iUrl(96),iUrl(128),iUrl(192)].forEach(url=>{const img=new Image();img.src=url});document.removeEventListener('touchstart',activate);document.removeEventListener('click',activate)};
+const activate=async()=>{log('用户手势激活');await ensureAC();getSessAudio();if(!msInit)await initMediaSession();await updateMS();[iUrl(512),iUrl(256),iUrl(192),iUrl(128),iUrl(96)].forEach(url=>{const img=new Image();img.src=url});document.removeEventListener('touchstart',activate);document.removeEventListener('click',activate)};
 document.addEventListener('touchstart',activate,{once:true,passive:true});
 document.addEventListener('click',activate,{once:true,passive:true});
-
-if('Notification'in window&&Notification.permission==='default')setTimeout(()=>Notification.requestPermission(),3000);
 setInterval(()=>{if(auto&&playing)saveAll()},15000);
 window.addEventListener('beforeunload',()=>{if(auto)saveAll()});
 log('初始化完成');
