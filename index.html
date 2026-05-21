@@ -175,10 +175,10 @@ input[type="file"]{display:none}
 <div class="pills" id="pills"></div>
 
 <!-- Toggle -->
-<div class="toggle-more" onclick="document.getElementById('panel').classList.toggle('open');this.querySelector('span').textContent=document.getElementById('panel').classList.contains('open')?'▲':'▼'"><span>▼</span> 更多设置</div>
+<div class="toggle-more" onclick="document.getElementById('panel').classList.toggle('open');this.querySelector('span').textContent=document.getElementById('panel').classList.contains('open')?'▲':'▼'"><span>▲</span> 更多设置</div>
 
 <!-- Detail panel -->
-<div class="panel" id="panel">
+<div class="panel open" id="panel">
 <div class="stage"><span class="num" id="sNum">阶段 1/5</span><div class="title" id="sTitle">坐立战马</div><div class="detail" id="sDetail"></div></div>
 <div class="file-in"><h4 style="color:var(--t2);margin-bottom:10px;font-size:12px">🎵 训练曲目</h4><div id="fRows"></div></div>
 <div class="file-in"><h4 style="color:var(--t2);margin-bottom:8px;font-size:12px">🔊 音量</h4>
