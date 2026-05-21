@@ -304,7 +304,7 @@ function stopMetro(){if(metroIval){clearInterval(metroIval);metroIval=null}if(me
 
 function clickMetro(){if(!actx||actx.state!=='running')return;try{const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);o.frequency.value=1000;const n=actx.currentTime;g.gain.setValueAtTime(metroVol*0.5,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.08);o.start(n);o.stop(n+0.08)}catch(e){}}
 
-function startMetro(bpm){stopMetro();const dur=stages[cur]?.duration||300;$('tDur').textContent=fmtTime(dur);$('tCur').textContent='00:00';$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';mStartTime=performance.now();clickMetro();metroIval=setInterval(()=>{if(playing)clickMetro()},(60/bpm)*1000);metroProg=setInterval(()=>{if(!playing)return;const elapsed=(performance.now()-mStartTime)/1000;const pct=Math.min((elapsed/dur)*100,100);$('tFill').style.width=pct+'%';if($('tDot'))$('tDot').style.left=pct+'%';$('tCur').textContent=fmtTime(elapsed);if(elapsed>=dur){stopMetro();nextStage()}} ,50)}
+function startMetro(bpm){stopMetro();const dur=stages[cur]?.duration||300;$('tDur').textContent=fmtTime(dur);$('tCur').textContent='00:00';$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';mStartTime=performance.now();clickMetro();metroIval=setInterval(()=>{if(playing)clickMetro()},(60/bpm)*1000);metroProg=setInterval(()=>{if(!playing)return;const elapsed=(performance.now()-mStartTime)/1000;const pct=Math.min((elapsed/dur)*100,100);$('tFill').style.width=pct+'%';if($('tDot'))$('tDot').style.left=pct+'%';$('tCur').textContent=fmtTime(elapsed);if(elapsed>=dur){stopMetro();autoNext()}} ,50)}
 
 const SILENCE='data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==';
 function getSessAudio(){if(!sessAud){sessAud=document.createElement('audio');sessAud.crossOrigin='anonymous';sessAud.setAttribute('playsinline','');sessAud.controls=true;sessAud.loop=true;sessAud.muted=false;sessAud.volume=0.3;sessAud.preload='auto';sessAud.style.cssText='position:fixed;bottom:0;left:0;width:100%;height:2px;opacity:0.01;pointer-events:none;z-index:9999;';sessAud.src=SILENCE;document.body.appendChild(sessAud)}return sessAud}
@@ -313,30 +313,42 @@ async function startSessAudio(){try{const a=getSessAudio();a.muted=false;a.volum
 function stopSessAudio(){if(sessAud&&!sessAud.paused){try{sessAud.pause();sessAud.currentTime=0}catch(e){}}}
 
 // ===== 播放音乐 =====
-async function playMusic(idx,resume){stopAll();const m=meta[idx],s=stages[idx];if(m?.localFile){try{const entry=await dbGet(idx);if(entry?.data){const blob=new Blob([entry.data],{type:entry.type||'audio/mpeg'});curAud=new Audio(URL.createObjectURL(blob));curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(!curAud?.duration)return;$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration)});curAud.addEventListener('ended',()=>{log('本地音频结束');nextStage()});return await doPlay(resume,s.name+' · 📁')}}catch(e){log('本地播放失败',e)}}if(m?.onlineUrl){try{curAud=new Audio(m.onlineUrl);curAud.crossOrigin='anonymous';curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(curAud?.duration){$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration)}});curAud.addEventListener('ended',()=>{log('在线音频结束');nextStage()});return await doPlay(resume,s.name+' · 🌐')}catch(e){log('在线播放失败',e)}}await makeBG(s);return false}
+async function playMusic(idx,resume){stopAll();const m=meta[idx],s=stages[idx];if(m?.localFile){try{const entry=await dbGet(idx);if(entry?.data){const blob=new Blob([entry.data],{type:entry.type||'audio/mpeg'});curAud=new Audio(URL.createObjectURL(blob));curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(!curAud?.duration)return;$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration)});curAud.addEventListener('ended',()=>{log('本地音频结束');audioEnded()});return await doPlay(resume,s.name+' · 📁')}}catch(e){log('本地播放失败',e)}}if(m?.onlineUrl){try{curAud=new Audio(m.onlineUrl);curAud.crossOrigin='anonymous';curAud.loop=false;curAud.setAttribute('playsinline','');curAud.volume=mainVol;curAud.addEventListener('timeupdate',()=>{if(curAud?.duration){$('tFill').style.width=((curAud.currentTime/curAud.duration)*100)+'%';if($('tDot'))$('tDot').style.left=((curAud.currentTime/curAud.duration)*100)+'%';$('tCur').textContent=fmtTime(curAud.currentTime);$('tDur').textContent=fmtTime(curAud.duration)}});curAud.addEventListener('ended',()=>{log('在线音频结束');audioEnded()});return await doPlay(resume,s.name+' · 🌐')}catch(e){log('在线播放失败',e)}}await makeBG(s);return false}
 
 async function doPlay(resume,text){return new Promise(res=>{let done=false;const exec=async()=>{if(done)return;done=true;try{if(resume>0&&Number.isFinite(resume))curAud.currentTime=resume;stopSessAudio();await curAud.play();if('mediaSession'in navigator)navigator.mediaSession.playbackState='playing';updateSub(text);await updateMS();updMini();res(true)}catch(e){await makeBG(stages[cur]);res(false)}};exec();setTimeout(()=>{if(!done){done=true;makeBG(stages[cur]);res(false)}},5000)})}
 
 async function makeBG(s){stopBG();await startSessAudio();try{const ctx=await ensureAC();bgOsc=ctx.createOscillator();bgGain=ctx.createGain();bgOsc.connect(bgGain);bgGain.connect(ctx.destination);bgOsc.frequency.value=80;bgGain.gain.value=mainVol*0.03;bgOsc.start()}catch(e){}startMetro(s.bpm);updateSub(s.name+' · 节拍器');await updateMS();updMini()}
 
 // ===== 播放控制 =====
-async function togglePlay(){try{if(!actx)await ensureAC();if(playing){doPause()}else{doPlayAll()}}catch(e){err('播放失败: '+e.message)}}
+async function togglePlay(){try{if(!actx)await ensureAC();if(playing){await doPause()}else{await doPlayAll()}}catch(e){err('播放失败: '+e.message)}}
 
 async function doPlayAll(){log('=== PLAY ===');playing=true;updateBtn();saved=0;await startSessAudio();if(!msInit)await initMediaSession();try{await playMusic(cur,saved)}catch(e){await makeBG(stages[cur])}await updateMS();loopTimer=setInterval(()=>{if(!playing)return;total++;updateRing();if(total>0&&total-stageStart(cur)>=(stages[cur]?.duration||300)){nextStage()}},1000);reqWL();showHint();updateDiag()}
 
 async function doPause(){log('=== PAUSE ===');playing=false;updateBtn();if(loopTimer){clearInterval(loopTimer);loopTimer=null}if(curAud){saved=curAud.currentTime;curAud.pause()}stopMetro();stopSessAudio();if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';releaseWL();saveAll();updateDiag();await updateMS()}
 
-// 阶段结束自动跳转 — 核心修复：防止重复触发
-let stageTransitioning=false;
-function nextStage(){if(stageTransitioning)return;stageTransitioning=true;setTimeout(()=>{stageTransitioning=false},500);if(cur<stages.length-1){switchTrack(cur+1)}else{complete()}}
+// 阶段跳转控制（全部 async + 锁防止重复触发）
+let _transitioning=false;
+function _lock(){if(_transitioning)return false;_transitioning=true;setTimeout(()=>_transitioning=false,600);return true}
 
-function complete(){doPause();stopAll();stopSessAudio();record();updateTitle('🎉 完成！');updateSub('全部阶段已完成');cur=0;total=0;saved=0;updateRing();updateStage();updMini();updateBtn();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';initPl();saveAll();releaseWL()}
-function resetAll(){doPause();stopAll();stopSessAudio();cur=0;total=0;saved=0;updateRing();updateStage();updMini();updateBtn();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';$('tCur').textContent='00:00';updateSub('准备开始 · 阶段 1/5');initPl();saveAll();releaseWL()}
+// 节拍器/计时器到时自动跳转
+async function autoNext(){if(!_lock())return;log('autoNext');if(cur<stages.length-1){await goToStage(cur+1,true)}else{await doComplete()}}
 
-function switchTrack(i){if(i===cur&&!playing){togglePlay();return}const was=playing;if(playing)doPause();cur=i;saved=0;updateStage();updMini();renderPills();if(was){setTimeout(()=>{doPlayAll()},200)}else{playMusic(cur).then(()=>{if(curAud&&!playing)curAud.pause()})}saveAll()}
+// 音频文件播放结束跳转
+async function audioEnded(){if(!_lock())return;log('audioEnded');if(cur<stages.length-1){await goToStage(cur+1,true)}else{await doComplete()}}
 
-function prevTrack(){switchTrack(cur>0?cur-1:stages.length-1)}
-function nextTrack(){switchTrack(cur<stages.length-1?cur+1:0)}
+// 用户点击上一首/下一首
+async function userPrev(){if(!_lock())return;log('userPrev');const p=cur>0?cur-1:stages.length-1;const was=playing;await goToStage(p,was)}
+async function userNext(){if(!_lock())return;log('userNext');const n=cur<stages.length-1?cur+1:0;const was=playing;await goToStage(n,was)}
+
+// 核心跳转函数
+async function goToStage(i,wasPlaying){log('goToStage',i,wasPlaying);if(i===cur&&!playing){await togglePlay();return}if(playing)await doPause();cur=i;saved=0;updateStage();updMini();renderPills();if(wasPlaying){await doPlayAll()}else{try{await playMusic(cur)}catch(e){}}saveAll()}
+
+// 完成全部
+async function doComplete(){log('doComplete');await doPause();stopAll();stopSessAudio();record();cur=0;total=0;saved=0;updateTitle('🎉 完成！');updateSub('全部阶段已完成');updateStageNum();updateRing();updateStage();updMini();updateBtn();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';initPl();saveAll();releaseWL()}
+
+// 重置
+async function doReset(){log('doReset');await doPause();stopAll();stopSessAudio();cur=0;total=0;saved=0;updateTitle();updateSub('准备开始 · 阶段 1/5');updateStageNum();updateRing();updateStage();updMini();updateBtn();$('tFill').style.width='0%';if($('tDot'))$('tDot').style.left='0%';$('tCur').textContent='00:00';initPl();saveAll();releaseWL()}
+
 function seek(e){if(!curAud?.duration)return;const rect=$('tbar').getBoundingClientRect();const p=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));curAud.currentTime=p*curAud.duration;saved=p*curAud.duration}
 
 // ===== UI更新（全部集中在这里，确保一致） =====
@@ -374,7 +386,7 @@ function renderRows(){const c=$('fRows');if(!c)return;c.innerHTML=stages.map((s,
 // ===== 配置 =====
 function openCfg(i){editIdx=i;const s=stages[i];$('cfgTitle').textContent='⚙️ 配置 '+s.name;$('cName').value=s.name||'';$('cBpm').value=s.bpm||60;$('cDur').value=s.duration||300;tmpFile=null;tmpUrl='';window._dl=false;$('cfgModal').classList.add('on')}
 function closeCfg(){$('cfgModal').classList.remove('on')}
-async function saveCfg(){try{const old=stages[editIdx]||{};stages[editIdx]={name:($('cName').value||'').trim().substring(0,100)||old.name||('阶段'+(editIdx+1)),bpm:Math.max(30,Math.min(200,parseInt($('cBpm').value)||60)),duration:Math.max(0,Math.min(7200,parseInt($('cDur').value)||0)),action:old.action||'',imagine:old.imagine||''};if(tmpFile){try{await Promise.race([dbPut(editIdx,tmpFile),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name,localFile:{name:tmpFile.name,type:tmpFile.type,size:tmpFile.size}}}catch(e){meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name}}}else if(window._dl){try{await dbDel(editIdx)}catch(e){}if(meta[editIdx])meta[editIdx].localFile=null}if(tmpUrl){meta[editIdx]={...(meta[editIdx]||{}),onlineUrl:tUrl,onlineName:tUrl.split('/').pop()?.split('?')[0]||'在线'}}if(!meta[editIdx])meta[editIdx]={name:stages[editIdx].name,localFile:null,onlineUrl:'',onlineName:''};saveAll();renderRows();initPl();updateStage();updateRing();updMini();renderPills();if(cur===editIdx&&playing)await playMusic(cur);closeCfg();ok('已保存')}catch(e){err('保存失败: '+e.message);setTimeout(closeCfg,1500)}}
+async function saveCfg(){try{const old=stages[editIdx]||{};stages[editIdx]={name:($('cName').value||'').trim().substring(0,100)||old.name||('阶段'+(editIdx+1)),bpm:Math.max(30,Math.min(200,parseInt($('cBpm').value)||60)),duration:Math.max(0,Math.min(7200,parseInt($('cDur').value)||0)),action:old.action||'',imagine:old.imagine||''};if(tmpFile){try{await Promise.race([dbPut(editIdx,tmpFile),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name,localFile:{name:tmpFile.name,type:tmpFile.type,size:tmpFile.size}}}catch(e){meta[editIdx]={...(meta[editIdx]||{}),name:stages[editIdx].name}}}else if(window._dl){try{await dbDel(editIdx)}catch(e){}if(meta[editIdx])meta[editIdx].localFile=null}if(tmpUrl){meta[editIdx]={...(meta[editIdx]||{}),onlineUrl:tmpUrl,onlineName:tmpUrl.split('/').pop()?.split('?')[0]||'在线'}}if(!meta[editIdx])meta[editIdx]={name:stages[editIdx].name,localFile:null,onlineUrl:'',onlineName:''};saveAll();renderRows();initPl();updateStage();updateRing();updMini();renderPills();if(cur===editIdx&&playing)await playMusic(cur);closeCfg();ok('已保存')}catch(e){err('保存失败: '+e.message);setTimeout(closeCfg,1500)}}
 
 // ===== 数据 =====
 function saveAll(){try{localStorage.setItem(KEYS.STAGES,JSON.stringify(stages));if(auto){localStorage.setItem(KEYS.STATE,JSON.stringify({cur,total,saved,meta:meta.map(m=>m?{name:m.name,localFile:m.localFile?{name:m.localFile.name}:null,onlineUrl:m.onlineUrl||''}:null)}))}}catch(e){}}
@@ -400,16 +412,16 @@ async function releaseWL(){if(wlock){try{await wlock.release();wlock=null}catch(
 
 // ===== 事件绑定 =====
 function bind(){
-$('playBtn').addEventListener('click',togglePlay);
-$('resetBtn').addEventListener('click',resetAll);
+$('playBtn').addEventListener('click',()=>togglePlay());
+$('resetBtn').addEventListener('click',()=>doReset());
 $('exportBtn').addEventListener('click',exportData);
 $('importBtn').addEventListener('click',()=>$('impFile').click());
 $('clearBtn').addEventListener('click',clearAll);
-$('mPlay').addEventListener('click',togglePlay);
-$('mPrev').addEventListener('click',prevTrack);
-$('mNext').addEventListener('click',nextTrack);
-$('prevBtn').addEventListener('click',prevTrack);
-$('nextBtn').addEventListener('click',nextTrack);
+$('mPlay').addEventListener('click',()=>togglePlay());
+$('mPrev').addEventListener('click',()=>userPrev());
+$('mNext').addEventListener('click',()=>userNext());
+$('prevBtn').addEventListener('click',()=>userPrev());
+$('nextBtn').addEventListener('click',()=>userNext());
 $('likeBtn').addEventListener('click',()=>{liked=!liked;$('likeBtn').classList.toggle('liked',liked);ok(liked?'已收藏':'已取消收藏')});
 $('hintBtn').addEventListener('click',()=>{const s=stages[cur];ok(s?.imagine||'深呼吸，专注当下')});
 $('tbar').addEventListener('click',seek);
