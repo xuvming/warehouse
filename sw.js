@@ -1,4 +1,4 @@
-const CACHE_NAME = 'neuro-v8.0.2';
+const CACHE_NAME = 'neuro-v8.0.0';
 const STATIC_ASSETS = [
   './',
   './index.html',

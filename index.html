@@ -417,23 +417,9 @@
             return c.toDataURL('image/png');
         }
 
-        // ========== URL 生成（PWA 子目录部署兼容）==========
-        // 确保在 standalone PWA 模式下也能正确生成绝对 URL
-        // location.href 在 PWA 中可能是 .../warehouse 或 .../warehouse/ 或 .../warehouse/index.html
-        const BASE_URL = (function() {
-            let p = location.pathname;
-            // 去掉末尾的 index.html
-            p = p.replace(/index\.html$/i, '');
-            // 确保末尾有 /
-            if (!p.endsWith('/')) p += '/';
-            return location.origin + p;
-        })();
-
+        // MediaSession artwork 必须用 HTTPS URL（data URL 锁屏进程不支持）
         function getIconUrl(size) {
-            return BASE_URL + 'icons/icon-' + size + 'x' + size + '.png';
-        }
-        function getCoverUrl() {
-            return BASE_URL + 'cover.jpg';
+            return new URL('./icons/icon-' + size + 'x' + size + '.png', location.href).href;
         }
 
         // ============================================================
@@ -466,10 +452,8 @@
                     artist: '准备开始',
                     album: 'PWA',
                     artwork: [
-                        { src: getCoverUrl(), sizes: '512x512', type: 'image/jpeg' },
-                        { src: getIconUrl(256), sizes: '256x256', type: 'image/png' },
+                        { src: './cover.jpg', sizes: '512x512', type: 'image/jpeg' },
                         { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
-                        { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
                         { src: getIconUrl(96), sizes: '96x96', type: 'image/png' }
                     ]
                 });
@@ -580,10 +564,8 @@
                     artist: m?.name || '训练播放',
                     album: '阶段' + (cur + 1) + '/5 · ' + (s?.bpm || 60) + 'BPM',
                     artwork: [
-                        { src: getCoverUrl(), sizes: '512x512', type: 'image/jpeg' },
-                        { src: getIconUrl(256), sizes: '256x256', type: 'image/png' },
+                        { src: './cover.jpg', sizes: '512x512', type: 'image/jpeg' },
                         { src: getIconUrl(192), sizes: '192x192', type: 'image/png' },
-                        { src: getIconUrl(128), sizes: '128x128', type: 'image/png' },
                         { src: getIconUrl(96), sizes: '96x96', type: 'image/png' }
                     ]
                 });
@@ -1002,43 +984,15 @@
         async function saveCfg() {
             try {
                 let dur = parseInt($('cDur').value) || 0;
-                const old = stages[editIdx] || {};
-                stages[editIdx] = { 
-                    name: ($('cName').value || '').trim().substring(0, 100) || old.name || ('阶段'+(editIdx+1)), 
-                    bpm: Math.max(30, Math.min(200, parseInt($('cBpm').value) || 60)), 
-                    duration: Math.max(0, Math.min(7200, dur)), 
-                    action: old.action || '', 
-                    imagine: old.imagine || '' 
-                };
-                // 保存音频文件到 IndexedDB（带超时保护）
-                if (tmpFile) {
-                    try {
-                        await Promise.race([
-                            dbPut(editIdx, tmpFile),
-                            new Promise((_, rej) => setTimeout(() => rej(new Error('存储超时')), 10000))
-                        ]);
-                        meta[editIdx] = { ...(meta[editIdx] || {}), name: stages[editIdx].name, localFile: { name: tmpFile.name, type: tmpFile.type, size: tmpFile.size } };
-                    } catch (dbErr) {
-                        log('IndexedDB存储失败:', dbErr.message);
-                        // IndexedDB 失败也继续保存其他配置
-                        meta[editIdx] = { ...(meta[editIdx] || {}), name: stages[editIdx].name };
-                    }
-                } else if (window._dl) { 
-                    try { await dbDel(editIdx); } catch(e) {} 
-                    if (meta[editIdx]) meta[editIdx].localFile = null; 
-                }
-                if (tmpUrl) { 
-                    meta[editIdx] = { ...(meta[editIdx] || {}), onlineUrl: tmpUrl, onlineName: tmpUrl.split('/').pop()?.split('?')[0] || '在线' }; 
-                }
+                stages[editIdx] = { name: ($('cName').value || '').trim().substring(0, 100) || ('阶段'+(editIdx+1)), bpm: Math.max(30, Math.min(200, parseInt($('cBpm').value) || 60)), duration: Math.max(0, Math.min(7200, dur)), action: '', imagine: '' };
+                if (tmpFile) { await dbPut(editIdx, tmpFile); meta[editIdx] = { ...(meta[editIdx] || {}), name: stages[editIdx].name, localFile: { name: tmpFile.name, type: tmpFile.type, size: tmpFile.size } }; }
+                else if (window._dl) { await dbDel(editIdx); if (meta[editIdx]) meta[editIdx].localFile = null; }
+                if (tmpUrl) { meta[editIdx] = { ...(meta[editIdx] || {}), onlineUrl: tmpUrl, onlineName: tmpUrl.split('/').pop()?.split('?')[0] || '在线' }; }
                 if (!meta[editIdx]) meta[editIdx] = { name: stages[editIdx].name, localFile: null, onlineUrl: '', onlineName: '' };
                 saveAll(); renderRows(); initPl(); updateStage(); updateDisp(); updMini(); renderStagePills();
                 if (cur === editIdx && playing) await playMusic(cur);
                 closeCfg(); ok('已保存');
-            } catch (e) { 
-                err('保存失败: ' + e.message); 
-                // 即使出错也关闭弹窗，避免卡死
-                setTimeout(closeCfg, 1500);
-            }
+            } catch (e) { err('保存失败: ' + e.message); }
         }
 
         // ============================================================
@@ -1159,20 +1113,8 @@
             // 用户手势激活音频上下文 + 预初始化 MediaSession
             const activate = async () => {
                 log('👆 用户手势激活');
-                log('BASE_URL:', BASE_URL);
                 await ensureAC();
                 getSessAudio(); // 预创建
-
-                // 预加载封面图和图标到浏览器缓存（锁屏进程需要能直接访问）
-                try {
-                    [getCoverUrl(), getIconUrl(96), getIconUrl(128), getIconUrl(192), getIconUrl(256)].forEach(url => {
-                        const img = new Image();
-                        img.src = url;
-                        img.onload = () => log('预加载成功:', url);
-                        img.onerror = () => log('预加载失败:', url);
-                    });
-                } catch (e) {}
-
                 // 立即初始化 MediaSession，这样耳机连接时 handler 已经就绪
                 if (!msInit) await initMediaSession();
                 // 设置初始元数据激活媒体会话
